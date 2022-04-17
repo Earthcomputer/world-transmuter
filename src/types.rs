@@ -1,71 +1,94 @@
+use std::cell::{Ref, RefCell};
 use std::pin::Pin;
 use rust_dataconverter_engine::{IdDataType, MapDataType, ObjectDataType, Types};
 
-pub struct MinecraftTypes<'a, T: Types + ?Sized> {
-    // private field to prevent struct being initialized via member initialization,
-    // allows public fields to be added without it being a breaking change.
-    _private: (),
-    pub level: MapDataType<'a, T>,
-    pub player: MapDataType<'a, T>,
-    pub chunk: MapDataType<'a, T>,
-    pub hotbar: MapDataType<'a, T>,
-    pub options: MapDataType<'a, T>,
-    pub structure: MapDataType<'a, T>,
-    pub stats: MapDataType<'a, T>,
-    pub saved_data: MapDataType<'a, T>,
-    pub advancements: MapDataType<'a, T>,
-    pub poi_chunk: MapDataType<'a, T>,
-    pub entity_chunk: MapDataType<'a, T>,
-    pub tile_entity: IdDataType<'a, T>,
-    pub item_stack: IdDataType<'a, T>,
-    pub block_state: MapDataType<'a, T>,
-    pub entity_name: ObjectDataType<'a, T>,
-    pub entity: IdDataType<'a, T>,
-    pub block_name: ObjectDataType<'a, T>,
-    pub item_name: ObjectDataType<'a, T>,
-    pub untagged_spawner: MapDataType<'a, T>,
-    pub structure_feature: MapDataType<'a, T>,
-    pub objective: MapDataType<'a, T>,
-    pub team: MapDataType<'a, T>,
-    pub recipe: ObjectDataType<'a, T>,
-    pub biome: ObjectDataType<'a, T>,
-    pub world_gen_settings: MapDataType<'a, T>,
+macro_rules! define_minecraft_types {
+    ($($field_name:ident : $type:ident ($name:literal)),*) => {
+        #[repr(C)] // important for safety of pinned field offsets
+        struct MinecraftTypesArena<'a, T: Types + ?Sized> {
+            $(
+                $field_name: RefCell<$type<'a, T>>,
+            )*
+        }
+
+        pub(crate) struct MinecraftTypesMut<'a, T: Types + ?Sized> {
+            $(
+                pub(crate) $field_name: &'a RefCell<$type<'a, T>>,
+            )*
+            arena: Pin<Box<MinecraftTypesArena<'a, T>>>,
+        }
+
+        pub struct MinecraftTypes<'a, T: Types + ?Sized> {
+            arena: Pin<Box<MinecraftTypesArena<'a, T>>>,
+        }
+
+        impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
+            $(
+                pub fn $field_name(&'a self) -> Ref<'a, $type<'a, T>> {
+                    self.arena.$field_name.borrow()
+                }
+            )*
+
+            fn create_empty() -> MinecraftTypesMut<'a, T> {
+                let arena = Box::pin(
+                    MinecraftTypesArena {
+                        $(
+                            $field_name: RefCell::new($type::new($name)),
+                        )*
+                    }
+                );
+
+                MinecraftTypesMut {
+                    $(
+                        // SAFETY: outer struct is still pinned for the lifetime of the reference, and has a defined repr
+                        $field_name: unsafe { &*(&Pin::into_inner_unchecked(arena.as_ref()).$field_name as *const _) },
+                    )*
+                    arena,
+                }
+            }
+
+            fn to_minecraft_types(types: MinecraftTypesMut<'a, T>) -> Self {
+                Self {
+                    arena: types.arena,
+                }
+            }
+        }
+    }
+}
+
+define_minecraft_types! {
+    level: MapDataType("Level"),
+    player: MapDataType("Player"),
+    chunk: MapDataType("Chunk"),
+    hotbar: MapDataType("Hotbar"),
+    options: MapDataType("Options"),
+    structure: MapDataType("Structure"),
+    stats: MapDataType("Stats"),
+    saved_data: MapDataType("SavedData"),
+    advancements: MapDataType("Advancements"),
+    poi_chunk: MapDataType("PoiChunk"),
+    entity_chunk: MapDataType("EntityChunk"),
+    tile_entity: IdDataType("TileEntity"),
+    item_stack: IdDataType("ItemStack"),
+    block_state: MapDataType("BlockName"),
+    entity_name: ObjectDataType("EntityName"),
+    entity: IdDataType("Entity"),
+    block_name: ObjectDataType("BlockName"),
+    item_name: ObjectDataType("ItemName"),
+    untagged_spawner: MapDataType("Spawner"),
+    structure_feature: MapDataType("StructureFeature"),
+    objective: MapDataType("Objective"),
+    team: MapDataType("Team"),
+    recipe: ObjectDataType("RecipeName"),
+    biome: ObjectDataType("Biome"),
+    world_gen_settings: MapDataType("WorldGenSettings")
 }
 
 impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
     pub fn new() -> Self {
-        Self {
-            _private: (),
-            level: MapDataType::new("Level"),
-            player: MapDataType::new("Player"),
-            chunk: MapDataType::new("Chunk"),
-            hotbar: MapDataType::new("CreativeHotbar"),
-            options: MapDataType::new("Options"),
-            structure: MapDataType::new("Structure"),
-            stats: MapDataType::new("Stats"),
-            saved_data: MapDataType::new("SavedData"),
-            advancements: MapDataType::new("Advancements"),
-            poi_chunk: MapDataType::new("PoiChunk"),
-            entity_chunk: MapDataType::new("EntityChunk"),
-            tile_entity: IdDataType::new("TileEntity"),
-            item_stack: IdDataType::new("ItemStack"),
-            block_state: MapDataType::new("BlockState"),
-            entity_name: ObjectDataType::new("EntityName"),
-            entity: IdDataType::new("Entity"),
-            block_name: ObjectDataType::new("BlockName"),
-            item_name: ObjectDataType::new("ItemName"),
-            untagged_spawner: MapDataType::new("Spawner"),
-            structure_feature: MapDataType::new("StructureFeature"),
-            objective: MapDataType::new("Objective"),
-            team: MapDataType::new("Team"),
-            recipe: ObjectDataType::new("RecipeName"),
-            biome: ObjectDataType::new("Biome"),
-            world_gen_settings: MapDataType::new("MapGenSettings"),
-        }
-    }
-
-    pub fn populate(self: Pin<&mut MinecraftTypes<'a, T>>) {
         use crate::versions::*;
+
+        let ret = Self::create_empty();
 
         // General notes:
         // - Structure converters run before everything.
@@ -73,6 +96,8 @@ impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
         // - Structure walkers run after id specific converters.
         // - ID specific walkers run after structure walkers.
 
-        v99::register(self);
+        v99::register(&ret);
+
+        Self::to_minecraft_types(ret)
     }
 }
