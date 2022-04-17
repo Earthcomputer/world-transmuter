@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 
+log = "0.4.16"
 rust_dataconverter_engine = { path = "../rust_dataconverter_engine" } # TODO: stabilize this library then push to crates.io
