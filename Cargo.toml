@@ -6,4 +6,3 @@ edition = "2021"
 [dependencies]
 
 rust_dataconverter_engine = { path = "../rust_dataconverter_engine" } # TODO: stabilize this library then push to crates.io
-typed-arena = "2.0.1"
