@@ -97,6 +97,7 @@ impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
         // - ID specific walkers run after structure walkers.
 
         v99::register(&ret);
+        v100::register(&ret);
 
         Self::to_minecraft_types(ret)
     }
