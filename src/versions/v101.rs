@@ -35,7 +35,7 @@ fn update_line<T: Types + ?Sized>(data: &mut T::Map, key: &str) {
             }
         }
     } else {
-        format!("{{\"text\":\"{}\"}}", str.replace('"', "\\\""))
+        format!("{{\"text\":\"{}\"}}", str.replace('\\', "\\\\").replace('"', "\\\""))
     };
 
     data.set(key, T::Object::create_string(result));
