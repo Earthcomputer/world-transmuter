@@ -8,5 +8,5 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
 }
 
 fn register_mob<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: impl Into<String>) {
-    types.entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerMapListPaths::new(types.item_stack, vec!["ArmorItems".to_owned(), "HandItems".to_owned()]));
+    types.entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerMapListPaths::new_multi(types.item_stack, vec!["ArmorItems".to_owned(), "HandItems".to_owned()]));
 }
