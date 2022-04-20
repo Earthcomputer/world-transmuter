@@ -104,6 +104,7 @@ impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
         v106::register(&ret);
         v107::register(&ret);
         v108::register(&ret);
+        v109::register(&ret);
 
         Self::to_minecraft_types(ret)
     }
