@@ -19,3 +19,4 @@ pub mod v502;
 pub mod v505;
 pub mod v700;
 pub mod v701;
+pub mod v702;
