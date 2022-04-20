@@ -118,7 +118,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     let entity_type = types.entity;
     let tile_entity_type = types.tile_entity;
     types.structure.borrow_mut().add_structure_walker(VERSION, data_walker::<T, _>(move |data, from_version, to_version| {
-        if let Some(entities) = data.get_map_mut("entities") {
+        if let Some(entities) = data.get_list_mut("entities") {
             for entity in entities.iter_mut() {
                 if let Some(entity) = entity.as_map_mut() {
                     convert_map_in_map::<_, T>(entity_type, entity, "nbt", from_version, to_version);
@@ -126,7 +126,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
             }
         }
 
-        if let Some(blocks) = data.get_map_mut("blocks") {
+        if let Some(blocks) = data.get_list_mut("blocks") {
             for block in blocks.iter_mut() {
                 if let Some(block) = block.as_map_mut() {
                     convert_map_in_map::<_, T>(tile_entity_type, block, "nbt", from_version, to_version);
