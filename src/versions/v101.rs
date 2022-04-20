@@ -22,7 +22,10 @@ fn update_line<T: Types + ?Sized>(data: &mut T::Map, key: &str) {
 
     let result = if (str.starts_with('"') && str.ends_with('"')) || (str.starts_with('{') && str.ends_with('}')) {
         let FixedGsonLenient { value_type, fixed_str } = fix_gson_lenient(str)
-            .unwrap_or(FixedGsonLenient { value_type: JsonType::Keyword, fixed_str: Cow::Borrowed("null") });
+            .unwrap_or(FixedGsonLenient {
+                value_type: JsonType::String,
+                fixed_str: Cow::Owned(format!("\"{}\"", str.replace('\\', "\\\\").replace('"', "\\\"")))
+            });
         match value_type {
             JsonType::Object | JsonType::Array => fixed_str.into_owned(),
             JsonType::String | JsonType::Number => format!("{{\"text\":{}}}", fixed_str),
