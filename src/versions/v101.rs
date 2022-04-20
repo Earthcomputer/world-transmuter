@@ -6,7 +6,7 @@ use crate::helpers::gson_lenient_fix::{FixedGsonLenient, fix_gson_lenient, JsonT
 const VERSION: u32 = 101;
 
 pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.tile_entity.borrow_mut().add_converter_for_id("Sign", VERSION, data_converter_func::<T::Map, _>(|data, from_version, to_version| {
+    types.tile_entity.borrow_mut().add_converter_for_id("Sign", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
         update_line::<T>(data, "Text1");
         update_line::<T>(data, "Text2");
         update_line::<T>(data, "Text3");

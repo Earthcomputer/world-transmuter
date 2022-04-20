@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use rust_dataconverter_engine::*;
 use crate::MinecraftTypesMut;
 
@@ -9,7 +8,7 @@ fn register_mob<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: impl Into<S
 }
 
 pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.entity.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(move |data: &mut T::Map, from_version, to_version| {
+    types.entity.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(move |data: &mut T::Map, _from_version, _to_version| {
         if let Some(equipment) = data.remove("Equipment") {
             if let Some(equipment) = equipment.into_list() {
                 let mut equipment = equipment.into_iter();
