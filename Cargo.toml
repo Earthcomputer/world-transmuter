@@ -9,3 +9,13 @@ log = "0.4.16"
 nom = "7.1.1"
 rust_dataconverter_engine = { path = "../rust_dataconverter_engine" } # TODO: stabilize this library then push to crates.io
 uuid = "1"
+
+[dev-dependencies]
+
+attohttpc = "0.18.0"
+regex = "1.5.5"
+
+[features]
+
+# Enable tests that could potentially break without code having been updated, because Minecraft has updated.
+update_checks = []
