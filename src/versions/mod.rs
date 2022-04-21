@@ -24,3 +24,4 @@ pub mod v703;
 pub mod v704;
 pub mod v705;
 pub mod v804;
+pub mod v806;
