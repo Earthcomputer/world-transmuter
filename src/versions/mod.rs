@@ -28,3 +28,4 @@ pub mod v806;
 pub mod v808;
 pub mod v813;
 pub mod v816;
+pub mod v820;
