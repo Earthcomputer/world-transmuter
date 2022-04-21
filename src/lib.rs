@@ -1,4 +1,5 @@
 #![feature(once_cell)]
+#![feature(try_blocks)]
 
 mod types;
 mod versions;
