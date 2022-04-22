@@ -1,3 +1,4 @@
+#![feature(explicit_generic_args_with_impl_trait)]
 #![feature(once_cell)]
 #![feature(try_blocks)]
 

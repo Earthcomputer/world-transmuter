@@ -1,4 +1,4 @@
-use rust_dataconverter_engine::{data_converter_func, DataVersion, MapType, ObjectType, Types};
+use rust_dataconverter_engine::{data_converter_func, DataType, DataVersion, MapType, ObjectType, Types};
 use crate::MinecraftTypesMut;
 
 pub(crate) fn rename_entity<'a, T: Types + ?Sized>(
@@ -17,4 +17,23 @@ pub(crate) fn rename_entity<'a, T: Types + ?Sized>(
             *data = T::Object::create_string(new_id);
         }
     }));
+}
+
+pub(crate) fn rename_keys_in_map<T: Types + ?Sized>(typ: impl DataType<T::Object>, owning_map: &mut T::Map, key: &str, from_version: DataVersion, to_version: DataVersion) {
+    if let Some(map) = owning_map.get_map_mut(key) {
+        rename_keys::<T>(typ, map, from_version, to_version);
+    }
+}
+
+pub(crate) fn rename_keys<T: Types + ?Sized>(typ: impl DataType<T::Object>, map: &mut T::Map, from_version: DataVersion, to_version: DataVersion) {
+    map.rename_keys(move |key| {
+        let mut new_key = T::Object::create_string(key.to_owned());
+        typ.convert(&mut new_key, from_version, to_version);
+        if let Some(new_key) = new_key.into_string() {
+            if new_key != key {
+                return Some(new_key);
+            }
+        }
+        None
+    });
 }
