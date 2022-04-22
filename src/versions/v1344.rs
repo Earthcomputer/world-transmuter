@@ -127,12 +127,12 @@ fn button_id_to_name() -> &'static rust_dataconverter_engine::Map<u8, String> {
 
 pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     types.options.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        for key in data.keys().cloned().collect::<Vec<_>>() {
+        let mut replacements = Vec::new();
+        for key in data.keys() {
             if !key.starts_with("key_") {
                 continue;
             }
-            let value = data.get_mut(&key).unwrap();
-            let code = match value.as_string().and_then(|str| str.parse::<i32>().ok()) {
+            let code = match data.get_string(key).and_then(|str| str.parse::<i32>().ok()) {
                 Some(code) => code,
                 None => continue
             };
@@ -146,7 +146,11 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
                 _ => "key.unknown".to_owned()
             };
 
-            *value = T::Object::create_string(new_entry);
+            replacements.push((key.clone(), new_entry));
+        }
+
+        for (key, new_entry) in replacements {
+            data.set(key, T::Object::create_string(new_entry));
         }
     }));
 }
