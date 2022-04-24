@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 
+bitvec = { version = "1.0.0", default-features = false }
 log = "0.4.16"
 nom = "7.1.1"
 rust_dataconverter_engine = { path = "../rust_dataconverter_engine" } # TODO: stabilize this library then push to crates.io

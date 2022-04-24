@@ -4,3 +4,8 @@ pub(crate) mod gson_lenient_fix;
 pub(crate) mod spawn_egg_name_v105;
 pub(crate) mod rename;
 pub(crate) mod block_flattening_v1450;
+pub(crate) mod flatten_chunk_v1451;
+pub(crate) mod block_state;
+pub(crate) mod bit_storage;
+pub(crate) mod flatten_item_stack_v1451;
+pub(crate) mod resource_location;

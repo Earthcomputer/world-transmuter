@@ -1,24 +1,6 @@
 use std::marker::PhantomData;
 use rust_dataconverter_engine::{DataHook, DataVersion, MapType, ObjectType, Types};
-
-fn correct_namespace_or_none(str: &str) -> Option<String> {
-    if str.contains(':') {
-        return None;
-    }
-    fn is_valid_char(c: char) -> bool {
-        match c {
-            '0'..='9' => true,
-            'a'..='z' => true,
-            '_' | '-' | '.' | '/' => true,
-            _ => false
-        }
-    }
-    if str.chars().any(|c| !is_valid_char(c)) {
-        return None;
-    }
-
-    Some(format!("minecraft:{}", str))
-}
+use crate::helpers::resource_location::ResourceLocation;
 
 pub(crate) struct DataHookValueTypeEnforceNamespaced<T: Types + ?Sized> {
     _phantom: PhantomData<T>,
@@ -33,8 +15,8 @@ impl<T: Types + ?Sized> DataHookValueTypeEnforceNamespaced<T> {
 impl<T: Types + ?Sized> DataHook<T::Object> for DataHookValueTypeEnforceNamespaced<T> {
     fn pre_hook(&self, data: &mut T::Object, _from_version: DataVersion, _to_version: DataVersion) {
         if let Some(str) = data.as_string() {
-            if let Some(replacement) = correct_namespace_or_none(str) {
-                *data = T::Object::create_string(replacement);
+            if let Ok(replacement) = str.parse::<ResourceLocation>() {
+                *data = T::Object::create_string(replacement.to_string());
             }
         }
     }
@@ -61,8 +43,8 @@ impl<T: Types + ?Sized> DataHookEnforceNamespacedId<T> {
 impl<T: Types + ?Sized> DataHook<T::Map> for DataHookEnforceNamespacedId<T> {
     fn pre_hook(&self, data: &mut T::Map, _from_version: DataVersion, _to_version: DataVersion) {
         if let Some(str) = data.get_string(&self.id) {
-            if let Some(replacement) = correct_namespace_or_none(str) {
-                data.set(self.id.clone(), T::Object::create_string(replacement));
+            if let Ok(replacement) = str.parse::<ResourceLocation>() {
+                data.set(self.id.clone(), T::Object::create_string(replacement.to_string()));
             }
         }
     }

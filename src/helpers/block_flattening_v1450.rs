@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::lazy::SyncOnceCell;
 use rust_dataconverter_engine::{MapType, ObjectType, Types};
+use crate::helpers::block_state::BlockState;
 
 pub(crate) fn flatten_nbt<T: Types + ?Sized>(nbt: &T::Map) -> Option<T::Map> {
     if let Some(state) = BlockState::from_nbt::<T>(nbt) {
@@ -30,7 +31,7 @@ pub(crate) fn get_name_for_id(id: u16) -> &'static str {
     get_state_for_id_raw(id).map_or_else(|| "minecraft:air", |state| state.name)
 }
 
-fn get_state_for_id_raw(id: u16) -> Option<&'static BlockState<'static>> {
+pub(crate) fn get_state_for_id_raw(id: u16) -> Option<&'static BlockState<'static>> {
     if id >= 4096 {
         return None;
     }
@@ -44,40 +45,6 @@ pub(crate) fn get_nbt_for_id<T: Types + ?Sized>(id: u16) -> T::Map {
         ret.set("Name", T::Object::create_string("minecraft:air".to_owned()));
         ret
     }, |state| state.to_nbt::<T>())
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-struct BlockState<'a> {
-    name: &'a str,
-    properties: BTreeMap<&'a str, &'a str>,
-}
-
-impl<'a> BlockState<'a> {
-    fn from_nbt<T: Types + ?Sized>(nbt: &'a T::Map) -> Option<Self> {
-        let name = nbt.get_string("Name")?;
-        let mut properties = BTreeMap::new();
-        if let Some(props) = nbt.get_map("Properties") {
-            for key in props.keys() {
-                let value = props.get_string(key)?;
-                properties.insert(key.as_str(), value);
-            }
-        }
-
-        Some(Self { name, properties })
-    }
-
-    fn to_nbt<T: Types + ?Sized>(&self) -> T::Map {
-        let mut nbt = T::Map::create_empty();
-        nbt.set("Name", T::Object::create_string(self.name.to_owned()));
-        if !self.properties.is_empty() {
-            let mut props = T::Map::create_empty();
-            for (key, val) in &self.properties {
-                props.set(*key, T::Object::create_string(val.to_string()));
-            }
-            nbt.set("Properties", T::Object::create_map(props));
-        }
-        nbt
-    }
 }
 
 struct BlockStateData {
