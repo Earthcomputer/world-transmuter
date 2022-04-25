@@ -37,7 +37,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     }));
 }
 
-fn update_custom_name<T: Types + ?Sized>(data: &mut T::Map) {
+pub(super) fn update_custom_name<T: Types + ?Sized>(data: &mut T::Map) {
     if let Some(custom_name) = data.get_string("CustomName") {
         if custom_name.is_empty() {
             data.remove("CustomName");
