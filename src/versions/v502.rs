@@ -1,11 +1,11 @@
 use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
-use crate::helpers::rename::rename_item;
+use crate::helpers::rename::{rename_item, simple_rename};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 502;
 
 pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    rename_item::<T>(types, VERSION, |name| if name == "minecraft:cooked_fished" { Some("minecraft:cooked_fish".to_owned()) } else { None });
+    rename_item::<T>(types, VERSION, simple_rename("minecraft:cooked_fished", "minecraft:cooked_fish"));
 
     types.entity.borrow_mut().add_converter_for_id("Zombie", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
         if data.remove("IsVillager").and_then(|o| o.as_bool()) != Some(true) {

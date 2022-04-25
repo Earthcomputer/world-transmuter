@@ -1,5 +1,5 @@
 use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
-use crate::helpers::rename::{rename_block, rename_item};
+use crate::helpers::rename::{rename_block, rename_item, simple_rename};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1474;
@@ -11,6 +11,6 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
         }
     }));
     // data hooks ensure the inputs are namespaced
-    rename_block::<T>(types, VERSION, |name| if name == "minecraft:purple_shulker_box" { Some("minecraft:shulker_box".to_owned()) } else { None });
-    rename_item::<T>(types, VERSION, |name| if name == "minecraft:purple_shulker_box" { Some("minecraft:shulker_box".to_owned()) } else { None });
+    rename_block::<T>(types, VERSION, simple_rename("minecraft:purple_shulker_box", "minecraft:shulker_box"));
+    rename_item::<T>(types, VERSION, simple_rename("minecraft:purple_shulker_box", "minecraft:shulker_box"));
 }

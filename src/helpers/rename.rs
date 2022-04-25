@@ -49,6 +49,16 @@ pub(crate) fn rename_item<'a, T: Types + ?Sized>(
     }));
 }
 
+pub(crate) fn simple_rename<'a>(from: &'a str, to: &'a str) -> impl 'a + Copy + Fn(&str) -> Option<String> {
+    move |name| {
+        if name == from {
+            Some(to.to_owned())
+        } else {
+            None
+        }
+    }
+}
+
 pub(crate) fn rename_keys_in_map<T: Types + ?Sized>(typ: impl DataType<T::Object>, owning_map: &mut T::Map, key: &str, from_version: DataVersion, to_version: DataVersion) {
     if let Some(map) = owning_map.get_map_mut(key) {
         rename_keys::<T>(typ, map, from_version, to_version);
