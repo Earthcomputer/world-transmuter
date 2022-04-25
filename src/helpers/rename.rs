@@ -37,6 +37,18 @@ pub(crate) fn rename_block<'a, T: Types + ?Sized>(
     }));
 }
 
+pub(crate) fn rename_item<'a, T: Types + ?Sized>(
+    types: &MinecraftTypesMut<'a, T>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+) {
+    types.item_name.borrow_mut().add_structure_converter(version, data_converter_func::<T::Object, _>(move |data, _from_version, _to_version| {
+        if let Some(new_name) = data.as_string().and_then(renamer) {
+            *data = T::Object::create_string(new_name);
+        }
+    }));
+}
+
 pub(crate) fn rename_keys_in_map<T: Types + ?Sized>(typ: impl DataType<T::Object>, owning_map: &mut T::Map, key: &str, from_version: DataVersion, to_version: DataVersion) {
     if let Some(map) = owning_map.get_map_mut(key) {
         rename_keys::<T>(typ, map, from_version, to_version);

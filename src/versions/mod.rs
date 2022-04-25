@@ -57,4 +57,5 @@ versions! {
     mod v1470;
     mod v1474;
     mod v1475;
+    mod v1480;
 }
