@@ -96,45 +96,7 @@ impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
         // - Structure walkers run after id specific converters.
         // - ID specific walkers run after structure walkers.
 
-        v99::register(&ret);
-        v100::register(&ret);
-        v101::register(&ret);
-        v102::register(&ret);
-        v105::register(&ret);
-        v106::register(&ret);
-        v107::register(&ret);
-        v108::register(&ret);
-        v109::register(&ret);
-        v110::register(&ret);
-        v111::register(&ret);
-        v113::register(&ret);
-        v135::register(&ret);
-        v143::register(&ret);
-        v147::register(&ret);
-        v165::register(&ret);
-        v501::register(&ret);
-        v502::register(&ret);
-        v505::register(&ret);
-        v700::register(&ret);
-        v701::register(&ret);
-        v702::register(&ret);
-        v703::register(&ret);
-        v704::register(&ret);
-        v705::register(&ret);
-        v804::register(&ret);
-        v806::register(&ret);
-        v808::register(&ret);
-        v813::register(&ret);
-        v816::register(&ret);
-        v820::register(&ret);
-        v1022::register(&ret);
-        v1125::register(&ret);
-        v1344::register(&ret);
-        v1446::register(&ret);
-        v1450::register(&ret);
-        v1451::register(&ret);
-        v1456::register(&ret);
-        v1458::register(&ret);
+        register_versions(&ret);
 
         Self::to_minecraft_types(ret)
     }
