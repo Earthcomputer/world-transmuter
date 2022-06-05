@@ -49,6 +49,16 @@ pub(crate) fn rename_item<'a, T: Types + ?Sized>(
     }));
 }
 
+pub(crate) fn rename_advancement<'a, T: Types + ?Sized>(
+    types: &MinecraftTypesMut<'a, T>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+) {
+    types.advancements.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
+        data.rename_keys(renamer);
+    }));
+}
+
 pub(crate) fn simple_rename<'a>(from: &'a str, to: &'a str) -> impl 'a + Copy + Fn(&str) -> Option<String> {
     move |name| {
         if name == from {
