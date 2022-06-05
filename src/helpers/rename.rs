@@ -59,6 +59,18 @@ pub(crate) fn rename_advancement<'a, T: Types + ?Sized>(
     }));
 }
 
+pub(crate) fn rename_recipe<'a, T: Types + ?Sized>(
+    types: &MinecraftTypesMut<'a, T>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+) {
+    types.recipe.borrow_mut().add_structure_converter(version, data_converter_func::<T::Object, _>(move |data, _from_version, _to_version| {
+        if let Some(new_name) = data.as_string().and_then(renamer) {
+            *data = T::Object::create_string(new_name);
+        }
+    }));
+}
+
 pub(crate) fn simple_rename<'a>(from: &'a str, to: &'a str) -> impl 'a + Copy + Fn(&str) -> Option<String> {
     move |name| {
         if name == from {
