@@ -6,7 +6,7 @@ use log::{error, warn};
 use rust_dataconverter_engine::{DataConverterFunc, DataVersion, ListType, MapType, ObjectRef, ObjectType, Types};
 use crate::{block_state, block_state_owned, make_bit_arr};
 use crate::helpers::{block_flattening_v1450, item_name_v102};
-use crate::helpers::bit_storage::{bitset_size, ceil_log2, ChunkNibbleArray, PackedBitStorage};
+use crate::helpers::bit_storage::{bitset_size, BitStorage, BitStorageMut, BitStorageOwned, ceil_log2, ChunkNibbleArray, LocalPos, PackedBitStorage};
 use crate::helpers::block_state::{BlockState, BlockStateOwned};
 
 const VIRTUAL_SET: BitArray<[usize; bitset_size(256)]> = make_bit_arr![256;
@@ -329,7 +329,7 @@ fn banner_block_map() -> &'static rust_dataconverter_engine::Map<BannerState, Bl
     })
 }
 
-fn get_side_mask(no_left: bool, no_right: bool, no_back: bool, no_forward: bool) -> u8 {
+pub(crate) fn get_side_mask(no_left: bool, no_right: bool, no_back: bool, no_forward: bool) -> u8 {
     match (no_left, no_right, no_back, no_forward) {
         (_, true, true, _) => 2,
         (true, false, true, _) => 128,
@@ -359,70 +359,6 @@ impl<T: Types + ?Sized> DataConverterFunc<T::Map> for ConverterFlattenChunk<T> {
             UpgradeChunk::<T>::upgrade(level);
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-struct LocalPos {
-    index: u16,
-}
-impl LocalPos {
-    fn new(x: u8, y: u8, z: u8) -> Self {
-        Self { index: ((x & 15) as u16) | ((y as u16) << 8) | (((z & 15) as u16) << 4) }
-    }
-    fn x(self) -> u8 { (self.index & 15) as u8 }
-    fn y(self) -> u8 { (self.index >> 8) as u8 }
-    fn z(self) -> u8 { ((self.index >> 4) & 15) as u8 }
-
-    fn down(self) -> Self {
-        debug_assert!(self.y() > 0);
-        Self { index: self.index - 256 }
-    }
-    fn up(self) -> Self {
-        debug_assert!(self.y() < 255);
-        Self { index: self.index + 256 }
-    }
-    fn north(self) -> Self {
-        debug_assert!(self.z() > 0);
-        Self { index: self.index - 16 }
-    }
-    fn south(self) -> Self {
-        debug_assert!(self.z() < 15);
-        Self { index: self.index + 16 }
-    }
-    fn west(self) -> Self {
-        debug_assert!(self.x() > 0);
-        Self { index: self.index - 1 }
-    }
-    fn east(self) -> Self {
-        debug_assert!(self.x() < 15);
-        Self { index: self.index + 1 }
-    }
-
-    fn offset(self, dir: Direction) -> Self {
-        match dir {
-            Direction::Down => self.down(),
-            Direction::Up => self.up(),
-            Direction::North => self.north(),
-            Direction::South => self.south(),
-            Direction::West => self.west(),
-            Direction::East => self.east(),
-        }
-    }
-
-    fn with_section_y(self, section_y: u8) -> Self {
-        debug_assert!(self.y() < 16);
-        Self { index: self.index + ((section_y as u16) << 12) }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-enum Direction {
-    Down,
-    Up,
-    North,
-    South,
-    West,
-    East,
 }
 
 struct UpgradeChunk<'a, T: Types + ?Sized> {

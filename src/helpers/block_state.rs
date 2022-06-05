@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::btree_map::BTreeMap;
 use rust_dataconverter_engine::{MapType, ObjectType, Types};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
