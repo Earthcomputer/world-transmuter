@@ -71,6 +71,28 @@ pub(crate) fn rename_recipe<'a, T: Types + ?Sized>(
     }));
 }
 
+pub(crate) fn rename_stat<'a, T: Types + ?Sized>(
+    types: &MinecraftTypesMut<'a, T>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+) {
+    let version = version.into();
+    types.objective.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
+        let _: Option<_> = try {
+            let criteria_type = data.get_map_mut("CriteriaType")?;
+            if criteria_type.get_string("type")? == "minecraft:custom" {
+                let new_id = renamer(criteria_type.get_string("id")?)?;
+                criteria_type.set("id", T::Object::create_string(new_id));
+            }
+        };
+    }));
+    types.stats.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
+        let _: Option<_> = try {
+            data.get_map_mut("stats")?.get_map_mut("minecraft:custom")?.rename_keys(renamer);
+        };
+    }));
+}
+
 pub(crate) fn simple_rename<'a>(from: &'a str, to: &'a str) -> impl 'a + Copy + Fn(&str) -> Option<String> {
     move |name| {
         if name == from {
