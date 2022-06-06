@@ -79,4 +79,5 @@ versions! {
     mod v1801;
     mod v1802;
     mod v1803;
+    mod v1904;
 }
