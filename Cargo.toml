@@ -14,9 +14,16 @@ uuid = "1"
 [dev-dependencies]
 
 attohttpc = "0.18.0"
+quartz_nbt = "0.2.6"
 regex = "1.5.5"
 
 [features]
 
+ahash = ["rust_dataconverter_engine/ahash"]
+hashbrown = ["rust_dataconverter_engine/hashbrown"]
+hematite-nbt = ["rust_dataconverter_engine/hematite-nbt"]
+indexmap = ["rust_dataconverter_engine/indexmap"]
+quartz_nbt = ["rust_dataconverter_engine/quartz_nbt"]
+serde_json = ["rust_dataconverter_engine/serde_json"]
 # Enable tests that could potentially break without code having been updated, because Minecraft has updated.
 update_checks = []

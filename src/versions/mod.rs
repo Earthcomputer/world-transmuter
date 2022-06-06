@@ -70,4 +70,5 @@ versions! {
     mod v1500;
     mod v1501;
     mod v1502;
+    mod v1506;
 }
