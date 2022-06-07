@@ -94,4 +94,5 @@ versions! {
     mod v1936;
     mod v1946;
     mod v1948;
+    mod v1953;
 }
