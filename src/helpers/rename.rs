@@ -1,4 +1,4 @@
-use rust_dataconverter_engine::{data_converter_func, DataType, DataVersion, MapType, ObjectType, Types};
+use rust_dataconverter_engine::{data_converter_func, DataType, DataVersion, ListType, MapType, ObjectType, Types};
 use crate::MinecraftTypesMut;
 
 pub(crate) fn rename_entity<'a, T: Types + ?Sized>(
@@ -90,6 +90,28 @@ pub(crate) fn rename_stat<'a, T: Types + ?Sized>(
         let _: Option<_> = try {
             data.get_map_mut("stats")?.get_map_mut("minecraft:custom")?.rename_keys(renamer);
         };
+    }));
+}
+
+pub(crate) fn rename_poi<'a, T: Types + ?Sized>(
+    types: &MinecraftTypesMut<'a, T>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+) {
+    types.poi_chunk.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
+        if let Some(sections) = data.get_map_mut("Sections") {
+            for section in sections.values_mut() {
+                if let Some(records) = section.as_map_mut().and_then(|section| section.get_list_mut("Records")) {
+                    for record in records.iter_mut() {
+                        if let Some(record) = record.as_map_mut() {
+                            if let Some(new_type) = record.get_string("type").and_then(renamer) {
+                                record.set("type", T::Object::create_string(new_type));
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }));
 }
 
