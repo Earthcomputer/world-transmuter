@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::str::FromStr;
 use nom::error::Error;
 use nom::{AsChar, Finish, IResult};
@@ -8,7 +9,103 @@ use nom::combinator::{map, map_opt, map_res, recognize, value};
 use nom::multi::{many0, separated_list0};
 use nom::number::complete::recognize_float;
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated, tuple};
-use rust_dataconverter_engine::{ListType, MapType, ObjectType, Types};
+use rust_dataconverter_engine::{ListType, MapType, ObjectRef, ObjectType, Types};
+
+pub(crate) fn stringify_map<T: Types + ?Sized>(map: T::Map) -> String {
+    let mut str = String::new();
+    stringify::<T>(&T::Object::create_map(map), &mut str).expect("Should not get Err writing to String");
+    str
+}
+
+fn stringify<T: Types + ?Sized>(obj: &T::Object, str: &mut String) -> std::fmt::Result {
+    match obj.as_ref() {
+        ObjectRef::Byte(b) => write!(str, "{}", b)?,
+        ObjectRef::Short(s) => write!(str, "{}", s)?,
+        ObjectRef::Int(i) => write!(str, "{}", i)?,
+        ObjectRef::Long(l) => write!(str, "{}", l)?,
+        ObjectRef::Float(f) => write!(str, "{}", f)?,
+        ObjectRef::Double(d) => write!(str, "{}", d)?,
+        ObjectRef::ByteArray(arr) => {
+            str.push('[');
+            for (i, &b) in <&[i8]>::into_iter(arr).enumerate() {
+                if i != 0 {
+                    str.push(',');
+                }
+                write!(str, "{}", b)?;
+            }
+            str.push(']');
+        }
+        ObjectRef::ShortArray(arr) => {
+            str.push('[');
+            for (i, &s) in <&[i16]>::into_iter(arr).enumerate() {
+                if i != 0 {
+                    str.push(',');
+                }
+                write!(str, "{}", s)?;
+            }
+            str.push(']');
+        }
+        ObjectRef::IntArray(arr) => {
+            str.push('[');
+            for (i, &int) in <&[i32]>::into_iter(arr).enumerate() {
+                if i != 0 {
+                    str.push(',');
+                }
+                write!(str, "{}", int)?;
+            }
+            str.push(']');
+        }
+        ObjectRef::LongArray(arr) => {
+            str.push('[');
+            for (i, &l) in <&[i64]>::into_iter(arr).enumerate() {
+                if i != 0 {
+                    str.push(',');
+                }
+                write!(str, "{}", l)?;
+            }
+            str.push(']');
+        }
+        ObjectRef::List(list) => {
+            str.push('[');
+            for (i, obj) in list.iter().enumerate() {
+                if i != 0 {
+                    str.push(',');
+                }
+                stringify::<T>(obj, str)?;
+            }
+            str.push(']');
+        }
+        ObjectRef::Map(map) => {
+            str.push('{');
+            for (i, key) in map.keys().enumerate() {
+                if i != 0 {
+                    str.push(',');
+                }
+                stringify_string(key, str);
+                str.push(':');
+                stringify::<T>(map.get(&key[..]).unwrap(), str)?;
+            }
+            str.push('}');
+        }
+        ObjectRef::String(input) => stringify_string(input, str),
+    }
+    Ok(())
+}
+
+fn stringify_string(input: &str, output: &mut String) {
+    output.push('"');
+    for ch in input.chars() {
+        match ch {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            _ => output.push(ch),
+        }
+    }
+    output.push('"');
+}
 
 pub(crate) fn parse_map<T: Types + ?Sized>(json: &str) -> Result<T::Map, Error<&str>> {
     preceded(space, object::<T>)(json).finish().map(|(_, o)| o)
