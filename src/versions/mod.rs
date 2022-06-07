@@ -99,4 +99,5 @@ versions! {
     mod v1961;
     mod v1963;
     mod v2100;
+    mod v2202;
 }
