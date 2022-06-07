@@ -103,4 +103,5 @@ versions! {
     mod v2209;
     mod v2211;
     mod v2218;
+    mod v2501;
 }
