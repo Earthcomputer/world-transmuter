@@ -118,4 +118,5 @@ versions! {
     mod v2523;
     mod v2527;
     mod v2528;
+    mod v2529;
 }
