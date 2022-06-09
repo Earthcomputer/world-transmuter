@@ -9,7 +9,7 @@ macro_rules! replace_uuid_least_most {
     }
 }
 
-fn replace_uuid_from_longs<T: Types + ?Sized>(data: &mut T::Map, least: &str, most: &str, new_path: &str) {
+pub(crate) fn replace_uuid_from_longs<T: Types + ?Sized>(data: &mut T::Map, least: &str, most: &str, new_path: &str) {
     let least = data.remove(least).and_then(|o| o.as_i64()).unwrap_or(0);
     let most = data.remove(most).and_then(|o| o.as_i64()).unwrap_or(0);
     if least != 0 || most != 0 {
