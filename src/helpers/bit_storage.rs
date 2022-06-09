@@ -1,5 +1,6 @@
 use log::{error, warn};
 use rust_dataconverter_engine::{ListType, MapType, ObjectRef, ObjectRefMut, ObjectType, Types};
+use strength_reduce::StrengthReducedUsize;
 use crate::helpers::block_state::{BlockState, BlockStateOwned};
 
 pub(crate) const fn bitset_size(size: usize) -> usize {
@@ -154,8 +155,10 @@ impl<T> BitStorageMut for PackedBitStorage<T>
     }
 
     fn replace_storage<O>(&mut self, new_bits: u8, new_data: O) where T: AsMut<O>, O: AsRef<[i64]> {
+        debug_assert!(new_bits >= 1 && new_bits <= 32);
         assert_eq!((new_bits as usize * self.size + 63) / 64, new_data.as_ref().len());
         self.bits = new_bits;
+        self.mask = (1 << new_bits) - 1;
         *self.data.as_mut() = new_data;
     }
 }
@@ -166,6 +169,89 @@ impl BitStorageOwned for PackedBitStorage<Vec<i64>> {
         Self {
             data: vec![0i64; (bits as usize * size + 63) / 64],
             bits,
+            mask: (1 << bits) - 1,
+            size,
+        }
+    }
+}
+
+pub(crate) struct AlignedBitStorage<T> {
+    data: T,
+    bits: u8,
+    values_per_long: StrengthReducedUsize,
+    mask: u32,
+    size: usize,
+}
+
+impl<T> BitStorage for AlignedBitStorage<T>
+    where T: AsRef<[i64]>
+{
+    type Storage = T;
+
+    fn try_wrap(bits: u8, size: usize, data: T) -> Result<Self, String> {
+        if bits < 1 || bits > 32 {
+            return Err(format!("Expected bits to be between 1 and 32, was: {}", bits));
+        }
+        let values_per_long = (64 / bits) as usize;
+        let expected_len = (size + values_per_long - 1) / values_per_long;
+        if data.as_ref().len() != expected_len {
+            return Err(format!("Expected data length for {} bits of size {} is {}, but was: {}", bits, size, expected_len, data.as_ref().len()));
+        }
+        Ok(Self {
+            data,
+            bits,
+            values_per_long: StrengthReducedUsize::new(values_per_long),
+            mask: (1 << bits) - 1,
+            size,
+        })
+    }
+
+    fn get(&self, index: usize) -> u32 {
+        debug_assert!(index < self.size);
+
+        let (word_index, index_in_word) = StrengthReducedUsize::div_rem(index, self.values_per_long);
+        let word = self.data.as_ref()[word_index];
+        (word >> (self.bits * index_in_word as u8)) as u32 & self.mask
+    }
+
+    fn into_raw(self) -> T {
+        self.data
+    }
+}
+
+impl<T> BitStorageMut for AlignedBitStorage<T>
+    where T: AsMut<[i64]> + AsRef<[i64]>
+{
+    fn set(&mut self, index: usize, value: u32) {
+        debug_assert!(index < self.size);
+        debug_assert!(value <= self.mask);
+
+        let (word_index, index_in_word) = StrengthReducedUsize::div_rem(index, self.values_per_long);
+        let word = self.data.as_ref()[word_index];
+        let word = (word & !((self.mask as i64) << (self.bits * index_in_word as u8))) | ((value as i64) << (self.bits * index_in_word as u8));
+        self.data.as_mut()[word_index] = word;
+    }
+
+    fn replace_storage<O>(&mut self, new_bits: u8, new_data: O) where T: AsMut<O>, O: AsRef<[i64]> {
+        debug_assert!(new_bits >= 1 && new_bits <= 32);
+        let new_values_per_long = StrengthReducedUsize::new((64 / new_bits) as usize);
+        assert_eq!((self.size + new_values_per_long.get() - 1) / new_values_per_long, new_data.as_ref().len());
+
+        self.bits = new_bits;
+        self.mask = (1 << new_bits) - 1;
+        self.values_per_long = new_values_per_long;
+        *self.data.as_mut() = new_data;
+    }
+}
+
+impl BitStorageOwned for AlignedBitStorage<Vec<i64>> {
+    fn new(bits: u8, size: usize) -> Self {
+        assert!(bits >= 1 && bits <= 32);
+        let values_per_long = StrengthReducedUsize::new((64 / bits) as usize);
+        Self {
+            data: vec![0i64; (size + values_per_long.get() - 1) / values_per_long],
+            bits,
+            values_per_long,
             mask: (1 << bits) - 1,
             size,
         }
