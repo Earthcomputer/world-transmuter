@@ -37,6 +37,32 @@ pub(crate) fn rename_block<'a, T: Types + ?Sized>(
     }));
 }
 
+pub(crate) fn rename_block_and_fix_jigsaw<'a, T: Types + ?Sized>(
+    types: &MinecraftTypesMut<'a, T>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+) {
+    let version = version.into();
+    rename_block(types, version, renamer);
+
+    types.tile_entity.borrow_mut().add_converter_for_id("minecraft:jigsaw", version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
+        if let Some(final_state) = data.get_string("final_state") {
+            if !final_state.is_empty() {
+                let state_name_end = if let Some(nbt_start) = (&final_state[1..]).find(&['[', '{']) {
+                    nbt_start + 1
+                } else {
+                    final_state.len()
+                };
+
+                if let Some(mut converted) = renamer(&final_state[..state_name_end]) {
+                    converted.push_str(&final_state[state_name_end..]);
+                    data.set("final_state", T::Object::create_string(converted));
+                }
+            }
+        }
+    }));
+}
+
 pub(crate) fn rename_item<'a, T: Types + ?Sized>(
     types: &MinecraftTypesMut<'a, T>,
     version: impl Into<DataVersion>,
