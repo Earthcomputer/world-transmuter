@@ -1,6 +1,6 @@
 use std::lazy::SyncOnceCell;
 use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
-use crate::helpers::rename::rename_advancement;
+use crate::helpers::rename::{rename_advancement, simple_rename};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2503;
@@ -42,11 +42,5 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
         }
     }));
 
-    rename_advancement(types, VERSION, |name| {
-        if name == "minecraft:recipes/misc/composter" {
-            Some("minecraft:recipes/decorations/composter".to_owned())
-        } else {
-            None
-        }
-    });
+    rename_advancement(types, VERSION, simple_rename("minecraft:recipes/misc/composter", "minecraft:recipes/decorations/composter"));
 }

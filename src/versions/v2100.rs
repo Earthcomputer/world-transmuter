@@ -1,5 +1,5 @@
 use rust_dataconverter_engine::{convert_map_in_map, data_walker, DataWalkerMapListPaths, ListType, MapType, ObjectType, Types};
-use crate::helpers::rename::{rename_advancement, rename_recipe};
+use crate::helpers::rename::{rename_advancement, rename_recipe, simple_rename};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2100;
@@ -9,20 +9,8 @@ fn register_mob<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: &str) {
 }
 
 pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    rename_recipe(types, VERSION, |name| {
-        if name == "minecraft:sugar" {
-            Some("sugar_from_sugar_cane".to_owned())
-        } else {
-            None
-        }
-    });
-    rename_advancement(types, VERSION, |name| {
-        if name == "minecraft:recipes/misc/sugar" {
-            Some("minecraft:recipes/misc/sugar_from_sugar_cane".to_owned())
-        } else {
-            None
-        }
-    });
+    rename_recipe(types, VERSION, simple_rename("minecraft:sugar", "sugar_from_sugar_cane"));
+    rename_advancement(types, VERSION, simple_rename("minecraft:recipes/misc/sugar", "minecraft:recipes/misc/sugar_from_sugar_cane"));
     register_mob(types, "minecraft:bee");
     register_mob(types, "minecraft:bee_stinger");
     let entity_type = types.entity;
