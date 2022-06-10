@@ -223,7 +223,7 @@ fn fix_flat_structures<T: Types + ?Sized>(generator_options: Option<&T::Map>) ->
     ret
 }
 
-fn vanilla_levels<T: Types + ?Sized>(seed: i64, generator: T::Map, caves: bool) -> T::Map {
+pub(crate) fn vanilla_levels<T: Types + ?Sized>(seed: i64, generator: T::Map, caves: bool) -> T::Map {
     let mut ret = T::Map::create_empty();
 
     let mut overworld = T::Map::create_empty();
@@ -253,7 +253,7 @@ fn vanilla_levels<T: Types + ?Sized>(seed: i64, generator: T::Map, caves: bool) 
     ret
 }
 
-fn default_overworld<T: Types + ?Sized>(seed: i64) -> T::Map {
+pub(crate) fn default_overworld<T: Types + ?Sized>(seed: i64) -> T::Map {
     noise::<T>(seed, "minecraft:overworld", vanilla_biome_source::<T>(seed, false, false))
 }
 

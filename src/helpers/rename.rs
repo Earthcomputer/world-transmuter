@@ -93,6 +93,16 @@ pub(crate) fn rename_stat<'a, T: Types + ?Sized>(
     }));
 }
 
+pub(crate) fn rename_option<'a, T: Types + ?Sized>(
+    types: &MinecraftTypesMut<'a, T>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+) {
+    types.options.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
+        data.rename_keys(renamer);
+    }));
+}
+
 pub(crate) fn rename_poi<'a, T: Types + ?Sized>(
     types: &MinecraftTypesMut<'a, T>,
     version: impl Into<DataVersion>,
