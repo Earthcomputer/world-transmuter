@@ -10,3 +10,4 @@ pub(crate) mod bit_storage;
 pub(crate) mod flatten_item_stack_v1451;
 pub(crate) mod resource_location;
 pub(crate) mod json_parser;
+pub(crate) mod walkers;

@@ -3,7 +3,7 @@ use std::pin::Pin;
 use rust_dataconverter_engine::{IdDataType, MapDataType, ObjectDataType, Types};
 
 macro_rules! define_minecraft_types {
-    ($($field_name:ident : $type:ident ($name:literal)),*) => {
+    ($($field_name:ident : $type:ident ($name:literal)),* $(,)?) => {
         #[repr(C)] // important for safety of pinned field offsets
         struct MinecraftTypesArena<'a, T: Types + ?Sized> {
             $(
@@ -81,7 +81,8 @@ define_minecraft_types! {
     team: MapDataType("Team"),
     recipe: ObjectDataType("RecipeName"),
     biome: ObjectDataType("Biome"),
-    world_gen_settings: MapDataType("WorldGenSettings")
+    world_gen_settings: MapDataType("WorldGenSettings"),
+    game_event_name: ObjectDataType("GameEventName"),
 }
 
 impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {

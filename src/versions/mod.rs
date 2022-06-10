@@ -131,4 +131,5 @@ versions! {
     mod v2671;
     mod v2679;
     mod v2680;
+    mod v2684;
 }
