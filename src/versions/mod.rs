@@ -136,4 +136,5 @@ versions! {
     mod v2688;
     mod v2690;
     mod v2691;
+    mod v2693;
 }
