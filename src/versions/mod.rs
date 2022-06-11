@@ -140,4 +140,5 @@ versions! {
     mod v2696;
     mod v2700;
     mod v2701;
+    mod v2702;
 }
