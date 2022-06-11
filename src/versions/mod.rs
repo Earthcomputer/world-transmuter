@@ -145,4 +145,5 @@ versions! {
     mod v2710;
     mod v2717;
     mod v2825;
+    mod v2831;
 }
