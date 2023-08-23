@@ -1,9 +1,9 @@
-use rust_dataconverter_engine::{DataWalkerMapListPaths, DataWalkerMapTypePaths, Types};
+use rust_dataconverter_engine::{DataWalkerMapListPaths, DataWalkerMapTypePaths};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1470;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     register_mob(types, "minecraft:turtle");
     register_mob(types, "minecraft:cod_mob");
     register_mob(types, "minecraft:tropical_fish");
@@ -16,6 +16,6 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     types.entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:trident", DataWalkerMapTypePaths::new(types.block_state, "inBlockState"));
 }
 
-fn register_mob<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: impl Into<String>) {
+fn register_mob(types: &MinecraftTypesMut, id: impl Into<String>) {
     types.entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerMapListPaths::new_multi(types.item_stack, vec!["ArmorItems".to_owned(), "HandItems".to_owned()]));
 }

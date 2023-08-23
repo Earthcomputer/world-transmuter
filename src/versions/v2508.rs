@@ -1,4 +1,3 @@
-use rust_dataconverter_engine::Types;
 use crate::helpers::rename::{rename_block, rename_item};
 use crate::MinecraftTypesMut;
 
@@ -12,7 +11,7 @@ fn remap(name: &str) -> Option<String> {
     }
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     rename_block(types, VERSION, remap);
     rename_item(types, VERSION, remap);
 }

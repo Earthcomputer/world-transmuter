@@ -1,22 +1,22 @@
 use std::collections::btree_map::BTreeMap;
-use rust_dataconverter_engine::{MapType, ObjectType, Types};
+use valence_nbt::{Compound, Value};
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub(crate) struct BlockStateOwned {
     pub(crate) name: String,
     pub(crate) properties: BTreeMap<String, String>,
 }
 
 impl BlockStateOwned {
-    pub(crate) fn to_nbt<T: Types + ?Sized>(&self) -> T::Map {
-        let mut nbt = T::Map::create_empty();
-        nbt.set("Name", T::Object::create_string(self.name.clone()));
+    pub(crate) fn to_nbt(&self) -> Compound {
+        let mut nbt = Compound::new();
+        nbt.insert("Name", self.name.clone());
         if !self.properties.is_empty() {
-            let mut props = T::Map::create_empty();
+            let mut props = Compound::new();
             for (key, val) in &self.properties {
-                props.set(key, T::Object::create_string(val.clone()));
+                props.insert(key, val);
             }
-            nbt.set("Properties", T::Object::create_map(props));
+            nbt.insert("Properties", props);
         }
         nbt
     }
@@ -41,7 +41,7 @@ macro_rules! block_state_owned {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub(crate) struct BlockState<'a> {
     pub(crate) name: &'a str,
     pub(crate) properties: BTreeMap<&'a str, &'a str>,
@@ -55,34 +55,34 @@ impl<'a> From<&'a BlockStateOwned> for BlockState<'a> {
         }
         BlockState {
             name: value.name.as_str(),
-            properties: props
+            properties: props,
         }
     }
 }
 
 impl<'a> BlockState<'a> {
-    pub(crate) fn from_nbt<T: Types + ?Sized>(nbt: &'a T::Map) -> Option<Self> {
-        let name = nbt.get_string("Name")?;
+    pub(crate) fn from_nbt(nbt: &'a Compound) -> Option<Self> {
+        let Some(Value::String(name)) = nbt.get("Name") else { return None };
         let mut properties = BTreeMap::new();
-        if let Some(props) = nbt.get_map("Properties") {
-            for key in props.keys() {
-                let value = props.get_string(key)?;
-                properties.insert(key.as_str(), value);
+        if let Some(Value::Compound(props)) = nbt.get("Properties") {
+            for (key, value) in props {
+                let Value::String(value) = value else { return None };
+                properties.insert(key.as_str(), value.as_str());
             }
         }
 
         Some(Self { name, properties })
     }
 
-    pub(crate) fn to_nbt<T: Types + ?Sized>(&self) -> T::Map {
-        let mut nbt = T::Map::create_empty();
-        nbt.set("Name", T::Object::create_string(self.name.to_owned()));
+    pub(crate) fn to_nbt(&self) -> Compound {
+        let mut nbt = Compound::new();
+        nbt.insert("Name", self.name);
         if !self.properties.is_empty() {
-            let mut props = T::Map::create_empty();
+            let mut props = Compound::new();
             for (key, val) in &self.properties {
-                props.set(*key, T::Object::create_string(val.to_string()));
+                props.insert(*key, *val);
             }
-            nbt.set("Properties", T::Object::create_map(props));
+            nbt.insert("Properties", props);
         }
         nbt
     }
@@ -94,14 +94,14 @@ impl<'a> BlockState<'a> {
         }
         BlockStateOwned {
             name: self.name.to_string(),
-            properties: props
+            properties: props,
         }
     }
 }
 
 #[macro_export]
 macro_rules! block_state {
-    ($name:literal $([$($prop_name:literal = $prop_value:literal),+])?) => {
+    ($name:literal $([$($prop_name:literal = $prop_value:expr),+])?) => {
         BlockState {
             name: $name,
             properties: {

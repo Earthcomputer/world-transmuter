@@ -1,20 +1,22 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::compound;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1918;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     for entity_id in ["minecraft:villager", "minecraft:zombie_villager"] {
-        types.entity.borrow_mut().add_converter_for_id(entity_id, VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-            let profession = data.remove("Profession").and_then(|obj| obj.as_i64()).unwrap_or(0) as i32;
-            let career = data.remove("Career").and_then(|obj| obj.as_i64()).unwrap_or(0) as i32;
-            let career_level = data.remove("CareerLevel").and_then(|obj| obj.as_i64()).unwrap_or(1) as i32;
+        types.entity.borrow_mut().add_converter_for_id(entity_id, VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+            let profession = data.remove("Profession").and_then(|obj| obj.as_i32()).unwrap_or(0);
+            let career = data.remove("Career").and_then(|obj| obj.as_i32()).unwrap_or(0);
+            let career_level = data.remove("CareerLevel").and_then(|obj| obj.as_i32()).unwrap_or(1);
 
-            let mut villager_data = T::Map::create_empty();
-            villager_data.set("type", T::Object::create_string("minecraft:plains".to_owned()));
-            villager_data.set("profession", T::Object::create_string(get_profession_string(profession, career).to_owned()));
-            villager_data.set("level", T::Object::create_int(career_level));
-            data.set("VillagerData", T::Object::create_map(villager_data));
+            let villager_data = compound! {
+                "type" => "minecraft:plains",
+                "profession" => get_profession_string(profession, career),
+                "level" => career_level,
+            };
+            data.insert("VillagerData", villager_data);
         }));
     }
 }

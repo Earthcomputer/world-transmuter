@@ -1,13 +1,14 @@
 use log::warn;
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 108;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     // Convert String UUID into UUIDMost and UUIDLeast
-    types.entity.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(uuid) = data.remove("UUID").and_then(|o| o.into_string()) {
+    types.entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::String(uuid)) = data.remove("UUID") {
             let uuid = match uuid::Uuid::parse_str(&uuid) {
                 Ok(uuid) => uuid,
                 Err(err) => {
@@ -17,8 +18,8 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
             };
 
             let (most, least) = uuid.as_u64_pair();
-            data.set("UUIDMost", T::Object::create_long(most as i64));
-            data.set("UUIDLeast", T::Object::create_long(least as i64));
+            data.insert("UUIDMost", most as i64);
+            data.insert("UUIDLeast", least as i64);
         }
     }));
 }

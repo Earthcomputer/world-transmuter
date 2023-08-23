@@ -1,14 +1,16 @@
-use std::lazy::SyncOnceCell;
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1911;
 
-static CHUNK_STATUS_REMAP: SyncOnceCell<rust_dataconverter_engine::Map<&'static str, &'static str>> = SyncOnceCell::new();
+static CHUNK_STATUS_REMAP: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
 
-fn chunk_status_remap() -> &'static rust_dataconverter_engine::Map<&'static str, &'static str> {
+fn chunk_status_remap() -> &'static BTreeMap<&'static str, &'static str> {
     CHUNK_STATUS_REMAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
+        let mut map = BTreeMap::new();
         map.insert("structure_references", "empty");
         map.insert("biomes", "empty");
         map.insert("base", "surface");
@@ -23,11 +25,15 @@ fn chunk_status_remap() -> &'static rust_dataconverter_engine::Map<&'static str,
     })
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.chunk.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(level) = data.get_map_mut("Level") {
-            let new_status = chunk_status_remap().get(level.get_string("Status").unwrap_or("empty")).copied().unwrap_or("empty");
-            level.set("Status", T::Object::create_string(new_status.to_owned()));
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.chunk.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::Compound(level)) = data.get_mut("Level") {
+            let status = match level.get("Status") {
+                Some(Value::String(status)) => &status[..],
+                _ => "empty",
+            };
+            let new_status = chunk_status_remap().get(status).copied().unwrap_or("empty");
+            level.insert("Status", new_status);
         }
     }));
 }

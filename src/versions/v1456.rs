@@ -1,17 +1,17 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1456;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.entity.borrow_mut().add_converter_for_id("minecraft:item_frame", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.entity.borrow_mut().add_converter_for_id("minecraft:item_frame", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         // convert direction from 2d to 3d
-        let new_dir = match data.get_i64("Facing").unwrap_or(0) as i8 {
+        let new_dir = match data.get("Facing").and_then(|v| v.as_i8()).unwrap_or(0) {
             0 => 3,
             1 => 4,
             3 => 5,
             _ => 2,
         };
-        data.set("Facing", T::Object::create_byte(new_dir));
+        data.insert("Facing", new_dir);
     }));
 }

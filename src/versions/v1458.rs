@@ -1,49 +1,50 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::{Compound, Value};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1458;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     // From CB
-    types.player.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        update_custom_name::<T>(data);
+    types.player.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        update_custom_name(data);
     }));
 
-    types.entity.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if data.get_string("id").map(|str| str == "minecraft:commandblock_minecart") != Some(true) {
-            update_custom_name::<T>(data);
+    types.entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if !matches!(data.get("id"), Some(Value::String(str)) if str == "minecraft:commandblock_minecart") {
+            update_custom_name(data);
         }
     }));
 
-    types.item_stack.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(tag) = data.get_map_mut("tag") {
-            if let Some(display) = tag.get_map_mut("display") {
-                if let Some(name) = display.get_string("Name") {
+    types.item_stack.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::Compound(tag)) = data.get_mut("tag") {
+            if let Some(Value::Compound(display)) = tag.get_mut("display") {
+                if let Some(Value::String(name)) = display.get_mut("Name") {
                     let new_name = format!("{{\"text\":\"{}\"}}", name.replace('\\', "\\\\").replace('"', "\\\""));
-                    display.set("Name", T::Object::create_string(new_name));
-                } else if let Some(loc_name) = display.get_string("LocName") {
+                    *name = new_name;
+                } else if let Some(Value::String(loc_name)) = display.get("LocName") {
                     let new_name = format!("{{\"translate\":\"{}\"}}", loc_name.replace('\\', "\\\\").replace('"', "\\\""));
                     display.remove("LocName");
-                    display.set("Name", T::Object::create_string(new_name));
+                    display.insert("Name", new_name);
                 }
             }
         }
     }));
 
-    types.tile_entity.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if data.get_string("id").map(|str| str == "minecraft:command_block") != Some(true) {
-            update_custom_name::<T>(data);
+    types.tile_entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if !matches!(data.get("id"), Some(Value::String(str)) if str == "minecraft:command_block") {
+            update_custom_name(data);
         }
     }));
 }
 
-pub(super) fn update_custom_name<T: Types + ?Sized>(data: &mut T::Map) {
-    if let Some(custom_name) = data.get_string("CustomName") {
+pub(super) fn update_custom_name(data: &mut Compound) {
+    if let Some(Value::String(custom_name)) = data.get_mut("CustomName") {
         if custom_name.is_empty() {
             data.remove("CustomName");
         } else {
             let new_name = format!("{{\"text\":\"{}\"}}", custom_name.replace('\\', "\\\\").replace('"', "\\\""));
-            data.set("CustomName", T::Object::create_string(new_name));
+            *custom_name = new_name;
         }
     }
 }

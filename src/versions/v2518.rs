@@ -1,23 +1,25 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2518;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.tile_entity.borrow_mut().add_converter_for_id("minecraft:jigsaw", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let _: Option<_> = try {
-            let typ = data.remove("attachment_type")?.into_string()?;
-            let pool = data.remove("target_pool")?.into_string()?;
-            data.set("name", T::Object::create_string(typ.clone()));
-            data.set("target", T::Object::create_string(typ));
-            data.set("pool", T::Object::create_string(pool));
-        };
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.tile_entity.borrow_mut().add_converter_for_id("minecraft:jigsaw", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let Some(Value::String(typ)) = data.remove("attachment_type") else { return };
+        let Some(Value::String(pool)) = data.remove("target_pool") else { return };
+        data.insert("name", typ.clone());
+        data.insert("target", typ);
+        data.insert("pool", pool);
     }));
 
-    types.block_state.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if data.get_string("Name") == Some("minecraft:jigsaw") {
-            if let Some(properties) = data.get_map_mut("Properties") {
-                let facing = properties.remove("facing").and_then(|o| o.into_string());
+    types.block_state.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if matches!(data.get("Name"), Some(Value::String(str)) if str == "minecraft:jigsaw") {
+            if let Some(Value::Compound(properties)) = data.get_mut("Properties") {
+                let facing = match properties.remove("facing") {
+                    Some(Value::String(facing)) => Some(facing),
+                    _ => None
+                };
                 let facing = match facing.as_deref() {
                     Some("down") => "down_south",
                     Some("up") => "up_north",
@@ -26,7 +28,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
                     Some("east") => "east_up",
                     _ => "north_up",
                 };
-                properties.set("orientation", T::Object::create_string(facing.to_owned()));
+                properties.insert("orientation", facing);
             }
         }
     }));

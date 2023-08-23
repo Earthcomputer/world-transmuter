@@ -1,17 +1,17 @@
-use rust_dataconverter_engine::{data_converter_func, DataWalkerMapListPaths, DataWalkerMapTypePaths, MapType, ObjectType, Types};
+use rust_dataconverter_engine::{DataWalkerMapListPaths, DataWalkerMapTypePaths, map_data_converter_func};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 703;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.entity.borrow_mut().add_converter_for_id("EntityHorse", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.entity.borrow_mut().add_converter_for_id("EntityHorse", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         match data.remove("Type").and_then(|o| o.as_i64()) {
-            Some(1) => data.set("id", T::Object::create_string("Donkey".to_owned())),
-            Some(2) => data.set("id", T::Object::create_string("Mule".to_owned())),
-            Some(3) => data.set("id", T::Object::create_string("ZombieHorse".to_owned())),
-            Some(4) => data.set("id", T::Object::create_string("SkeletonHorse".to_owned())),
-            _ => data.set("id", T::Object::create_string("Horse".to_owned()))
-        }
+            Some(1) => data.insert("id", "Donkey"),
+            Some(2) => data.insert("id", "Mule"),
+            Some(3) => data.insert("id", "ZombieHorse"),
+            Some(4) => data.insert("id", "SkeletonHorse"),
+            _ => data.insert("id", "Horse")
+        };
     }));
 
     types.entity.borrow_mut().add_walker_for_id(VERSION, "Horse", DataWalkerMapTypePaths::new_multi(types.item_stack, vec!["ArmorItem".to_owned(), "SaddleItem".to_owned()]));

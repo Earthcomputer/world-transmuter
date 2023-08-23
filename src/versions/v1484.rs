@@ -1,10 +1,11 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, Types};
+use rust_dataconverter_engine::{map_data_converter_func, rename_key};
+use valence_nbt::Value;
 use crate::helpers::rename::{rename_block, rename_item};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1484;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     let renamer = |name: &str| {
         match name {
             "minecraft:sea_grass" => Some("minecraft:seagrass".to_owned()),
@@ -12,32 +13,25 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
             _ => None
         }
     };
-    rename_item::<T>(types, VERSION, renamer);
-    rename_block::<T>(types, VERSION, renamer);
+    rename_item(types, VERSION, renamer);
+    rename_block(types, VERSION, renamer);
 
-    types.chunk.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let level = match data.get_map_mut("Level") {
-            Some(level) => level,
-            None => return
-        };
+    types.chunk.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let Some(Value::Compound(level)) = data.get_mut("Level") else { return };
+        let Some(Value::Compound(heightmaps)) = level.get_mut("Heightmaps") else { return };
 
-        let heightmaps = match level.get_map_mut("Heightmaps") {
-            Some(heightmaps) => heightmaps,
-            None => return
-        };
-
-        heightmaps.rename_key("LIQUID", "WORLD_SURFACE_WG");
+        rename_key(heightmaps, "LIQUID", "WORLD_SURFACE_WG");
 
         if let Some(solid) = heightmaps.remove("SOLID") {
-            heightmaps.set("OCEAN_FLOOR_WG", solid.clone());
-            heightmaps.set("OCEAN_FLOOR", solid);
+            heightmaps.insert("OCEAN_FLOOR_WG", solid.clone());
+            heightmaps.insert("OCEAN_FLOOR", solid);
         }
 
-        heightmaps.rename_key("LIGHT", "LIGHT_BLOCKING");
+        rename_key(heightmaps, "LIGHT", "LIGHT_BLOCKING");
 
         if let Some(rain) = heightmaps.remove("RAIN") {
-            heightmaps.set("MOTION_BLOCKING", rain.clone());
-            heightmaps.set("MOTION_BLOCKING_NO_LEAVES", rain);
+            heightmaps.insert("MOTION_BLOCKING", rain.clone());
+            heightmaps.insert("MOTION_BLOCKING_NO_LEAVES", rain);
         }
     }));
 }

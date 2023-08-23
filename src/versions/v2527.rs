@@ -1,37 +1,34 @@
-use rust_dataconverter_engine::{data_converter_func, ListType, MapType, ObjectRef, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::{List, Value};
 use crate::helpers::bit_storage::ceil_log2;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2527;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.chunk.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(level) = data.get_map_mut("Level") {
-            if let Some(sections) = level.get_list_mut("Sections") {
-                for section in sections.iter_mut() {
-                    if let Some(section) = section.as_map_mut() {
-                        let section: &mut T::Map = section;
-                        if let Some(palette) = section.get_map("Palette") {
-                            let bits = 4.max(ceil_log2(palette.size() as u32));
-                            if bits.is_power_of_two() {
-                                // fits perfectly
-                                continue;
-                            }
-                            if let Some(ObjectRef::LongArray(states)) = section.get("BlockStates").map(|o| o.as_ref()) {
-                                let new_states = add_padding(4096, bits as usize, states);
-                                section.set("BlockStates", T::Object::create_long_array(new_states));
-                            }
-                        }
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.chunk.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let Some(Value::Compound(level)) = data.get_mut("Level") else { return };
+        if let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") {
+            for section in sections.iter_mut() {
+                if let Some(Value::Compound(palette)) = section.get("Palette") {
+                    let bits = 4.max(ceil_log2(palette.len() as u32));
+                    if bits.is_power_of_two() {
+                        // fits perfectly
+                        continue;
+                    }
+                    if let Some(Value::LongArray(states)) = section.get_mut("BlockStates") {
+                        let new_states = add_padding(4096, bits as usize, states);
+                        *states = new_states;
                     }
                 }
             }
+        }
 
-            if let Some(heightmaps) = level.get_map_mut("Heightmaps") {
-                for key in heightmaps.keys().cloned().collect::<Vec<_>>() {
-                    if let ObjectRef::LongArray(old) = heightmaps.get(&key).unwrap().as_ref() {
-                        let new = add_padding(256, 9, old);
-                        heightmaps.set(key, T::Object::create_long_array(new));
-                    }
+        if let Some(Value::Compound(heightmaps)) = level.get_mut("Heightmaps") {
+            for heightmap in heightmaps.values_mut() {
+                if let Value::LongArray(heightmap) = heightmap {
+                    let new_heightmap = add_padding(256, 9, heightmap);
+                    *heightmap = new_heightmap;
                 }
             }
         }

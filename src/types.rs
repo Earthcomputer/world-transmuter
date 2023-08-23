@@ -1,35 +1,35 @@
+use rust_dataconverter_engine::{IdDataType, MapDataType, ObjectDataType};
 use std::cell::{Ref, RefCell};
 use std::pin::Pin;
-use rust_dataconverter_engine::{IdDataType, MapDataType, ObjectDataType, Types};
 
 macro_rules! define_minecraft_types {
     ($($field_name:ident : $type:ident ($name:literal)),* $(,)?) => {
         #[repr(C)] // important for safety of pinned field offsets
-        struct MinecraftTypesArena<'a, T: Types + ?Sized> {
+        struct MinecraftTypesArena<'a> {
             $(
-                $field_name: RefCell<$type<'a, T>>,
+                $field_name: RefCell<$type<'a>>,
             )*
         }
 
-        pub(crate) struct MinecraftTypesMut<'a, T: Types + ?Sized> {
+        pub(crate) struct MinecraftTypesMut<'a> {
             $(
-                pub(crate) $field_name: &'a RefCell<$type<'a, T>>,
+                pub(crate) $field_name: &'a RefCell<$type<'a>>,
             )*
-            arena: Pin<Box<MinecraftTypesArena<'a, T>>>,
+            arena: Pin<Box<MinecraftTypesArena<'a>>>,
         }
 
-        pub struct MinecraftTypes<'a, T: Types + ?Sized> {
-            arena: Pin<Box<MinecraftTypesArena<'a, T>>>,
+        pub struct MinecraftTypes<'a> {
+            arena: Pin<Box<MinecraftTypesArena<'a>>>,
         }
 
-        impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
+        impl<'a> MinecraftTypes<'a> {
             $(
-                pub fn $field_name(&'a self) -> Ref<'a, $type<'a, T>> {
+                pub fn $field_name(&'a self) -> Ref<'a, $type<'a>> {
                     self.arena.$field_name.borrow()
                 }
             )*
 
-            fn create_empty() -> MinecraftTypesMut<'a, T> {
+            fn create_empty() -> MinecraftTypesMut<'a> {
                 let arena = Box::pin(
                     MinecraftTypesArena {
                         $(
@@ -47,7 +47,7 @@ macro_rules! define_minecraft_types {
                 }
             }
 
-            fn to_minecraft_types(types: MinecraftTypesMut<'a, T>) -> Self {
+            fn to_minecraft_types(types: MinecraftTypesMut<'a>) -> Self {
                 Self {
                     arena: types.arena,
                 }
@@ -85,8 +85,8 @@ define_minecraft_types! {
     game_event_name: ObjectDataType("GameEventName"),
 }
 
-impl<'a, T: Types + ?Sized> MinecraftTypes<'a, T> {
-    pub fn new() -> Self {
+impl<'a> MinecraftTypes<'a> {
+    pub fn create() -> Self {
         use crate::versions::*;
 
         let ret = Self::create_empty();

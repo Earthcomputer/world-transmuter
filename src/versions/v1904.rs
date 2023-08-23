@@ -1,19 +1,20 @@
-use rust_dataconverter_engine::{data_converter_func, DataWalkerMapListPaths, MapType, ObjectType, Types};
+use rust_dataconverter_engine::{DataWalkerMapListPaths, map_data_converter_func};
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1904;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.entity.borrow_mut().add_converter_for_id("minecraft:ocelot", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let cat_type = data.get_i64("CatType").unwrap_or(0) as i32;
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.entity.borrow_mut().add_converter_for_id("minecraft:ocelot", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let cat_type = data.get("CatType").and_then(|v| v.as_i32()).unwrap_or(0);
         if cat_type == 0 {
-            if data.get_string("Owner").map(|str| str.is_empty()) == Some(false) || data.get_string("OwnerUUID").map(|str| str.is_empty()) == Some(false) {
-                data.set("Trusting", T::Object::create_bool(true));
+            if matches!(data.get("Owner"), Some(Value::String(str)) if !str.is_empty()) || matches!(data.get("OwnerUUID"), Some(Value::String(str)) if !str.is_empty()) {
+                data.insert("Trusting", true);
             }
         } else if cat_type > 0 && cat_type < 4 {
-            data.set("id", T::Object::create_string("minecraft:cat".to_owned()));
-            if data.get_string("OwnerUUID").is_none() {
-                data.set("OwnerUUID", T::Object::create_string(String::new()));
+            data.insert("id", "minecraft:cat");
+            if !matches!(data.get("OwnerUUID"), Some(Value::String(_))) {
+                data.insert("OwnerUUID", String::new());
             }
         }
     }));

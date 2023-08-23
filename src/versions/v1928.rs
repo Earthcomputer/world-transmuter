@@ -1,10 +1,10 @@
-use rust_dataconverter_engine::{DataWalkerMapListPaths, Types};
+use rust_dataconverter_engine::{DataWalkerMapListPaths};
 use crate::helpers::rename::{rename_entity, rename_item, simple_rename};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1928;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     rename_entity(types, VERSION, simple_rename("minecraft:illager_beast", "minecraft:ravager"));
     rename_item(types, VERSION, simple_rename("minecraft:illager_beast_spawn_egg", "minecraft:ravager_spawn_egg"));
 

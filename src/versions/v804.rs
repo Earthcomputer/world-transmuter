@@ -1,39 +1,37 @@
-use rust_dataconverter_engine::{data_converter_func, ListType, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::{List, Value};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 804;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.item_stack.borrow_mut().add_converter_for_id("minecraft:banner", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let _: Option<_> = try {
-            let tag = data.get_map("tag")?;
-            let block_entity = tag.get_map("BlockEntityTag")?;
-            let base = (block_entity.get_i64("Base").unwrap_or(0) & 15) as i16;
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.item_stack.borrow_mut().add_converter_for_id("minecraft:banner", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let Some(Value::Compound(tag)) = data.get("tag") else { return };
+        let Some(Value::Compound(block_entity)) = tag.get("BlockEntityTag") else { return };
+        let base = block_entity.get("Base").and_then(|v| v.as_i16()).unwrap_or(0) & 15;
 
-            data.set("Damage", T::Object::create_short(base));
+        data.insert("Damage", base);
 
-            let tag = data.get_map("tag").unwrap();
+        let Some(Value::Compound(tag)) = data.get_mut("tag") else { unreachable!() };
 
-            if let Some(display) = tag.get_map("display") {
-                if let Some(lore) = display.get_list("Lore") {
-                    if lore.size() == 1 && lore.get(0).as_string() == Some("(+NBT)") {
-                        return;
-                    }
+        if let Some(Value::Compound(display)) = tag.get("display") {
+            if let Some(Value::List(List::String(lore))) = display.get("Lore") {
+                if lore.len() == 1 && lore[0] == "(+NBT)" {
+                    return;
                 }
             }
+        }
 
-            let tag = data.get_map_mut("tag").unwrap();
-            let block_entity = tag.get_map_mut("BlockEntityTag").unwrap();
-            block_entity.remove("Base");
-            let remove_block_entity = block_entity.is_empty();
-            if remove_block_entity {
-                tag.remove("BlockEntityTag");
-            }
+        let Some(Value::Compound(block_entity)) = tag.get_mut("BlockEntityTag") else { unreachable!() };
+        block_entity.remove("Base");
+        let remove_block_entity = block_entity.is_empty();
+        if remove_block_entity {
+            tag.remove("BlockEntityTag");
+        }
 
-            let remove_tag = tag.is_empty();
-            if remove_tag {
-                data.remove("tag");
-            }
-        };
+        let remove_tag = tag.is_empty();
+        if remove_tag {
+            data.remove("tag");
+        }
     }));
 }

@@ -1,33 +1,36 @@
-use std::lazy::SyncOnceCell;
-use rust_dataconverter_engine::{data_converter_func, ListType, MapType, ObjectType, Types};
+use std::sync::OnceLock;
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::{Compound, List, Value};
+use valence_nbt::value::ValueRef;
+use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2701;
 
-static PIECE_TYPE: SyncOnceCell<rust_dataconverter_engine::Map<&'static str, ()>> = SyncOnceCell::new();
+static PIECE_TYPE: OnceLock<McNamespaceSet> = OnceLock::new();
 
-fn piece_type() -> &'static rust_dataconverter_engine::Map<&'static str, ()> {
+fn piece_type() -> &'static McNamespaceSet<'static> {
     PIECE_TYPE.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        map.insert("minecraft:jigsaw", ());
-        map.insert("minecraft:nvi", ());
-        map.insert("minecraft:pcp", ());
-        map.insert("minecraft:bastionremnant", ());
-        map.insert("minecraft:runtime", ());
-        map
+        let mut set = McNamespaceSet::new();
+        set.insert_mc("jigsaw");
+        set.insert_mc("nvi");
+        set.insert_mc("pcp");
+        set.insert_mc("bastionremnant");
+        set.insert_mc("runtime");
+        set
     })
 }
 
-static FEATURES: SyncOnceCell<rust_dataconverter_engine::Map<&'static str, ()>> = SyncOnceCell::new();
+static FEATURES: OnceLock<McNamespaceSet> = OnceLock::new();
 
-fn features() -> &'static rust_dataconverter_engine::Map<&'static str, ()> {
+fn features() -> &'static McNamespaceSet<'static> {
     FEATURES.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        map.insert("minecraft:tree", ());
-        map.insert("minecraft:flower", ());
-        map.insert("minecraft:block_pile", ());
-        map.insert("minecraft:random_patch", ());
-        map
+        let mut set = McNamespaceSet::new();
+        set.insert_mc("tree");
+        set.insert_mc("flower");
+        set.insert_mc("block_pile");
+        set.insert_mc("random_patch");
+        set
     })
 }
 
@@ -36,44 +39,51 @@ struct Getter<T> {
 }
 
 impl Getter<&str> {
-    fn get<'a, T: Types + ?Sized>(&self, obj: &'a T::Object) -> Option<&'a T::Object> {
-        obj.as_map().and_then(|o| o.get(self.value))
+    fn get<'a>(&self, obj: ValueRef<'a>) -> Option<ValueRef<'a>> {
+        match obj {
+            ValueRef::Compound(compound) => compound.get(self.value).map(|v| v.as_value_ref()),
+            _ => None,
+        }
     }
 }
 
 impl Getter<i32> {
-    fn get<'a, T: Types + ?Sized>(&self, obj: &'a T::Object) -> Option<&'a T::Object> {
-        obj.as_list().and_then(|o| if (self.value as usize) < o.size() { Some(o.get(self.value as usize)) } else { None })
+    fn get<'a>(&self, obj: ValueRef<'a>) -> Option<ValueRef<'a>> {
+        match obj {
+            ValueRef::List(list) => list.get(self.value as usize),
+            _ => None,
+        }
     }
 }
 
 macro_rules! get_nested_string {
-    ($t: ty, $root:expr, $path:expr $(, $paths:tt)*) => {
-        $root.get($path)
-        $(
-            .and_then(|o| Getter{value: $paths}.get::<$t>(o))
-        )*
-        .and_then(|o| o.as_string())
-        .unwrap_or("")
+    ($root:expr, $path:expr $(, $paths:tt)*) => {
+        {
+            let result = $root.get($path).map(|v| v.as_value_ref())
+            $(
+                .and_then(|v| Getter{value: $paths}.get(v))
+            )*;
+            match result {
+                Some(ValueRef::String(str)) => &str[..],
+                _ => "",
+            }
+        }
     }
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.structure_feature.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(children) = data.get_list_mut("Children") {
-            for child in children.iter_mut() {
-                if let Some(child) = child.as_map_mut() {
-                    let child: &mut T::Map = child;
-                    if child.get_string("id").map(|id| piece_type().contains_key(id)) != Some(true) {
-                        continue;
-                    }
-                    if child.get_string("pool_element") != Some("minecraft:feature_pool_element") {
-                        continue;
-                    }
-                    if let Some(feature) = child.get_map("feature") {
-                        if let Some(replacement) = convert_to_string::<T>(feature) {
-                            child.set("feature", T::Object::create_string(replacement));
-                        }
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.structure_feature.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
+            for child in children {
+                if !matches!(child.get("id"), Some(Value::String(id)) if piece_type().contains(id)) {
+                    continue;
+                }
+                if !matches!(child.get("pool_element"), Some(Value::String(str)) if str == "minecraft:pool_element") {
+                    continue;
+                }
+                if let Some(Value::Compound(feature)) = child.get("feature") {
+                    if let Some(replacement) = convert_to_string(feature) {
+                        child.insert("feature", replacement);
                     }
                 }
             }
@@ -81,15 +91,15 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     }));
 }
 
-fn convert_to_string<T: Types + ?Sized>(feature: &T::Map) -> Option<String> {
+fn convert_to_string(feature: &Compound) -> Option<String> {
     get_replacement(
-        get_nested_string!(T, feature, "type"),
-        get_nested_string!(T, feature, "name"),
-        get_nested_string!(T, feature, "config", "state_provider", "type"),
-        get_nested_string!(T, feature, "config", "state_provider", "state", "Name"),
-        get_nested_string!(T, feature, "config", "state_provider", "entries", 0, "data", "Name"),
-        get_nested_string!(T, feature, "config", "foliage_placer", "type"),
-        get_nested_string!(T, feature, "config", "leaves_provider", "state", "Name"),
+        get_nested_string!(feature, "type"),
+        get_nested_string!(feature, "name"),
+        get_nested_string!(feature, "config", "state_provider", "type"),
+        get_nested_string!(feature, "config", "state_provider", "state", "Name"),
+        get_nested_string!(feature, "config", "state_provider", "entries", 0, "data", "Name"),
+        get_nested_string!(feature, "config", "foliage_placer", "type"),
+        get_nested_string!(feature, "config", "leaves_provider", "state", "Name"),
     )
 }
 
@@ -104,7 +114,7 @@ fn get_replacement(typ: &str, name: &str, state_type: &str, state_name: &str, fi
         }
     };
 
-    if !features().contains_key(actual_type) {
+    if !features().contains(actual_type) {
         return None;
     }
 

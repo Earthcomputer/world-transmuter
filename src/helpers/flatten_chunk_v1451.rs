@@ -1,13 +1,17 @@
-use std::lazy::SyncOnceCell;
-use std::marker::PhantomData;
-use std::mem::MaybeUninit;
+use crate::helpers::bit_storage::{
+    bitset_size, ceil_log2, BitStorage, BitStorageMut, BitStorageOwned, ChunkNibbleArray, LocalPos,
+    PackedBitStorage,
+};
+use crate::helpers::block_state::{BlockState, BlockStateOwned};
+use crate::helpers::{block_flattening_v1450, item_name_v102};
+use crate::{block_state, block_state_owned, make_bit_arr};
+use ahash::{AHashMap, AHashSet};
 use bitvec::prelude::*;
 use log::{error, warn};
-use rust_dataconverter_engine::{DataConverterFunc, DataVersion, ListType, MapType, ObjectRef, ObjectType, Types};
-use crate::{block_state, block_state_owned, make_bit_arr};
-use crate::helpers::{block_flattening_v1450, item_name_v102};
-use crate::helpers::bit_storage::{bitset_size, BitStorage, BitStorageMut, BitStorageOwned, ceil_log2, ChunkNibbleArray, LocalPos, PackedBitStorage};
-use crate::helpers::block_state::{BlockState, BlockStateOwned};
+use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use valence_nbt::{Compound, List, Value};
 
 const VIRTUAL_SET: BitArray<[usize; bitset_size(256)]> = make_bit_arr![256;
     54, 146, 25, 26, 51,
@@ -32,14 +36,14 @@ struct OwnedStates;
 macro_rules! block_states {
     ($(fn $fn_name:ident() -> $field_name:ident, $field_name_owned:ident = block_state!($($tokens:tt)*));* $(;)?) => {
         $(
-            static $field_name: SyncOnceCell<BlockState<'static>> = SyncOnceCell::new();
+            static $field_name: OnceLock<BlockState<'static>> = OnceLock::new();
             #[allow(unused)]
             fn $fn_name() -> &'static BlockState<'static> {
                 $field_name.get_or_init(|| {
                     block_state!($($tokens)*)
                 })
             }
-            static $field_name_owned: SyncOnceCell<BlockStateOwned> = SyncOnceCell::new();
+            static $field_name_owned: OnceLock<BlockStateOwned> = OnceLock::new();
             impl OwnedStates {
                 #[allow(unused)]
                 fn $fn_name() -> &'static BlockStateOwned {
@@ -66,60 +70,130 @@ block_states! {
     fn air() -> AIR, AIR_OWNED = block_state!("minecraft:air");
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-struct FlowerPotState {
-    block_name: String,
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct FlowerPotState<'a> {
     data: u8,
+    block_name: &'a str,
 }
-impl FlowerPotState {
-    fn new(block_name: impl Into<String>, data: u8) -> Self {
-        Self { block_name: block_name.into(), data }
+impl<'a> FlowerPotState<'a> {
+    fn new(block_name: &'a str, data: u8) -> Self {
+        Self { block_name, data }
     }
 }
-static FLOWER_POT_MAP: SyncOnceCell<rust_dataconverter_engine::Map<FlowerPotState, BlockState<'static>>> = SyncOnceCell::new();
-fn flower_pot_map() -> &'static rust_dataconverter_engine::Map<FlowerPotState, BlockState<'static>> {
+static FLOWER_POT_MAP: OnceLock<BTreeMap<FlowerPotState<'static>, BlockState<'static>>> =
+    OnceLock::new();
+fn flower_pot_map() -> &'static BTreeMap<FlowerPotState<'static>, BlockState<'static>> {
     FLOWER_POT_MAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        map.insert(FlowerPotState::new("minecraft:air", 0), block_state!("minecraft:flower_pot"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 0), block_state!("minecraft:potted_poppy"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 1), block_state!("minecraft:potted_blue_orchid"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 2), block_state!("minecraft:potted_allium"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 3), block_state!("minecraft:potted_azure_bluet"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 4), block_state!("minecraft:potted_red_tulip"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 5), block_state!("minecraft:potted_orange_tulip"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 6), block_state!("minecraft:potted_white_tulip"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 7), block_state!("minecraft:potted_pink_tulip"));
-        map.insert(FlowerPotState::new("minecraft:red_flower", 8), block_state!("minecraft:potted_oxeye_daisy"));
-        map.insert(FlowerPotState::new("minecraft:yellow_flower", 0), block_state!("minecraft:potted_dandelion"));
-        map.insert(FlowerPotState::new("minecraft:sapling", 0), block_state!("minecraft:potted_oak_sapling"));
-        map.insert(FlowerPotState::new("minecraft:sapling", 1), block_state!("minecraft:potted_spruce_sapling"));
-        map.insert(FlowerPotState::new("minecraft:sapling", 2), block_state!("minecraft:potted_birch_sapling"));
-        map.insert(FlowerPotState::new("minecraft:sapling", 3), block_state!("minecraft:potted_jungle_sapling"));
-        map.insert(FlowerPotState::new("minecraft:sapling", 4), block_state!("minecraft:potted_acacia_sapling"));
-        map.insert(FlowerPotState::new("minecraft:sapling", 5), block_state!("minecraft:potted_dark_oak_sapling"));
-        map.insert(FlowerPotState::new("minecraft:red_mushroom", 0), block_state!("minecraft:potted_red_mushroom"));
-        map.insert(FlowerPotState::new("minecraft:brown_mushroom", 0), block_state!("minecraft:potted_brown_mushroom"));
-        map.insert(FlowerPotState::new("minecraft:deadbush", 0), block_state!("minecraft:potted_dead_bush"));
-        map.insert(FlowerPotState::new("minecraft:tallgrass", 2), block_state!("minecraft:potted_fern"));
-        map.insert(FlowerPotState::new("minecraft:cactus", 0), block_state!("minecraft:potted_cactus")); // we change default to empty
+        let mut map = BTreeMap::new();
+        map.insert(
+            FlowerPotState::new("minecraft:air", 0),
+            block_state!("minecraft:flower_pot"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 0),
+            block_state!("minecraft:potted_poppy"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 1),
+            block_state!("minecraft:potted_blue_orchid"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 2),
+            block_state!("minecraft:potted_allium"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 3),
+            block_state!("minecraft:potted_azure_bluet"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 4),
+            block_state!("minecraft:potted_red_tulip"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 5),
+            block_state!("minecraft:potted_orange_tulip"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 6),
+            block_state!("minecraft:potted_white_tulip"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 7),
+            block_state!("minecraft:potted_pink_tulip"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_flower", 8),
+            block_state!("minecraft:potted_oxeye_daisy"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:yellow_flower", 0),
+            block_state!("minecraft:potted_dandelion"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:sapling", 0),
+            block_state!("minecraft:potted_oak_sapling"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:sapling", 1),
+            block_state!("minecraft:potted_spruce_sapling"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:sapling", 2),
+            block_state!("minecraft:potted_birch_sapling"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:sapling", 3),
+            block_state!("minecraft:potted_jungle_sapling"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:sapling", 4),
+            block_state!("minecraft:potted_acacia_sapling"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:sapling", 5),
+            block_state!("minecraft:potted_dark_oak_sapling"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:red_mushroom", 0),
+            block_state!("minecraft:potted_red_mushroom"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:brown_mushroom", 0),
+            block_state!("minecraft:potted_brown_mushroom"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:deadbush", 0),
+            block_state!("minecraft:potted_dead_bush"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:tallgrass", 2),
+            block_state!("minecraft:potted_fern"),
+        );
+        map.insert(
+            FlowerPotState::new("minecraft:cactus", 0),
+            block_state!("minecraft:potted_cactus"),
+        ); // we change default to empty
         map
     })
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct SkullState {
     id: u8,
     dir_or_rotation: String,
 }
 impl SkullState {
     fn new(id: u8, dir_or_rotation: impl Into<String>) -> Self {
-        Self { id, dir_or_rotation: dir_or_rotation.into() }
+        Self {
+            id,
+            dir_or_rotation: dir_or_rotation.into(),
+        }
     }
 }
-static SKULL_MAP: SyncOnceCell<rust_dataconverter_engine::Map<SkullState, BlockStateOwned>> = SyncOnceCell::new();
-fn skull_map() -> &'static rust_dataconverter_engine::Map<SkullState, BlockStateOwned> {
+static SKULL_MAP: OnceLock<BTreeMap<SkullState, BlockStateOwned>> = OnceLock::new();
+fn skull_map() -> &'static BTreeMap<SkullState, BlockStateOwned> {
     SKULL_MAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
+        let mut map = BTreeMap::new();
         let mut map_skull = |old_id: u8, new_id: &str, skull_type: &str| {
             for dir in ["north", "east", "south", "west"] {
                 map.insert(SkullState::new(old_id, dir), block_state_owned!(format!("{}_wall_{}", new_id, skull_type); ["facing" => dir]));
@@ -138,24 +212,38 @@ fn skull_map() -> &'static rust_dataconverter_engine::Map<SkullState, BlockState
     })
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-struct DoorState {
-    id: String,
-    facing: String,
-    half: String,
-    hinge: String,
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct DoorState<'a> {
+    facing: &'a str,
+    half: &'a str,
+    hinge: &'a str,
     open: bool,
     powered: bool,
+    id: String,
 }
-impl DoorState {
-    fn new(id: impl Into<String>, facing: impl Into<String>, half: impl Into<String>, hinge: impl Into<String>, open: bool, powered: bool) -> Self {
-        Self { id: id.into(), facing: facing.into(), half: half.into(), hinge: hinge.into(), open, powered }
+impl<'a> DoorState<'a> {
+    fn new(
+        id: impl Into<String>,
+        facing: &'a str,
+        half: &'a str,
+        hinge: &'a str,
+        open: bool,
+        powered: bool,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            facing,
+            half,
+            hinge,
+            open,
+            powered,
+        }
     }
 }
-static DOOR_MAP: SyncOnceCell<rust_dataconverter_engine::Map<DoorState, BlockStateOwned>> = SyncOnceCell::new();
-fn door_map() -> &'static rust_dataconverter_engine::Map<DoorState, BlockStateOwned> {
+static DOOR_MAP: OnceLock<BTreeMap<DoorState<'static>, BlockStateOwned>> = OnceLock::new();
+fn door_map() -> &'static BTreeMap<DoorState<'static>, BlockStateOwned> {
     DOOR_MAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
+        let mut map = BTreeMap::new();
         let mut map_door = |typ: &str, old_id: u16| {
             map.insert(DoorState::new(format!("minecraft:{}", typ), "east", "lower", "left", false, false), block_state_owned!(format!("minecraft:{}", typ); ["facing" => "east", "half" => "lower", "hinge" => "left", "open" => "false", "powered" => "false"]));
             map.insert(DoorState::new(format!("minecraft:{}", typ), "east", "lower", "left", false, true), block_state_owned!(format!("minecraft:{}", typ); ["facing" => "east", "half" => "lower", "hinge" => "left", "open" => "false", "powered" => "true"]));
@@ -245,42 +333,59 @@ impl NoteBlockState {
         Self { powered, note }
     }
 }
-static NOTE_BLOCK_MAP: SyncOnceCell<rust_dataconverter_engine::Map<NoteBlockState, BlockStateOwned>> = SyncOnceCell::new();
-fn note_block_map() -> &'static rust_dataconverter_engine::Map<NoteBlockState, BlockStateOwned> {
+static NOTE_BLOCK_MAP: OnceLock<AHashMap<NoteBlockState, BlockState<'static>>> = OnceLock::new();
+fn note_block_map() -> &'static AHashMap<NoteBlockState, BlockState<'static>> {
     NOTE_BLOCK_MAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        for note in 0..26 {
-            for powered in [false, true] {
-                map.insert(NoteBlockState::new(powered, note), block_state_owned!("minecraft:note_block"; ["powered" => powered.to_string(), "note" => note.to_string()]));
+        let mut map = AHashMap::new();
+        for (note, note_str) in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"].into_iter().enumerate() {
+            for (powered, powered_str) in [(false, "false"), (true, "true")] {
+                map.insert(NoteBlockState::new(powered, note as u8), block_state!("minecraft:note_block"["powered" = powered_str, "note" = note_str]));
             }
         }
         map
     })
 }
 
-static DYE_COLOR_MAP: [&'static str; 16] = [
-    "white", "orange", "magenta", "light_blue",
-    "yellow", "lime", "pink", "gray",
-    "light_gray", "cyan", "purple", "blue",
-    "brown", "green", "red", "black"
+static DYE_COLOR_MAP: [&str; 16] = [
+    "white",
+    "orange",
+    "magenta",
+    "light_blue",
+    "yellow",
+    "lime",
+    "pink",
+    "gray",
+    "light_gray",
+    "cyan",
+    "purple",
+    "blue",
+    "brown",
+    "green",
+    "red",
+    "black",
 ];
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-struct BedState {
-    facing: String,
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct BedState<'a> {
+    facing: &'a str,
     occupied: bool,
-    part: String,
+    part: &'a str,
     color: u8,
 }
-impl BedState {
-    fn new(facing: impl Into<String>, occupied: bool, part: impl Into<String>, color: u8) -> Self {
-        Self { facing: facing.into(), occupied, part: part.into(), color }
+impl<'a> BedState<'a> {
+    fn new(facing: &'a str, occupied: bool, part: &'a str, color: u8) -> Self {
+        Self {
+            facing,
+            occupied,
+            part,
+            color,
+        }
     }
 }
-static BED_BLOCK_MAP: SyncOnceCell<rust_dataconverter_engine::Map<BedState, BlockStateOwned>> = SyncOnceCell::new();
-fn bed_block_map() -> &'static rust_dataconverter_engine::Map<BedState, BlockStateOwned> {
+static BED_BLOCK_MAP: OnceLock<BTreeMap<BedState<'static>, BlockStateOwned>> = OnceLock::new();
+fn bed_block_map() -> &'static BTreeMap<BedState<'static>, BlockStateOwned> {
     BED_BLOCK_MAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
+        let mut map = BTreeMap::new();
         for (color_id, color_name) in DYE_COLOR_MAP.iter().enumerate() {
             if *color_name == "red" {
                 continue;
@@ -288,7 +393,7 @@ fn bed_block_map() -> &'static rust_dataconverter_engine::Map<BedState, BlockSta
             for facing in ["north", "east", "south", "west"] {
                 for occupied in [false, true] {
                     for part in ["head", "foot"] {
-                        map.insert(BedState::new(facing, occupied, part, color_id as u8), block_state_owned!(format!("minecraft:{}_bed", *color_name); ["facing" => facing, "occupied" => occupied.to_string(), "part" => part]));
+                        map.insert(BedState::new(facing, occupied, part, color_id as u8), block_state_owned!(format!("minecraft:{}_bed", *color_name); ["facing" => facing.to_owned(), "occupied" => occupied.to_string(), "part" => part.to_owned()]));
                     }
                 }
             }
@@ -297,28 +402,32 @@ fn bed_block_map() -> &'static rust_dataconverter_engine::Map<BedState, BlockSta
     })
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-struct BannerState {
-    rotation_or_facing: String,
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct BannerState<'a> {
+    rotation_or_facing: &'a str,
     color: u8,
 }
-impl BannerState {
-    fn new(rotation_or_facing: impl Into<String>, color: u8) -> Self {
-        Self { rotation_or_facing: rotation_or_facing.into(), color }
+impl<'a> BannerState<'a> {
+    fn new(rotation_or_facing: &'a str, color: u8) -> Self {
+        Self {
+            rotation_or_facing,
+            color,
+        }
     }
 }
-static BANNER_BLOCK_MAP: SyncOnceCell<rust_dataconverter_engine::Map<BannerState, BlockStateOwned>> = SyncOnceCell::new();
-fn banner_block_map() -> &'static rust_dataconverter_engine::Map<BannerState, BlockStateOwned> {
+static BANNER_BLOCK_MAP: OnceLock<BTreeMap<BannerState<'static>, BlockStateOwned>> =
+    OnceLock::new();
+fn banner_block_map() -> &'static BTreeMap<BannerState<'static>, BlockStateOwned> {
     BANNER_BLOCK_MAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
+        let mut map = BTreeMap::new();
 
         for (color_id, color_name) in DYE_COLOR_MAP.iter().rev().enumerate() {
             if *color_name == "white" {
                 continue;
             }
             let color_id = color_id as u8;
-            for rotation in 0..16 {
-                map.insert(BannerState::new(rotation.to_string(), color_id), block_state_owned!(format!("minecraft:{}_banner", *color_name); ["rotation" => rotation.to_string()]));
+            for rotation in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"] {
+                map.insert(BannerState::new(rotation, color_id), block_state_owned!(format!("minecraft:{}_banner", *color_name); ["rotation" => rotation.to_owned()]));
             }
             for facing in ["north", "east", "south", "west"] {
                 map.insert(BannerState::new(facing, color_id), block_state_owned!(format!("minecraft:{}_wall_banner", *color_name); ["facing" => facing]));
@@ -339,82 +448,83 @@ pub(crate) fn get_side_mask(no_left: bool, no_right: bool, no_back: bool, no_for
         (false, false, false, true) => 16,
         (_, true, false, false) => 4,
         (true, false, false, false) => 64,
-        _ => 0
+        _ => 0,
     }
 }
 
-pub(crate) struct ConverterFlattenChunk<T: Types + ?Sized> {
-    _phantom: PhantomData<T>,
-}
+pub(crate) struct ConverterFlattenChunk;
 
-impl<T: Types + ?Sized> ConverterFlattenChunk<T> {
-    pub(crate) fn new() -> Self {
-        Self { _phantom: PhantomData }
-    }
-}
-
-impl<T: Types + ?Sized> DataConverterFunc<T::Map> for ConverterFlattenChunk<T> {
-    fn convert(&self, data: &mut T::Map, _from_version: DataVersion, _to_version: DataVersion) {
-        if let Some(level) = data.get_map_mut("Level") {
-            UpgradeChunk::<T>::upgrade(level);
+impl MapDataConverterFunc for ConverterFlattenChunk {
+    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+        if let Some(Value::Compound(level)) = data.get_mut("Level") {
+            UpgradeChunk::upgrade(level);
         }
     }
 }
 
-struct UpgradeChunk<'a, T: Types + ?Sized> {
+struct UpgradeChunk<'a> {
     sides: u8,
     sections: [Option<Section>; 16],
     block_x: i32,
     block_z: i32,
-    tile_entities: rust_dataconverter_engine::Map<LocalPos, &'a T::Map>,
+    tile_entities: AHashMap<LocalPos, &'a Compound>,
     // in the case of skulls, this doesn't fully remove it, just removes some properties
-    tile_entities_to_remove: rust_dataconverter_engine::Map<LocalPos, ()>,
+    tile_entities_to_remove: AHashSet<LocalPos>,
     converted_from_alpha_format: bool,
 }
 
-impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
-    fn upgrade(level: &mut T::Map) {
-        let mut upgrade_chunk = UpgradeChunk::<T>::from_nbt(level);
+impl<'a> UpgradeChunk<'a> {
+    fn upgrade(level: &mut Compound) {
+        let mut upgrade_chunk = UpgradeChunk::from_nbt(level);
         upgrade_chunk.do_upgrade();
-        let UpgradeChunk { sides, sections, tile_entities_to_remove, .. } = upgrade_chunk;
+        let UpgradeChunk {
+            sides,
+            sections,
+            tile_entities_to_remove,
+            ..
+        } = upgrade_chunk;
         Self::write_back_to_level(level, sides, sections, tile_entities_to_remove);
     }
 
-    fn from_nbt(level: &'a T::Map) -> Self {
-        let block_x = (level.get_i64("xPos").unwrap_or(0) as i32) << 4;
-        let block_z = (level.get_i64("zPos").unwrap_or(0) as i32) << 4;
-        let mut tile_entities_map = rust_dataconverter_engine::Map::new();
-        if let Some(tile_entities) = level.get_list("TileEntities") {
-            for tile_entity in tile_entities.iter() {
-                if let Some(tile_entity) = tile_entity.as_map() {
-                    let x = ((tile_entity.get_i64("x").unwrap_or(0) as i32 - block_x) & 15) as u8;
-                    let y = (tile_entity.get_i64("y").unwrap_or(0) & 255) as u8;
-                    let z = ((tile_entity.get_i64("z").unwrap_or(0) as i32 - block_z) & 15) as u8;
-                    if tile_entities_map.insert(LocalPos::new(x, y, z), tile_entity).is_some() {
-                        warn!("In chunk: {}x{} found a duplicate block entity at position (ConverterFlattenChunk): [{}, {}, {}]", block_x, block_z, x, y, z);
-                    }
+    fn from_nbt(level: &'a Compound) -> Self {
+        let block_x = level.get("xPos").and_then(|v| v.as_i32()).unwrap_or(0) << 4;
+        let block_z = level.get("zPos").and_then(|v| v.as_i32()).unwrap_or(0) << 4;
+        let mut tile_entities_map = AHashMap::new();
+        if let Some(Value::List(List::Compound(tile_entities))) = level.get("TileEntities") {
+            for tile_entity in tile_entities {
+                let x = ((tile_entity.get("x").and_then(|v| v.as_i32()).unwrap_or(0) - block_x)
+                    & 15) as u8;
+                let y = tile_entity.get("y").and_then(|v| v.as_i8()).unwrap_or(0) as u8;
+                let z = ((tile_entity.get("z").and_then(|v| v.as_i32()).unwrap_or(0) - block_z)
+                    & 15) as u8;
+                if tile_entities_map
+                    .insert(LocalPos::new(x, y, z), tile_entity)
+                    .is_some()
+                {
+                    warn!("In chunk: {}x{} found a duplicate block entity at position (ConverterFlattenChunk): [{}, {}, {}]", block_x, block_z, x, y, z);
                 }
             }
         }
 
-        let converted_from_alpha_format = level.get_bool("convertedFromAlphaFormat").unwrap_or(false);
+        let converted_from_alpha_format = level
+            .get("convertedFromAlphaFormat")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         const NONE: Option<Section> = None;
         let mut sections_arr = [NONE; 16];
         let mut sides = 0;
-        if let Some(sections) = level.get_list("Sections") {
-            for section in sections.iter() {
-                if let Some(section) = section.as_map() {
-                    let section = Section::from_nbt::<T>(section, &mut sides);
-                    let section_y = section.y;
-                    if section_y < 0 || section_y > 15 {
-                        warn!("In chunk: {}x{} found an invalid chunk section y (ConverterFlattenChunk): {}", block_x, block_z, section_y);
-                        continue;
-                    }
-                    if sections_arr[section_y as usize].is_some() {
-                        warn!("In chunk: {}x{} found a duplicate chunk section (ConverterFlattenChunk): {}", block_x, block_z, section_y);
-                    }
-                    sections_arr[section_y as usize] = Some(section);
+        if let Some(Value::List(List::Compound(sections))) = level.get("Sections") {
+            for section in sections {
+                let section = Section::from_nbt(section, &mut sides);
+                let section_y = section.y;
+                if !(0..=15).contains(&section_y) {
+                    warn!("In chunk: {}x{} found an invalid chunk section y (ConverterFlattenChunk): {}", block_x, block_z, section_y);
+                    continue;
                 }
+                if sections_arr[section_y as usize].is_some() {
+                    warn!("In chunk: {}x{} found a duplicate chunk section (ConverterFlattenChunk): {}", block_x, block_z, section_y);
+                }
+                sections_arr[section_y as usize] = Some(section);
             }
         }
 
@@ -424,7 +534,7 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
             block_x,
             block_z,
             tile_entities: tile_entities_map,
-            tile_entities_to_remove: rust_dataconverter_engine::Map::new(),
+            tile_entities_to_remove: AHashSet::new(),
             converted_from_alpha_format,
         }
     }
@@ -433,7 +543,7 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
         for i in 0..self.sections.len() {
             let section = match &mut self.sections[i] {
                 Some(sec) => sec,
-                None => continue
+                None => continue,
             };
             let section_y = section.y as u8;
 
@@ -473,9 +583,9 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
                         for pos in positions {
                             let pos = pos.with_section_y(section_y);
                             if let Some(tile) = self.remove_tile_entity(pos) {
-                                let powered = tile.get_bool("powered").unwrap_or(false);
-                                let note = tile.get_i64("note").unwrap_or(0).clamp(0, 24) as u8;
-                                let state = note_block_map().get(&NoteBlockState::new(powered, note)).unwrap().clone();
+                                let powered = tile.get("powered").and_then(|v| v.as_bool()).unwrap_or(false);
+                                let note = tile.get("note").and_then(|v| v.as_i64()).unwrap_or(0).clamp(0, 24) as u8;
+                                let state = note_block_map().get(&NoteBlockState::new(powered, note)).unwrap().to_owned();
                                 self.set_block(pos, state);
                             }
                         }
@@ -484,8 +594,8 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
                         for pos in positions {
                             let pos = pos.with_section_y(section_y);
                             if let Some(tile) = self.tile_entities.get(&pos).copied() {
-                                let color = tile.get_i64("color").unwrap_or(0) as i32;
-                                if color != 14 && color >= 0 && color < 16 {
+                                let color = tile.get("color").and_then(|v| v.as_i32()).unwrap_or(0);
+                                if color != 14 && (0..16).contains(&color) {
                                     let state = self.get_block(pos);
                                     if let (Some(facing), Some(occupied), Some(part)) = (
                                         state.properties.get("facing"),
@@ -528,19 +638,19 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
                             }
 
                             if let (Some(facing), Some(open), Some(hinge), Some(powered)) = (
-                                state.properties.get("facing").cloned(),
+                                state.properties.get("facing"),
                                 state.properties.get("open").and_then(|str| str.parse::<bool>().ok()),
-                                if self.converted_from_alpha_format { Some("left".to_owned()) } else { state_above.properties.get("hinge").cloned() },
+                                if self.converted_from_alpha_format { Some("left") } else { state_above.properties.get("hinge").map(|str| str.as_str()) },
                                 if self.converted_from_alpha_format { Some(false) } else { state_above.properties.get("powered").and_then(|str| str.parse::<bool>().ok()) }
                             ) {
                                 let name = state.name.clone();
-                                let lower_state = door_map().get(&DoorState::new(name.clone(), facing.clone(), "lower", hinge.clone(), open, powered))
+                                let lower_state = door_map().get(&DoorState::new(name.clone(), facing, "lower", hinge, open, powered))
                                     .unwrap_or_else(|| door_map().get(&DoorState::new("minecraft:oak_door", "north", "lower", "left", false, false)).unwrap())
                                     .clone();
-                                self.set_block(pos, lower_state);
-                                let upper_state = door_map().get(&DoorState::new(name.clone(), facing.clone(), "upper", hinge.clone(), open, powered))
+                                let upper_state = door_map().get(&DoorState::new(name.clone(), &facing.clone(), "upper", hinge, open, powered))
                                     .unwrap_or_else(|| door_map().get(&DoorState::new("minecraft:oak_door", "north", "upper", "left", false, false)).unwrap())
                                     .clone();
+                                self.set_block(pos, lower_state);
                                 self.set_block(pos_above, upper_state);
                             }
                         }
@@ -583,15 +693,18 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
                         for pos in positions {
                             let pos = pos.with_section_y(section_y);
                             if let Some(tile) = self.remove_tile_entity(pos) {
-                                let item = if let Some(id) = tile.get_i64("Item") {
+                                let item = if let Some(id) = tile.get("Item").and_then(|v| v.as_i32()) {
                                     // the item name converter should have migrated to number, however no legacy converter
                                     // ever did this. so we can get data with versions above v102 (old worlds, converted prior to DFU)
                                     // that didn't convert. so just do it here.
-                                    item_name_v102::get_name_from_id(id as i32).unwrap_or("")
+                                    item_name_v102::get_name_from_id(id).unwrap_or("")
                                 } else {
-                                    tile.get_string("Item").unwrap_or("")
+                                    match tile.get("Item") {
+                                        Some(Value::String(str)) => &str[..],
+                                        _ => "",
+                                    }
                                 };
-                                let data = tile.get_i64("Data").unwrap_or(0) as u8;
+                                let data = tile.get("Data").and_then(|v| v.as_i8()).unwrap_or(0) as u8;
 
                                 let state = flower_pot_map().get(&FlowerPotState::new(item, data))
                                     .unwrap_or_else(|| flower_pot_map().get(&FlowerPotState::new("minecraft:air", 0)).unwrap())
@@ -606,9 +719,9 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
                             // in the case of skulls, this doesn't fully remove it, just removes some properties
                             if let Some(tile) = self.remove_tile_entity(pos) {
                                 let facing = self.get_block(pos).properties.get("facing").map(|str| str.as_str()).unwrap_or("north");
-                                let skull_type = tile.get_i64("SkullType").unwrap_or(0) as u8;
+                                let skull_type = tile.get("SkullType").and_then(|v| v.as_i8()).unwrap_or(0) as u8;
                                 let state = if facing == "up" || facing == "down" {
-                                    SkullState::new(skull_type, tile.get_i64("Rot").unwrap_or(0).to_string())
+                                    SkullState::new(skull_type, tile.get("Rot").and_then(|v| v.as_i64()).unwrap_or(0).to_string())
                                 } else {
                                     SkullState::new(skull_type, facing)
                                 };
@@ -659,8 +772,8 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
                         for pos in positions {
                             let pos = pos.with_section_y(section_y);
                             if let Some(tile) = self.tile_entities.get(&pos).copied() {
-                                let base = tile.get_i64("Base").unwrap_or(0) as i32;
-                                if base != 15 && base >= 0 && base < 16 {
+                                let base = tile.get("Base").and_then(|v| v.as_i32()).unwrap_or(0);
+                                if base != 15 && (0..16).contains(&base) {
                                     let state = self.get_block(pos);
                                     if let Some(rotation_or_facing) = state.properties.get(if state_id == 176 { "rotation" } else { "facing" }) {
                                         if let Some(update) = banner_block_map().get(&BannerState::new(rotation_or_facing, base as u8)) {
@@ -678,32 +791,32 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
     }
 
     fn write_back_to_level(
-        level: &mut T::Map,
+        level: &mut Compound,
         sides: u8,
         sections: [Option<Section>; 16],
-        tile_entities_to_remove: rust_dataconverter_engine::Map<LocalPos, ()>
+        tile_entities_to_remove: AHashSet<LocalPos>,
     ) {
         // apply tile entity removals
         let mut remove_tile_entities = false;
-        if let Some(tile_entities) = level.get_list_mut("TileEntities") {
-            for index in (0..tile_entities.size()).rev() {
-                let mut remove = false;
-                if let Some(te) = tile_entities.get_mut(index).as_map_mut() {
-                    let pos = LocalPos::new(te.get_i64("x").unwrap_or(0) as u8, te.get_i64("y").unwrap_or(0) as u8, te.get_i64("z").unwrap_or(0) as u8);
-                    if tile_entities_to_remove.contains_key(&pos) {
-                        if te.get_string("id") == Some("minecraft:skull") {
+        if let Some(Value::List(List::Compound(tile_entities))) = level.get_mut("TileEntities") {
+            tile_entities.retain_mut(|te| {
+                let pos = LocalPos::new(
+                    te.get("x").and_then(|v| v.as_i8()).unwrap_or(0) as u8,
+                    te.get("y").and_then(|v| v.as_i8()).unwrap_or(0) as u8,
+                    te.get("z").and_then(|v| v.as_i8()).unwrap_or(0) as u8,
+                );
+                if tile_entities_to_remove.contains(&pos) {
+                    match te.get("id") {
+                        Some(Value::String(id)) if id == "minecraft:skull" => {
                             te.remove("SkullType");
                             te.remove("facing");
                             te.remove("Rot");
-                        } else {
-                            remove = true;
                         }
+                        _ => return false,
                     }
                 }
-                if remove {
-                    tile_entities.remove(index);
-                }
-            }
+                true
+            });
 
             remove_tile_entities = tile_entities.is_empty();
         }
@@ -712,31 +825,35 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
         }
 
         // rewrite sections and add upgrade data
-        let mut indices = T::Map::create_empty();
-        let mut sections_list = T::List::create_empty();
-        for section in sections {
-            if let Some(section) = section {
-                indices.set(section.y.to_string(), T::Object::create_int_array(<&Vec<LocalPos>>::into_iter(&section.update).map(|pos| pos.index as i32).collect()));
+        let mut indices = Compound::new();
+        let mut sections_list = Vec::new();
+        for section in sections.into_iter().flatten() {
+            indices.insert(
+                section.y.to_string(),
+                <&Vec<LocalPos>>::into_iter(&section.update)
+                    .map(|pos| pos.index as i32)
+                    .collect::<Vec<_>>(),
+            );
 
-                // find the existing section with the y coordinate, and write to it
-                let existing_section = level.get_list_mut("Section")
-                    .and_then(|list| list.iter_mut()
-                        .find(|sec| sec.as_map().and_then(|map| map.get_i64("Y")).map(|y| y as i32) == Some(section.y)));
-                if let Some(existing_section) = existing_section {
-                    let existing_section = existing_section.as_map_mut().unwrap();
-                    section.into_nbt::<T>(existing_section);
-                    sections_list.add(T::Object::create_map(std::mem::replace(existing_section, T::Map::create_empty())));
+            // find the existing section with the y coordinate, and write to it
+            if let Some(Value::List(List::Compound(sections))) = level.get_mut("Section") {
+                if let Some(existing_section) = sections
+                    .iter_mut()
+                    .find(|sec| sec.get("Y").and_then(|v| v.as_i32()) == Some(section.y))
+                {
+                    section.into_nbt(existing_section);
+                    sections_list.push(std::mem::replace(existing_section, Compound::new()));
                 }
             }
         }
 
-        level.set("Sections", T::Object::create_list(sections_list));
+        level.insert("Sections", List::Compound(sections_list));
 
-        let mut upgrade_data = T::Map::create_empty();
-        upgrade_data.set("Sides", T::Object::create_byte(sides as i8));
-        upgrade_data.set("Indices", T::Object::create_map(indices));
+        let mut upgrade_data = Compound::new();
+        upgrade_data.insert("Sides", sides as i8);
+        upgrade_data.insert("Indices", indices);
 
-        level.set("UpgradeData", T::Object::create_map(upgrade_data));
+        level.insert("UpgradeData", upgrade_data);
     }
 
     fn get_section(&self, pos: LocalPos) -> &Option<Section> {
@@ -748,11 +865,10 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
     }
 
     fn get_block(&self, pos: LocalPos) -> &BlockStateOwned {
-        self.get_section(pos).as_ref()
+        self.get_section(pos)
+            .as_ref()
             .and_then(|sec| sec.buffer.as_ref().map(|buf| (buf, &sec.palette_states)))
-            .map(|(buf, palette)| {
-                &palette[buf[pos.index as usize & (buf.len() - 1)] as usize]
-            })
+            .map(|(buf, palette)| &palette[buf[pos.index as usize & (buf.len() - 1)] as usize])
             .unwrap_or_else(|| OwnedStates::air())
     }
 
@@ -761,8 +877,14 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
             state = OwnedStates::air().clone();
         }
 
-        let (buffer, palette, palette_states) = self.get_section_mut(pos).as_mut()
-            .and_then(|sec| sec.buffer.as_mut().map(|buf| (buf, &mut sec.palette, &mut sec.palette_states)))
+        let (buffer, palette, palette_states) = self
+            .get_section_mut(pos)
+            .as_mut()
+            .and_then(|sec| {
+                sec.buffer
+                    .as_mut()
+                    .map(|buf| (buf, &mut sec.palette, &mut sec.palette_states))
+            })
             .expect("Tried to set a block in a non-existent section");
 
         let palette_id = if palette.contains_key(&state) {
@@ -778,86 +900,102 @@ impl<'a, T: Types + ?Sized> UpgradeChunk<'a, T> {
     }
 
     // in the case of skulls, this doesn't fully remove it, just removes some properties
-    fn remove_tile_entity(&mut self, pos: LocalPos) -> Option<&'a T::Map> {
+    fn remove_tile_entity(&mut self, pos: LocalPos) -> Option<&'a Compound> {
         let te = self.tile_entities.get(&pos).copied();
         if te.is_some() {
-            self.tile_entities_to_remove.insert(pos, ());
+            self.tile_entities_to_remove.insert(pos);
         }
         te
     }
 }
 
 struct Section {
-    palette: rust_dataconverter_engine::Map<BlockStateOwned, u16>,
+    palette: AHashMap<BlockStateOwned, u16>,
     palette_states: Vec<BlockStateOwned>,
-    to_fix: rust_dataconverter_engine::Map<u16, Vec<LocalPos>>,
+    to_fix: AHashMap<u16, Vec<LocalPos>>,
     update: Vec<LocalPos>,
     y: i32,
     buffer: Option<[u16; 4096]>,
 }
 
 impl Section {
-    fn from_nbt<T: Types + ?Sized>(nbt: &T::Map, sides: &mut u8) -> Self {
-        let mut palette = rust_dataconverter_engine::Map::new();
+    fn from_nbt(nbt: &Compound, sides: &mut u8) -> Self {
+        let mut palette = AHashMap::new();
         let mut palette_states = Vec::new();
-        let mut to_fix = rust_dataconverter_engine::Map::<_, Vec<LocalPos>>::new();
+        let mut to_fix = AHashMap::<_, Vec<LocalPos>>::new();
         let mut update = Vec::new();
-        let y = nbt.get_i64("Y").unwrap_or(0) as i32;
-        let buffer = nbt.get("Blocks").and_then(|o| match o.as_ref() {
-            ObjectRef::ByteArray(arr) => Some(arr),
-            _ => None
-        }).filter(|blocks| {
-            if blocks.len() != 4096 {
-                error!("Blocks array should be 4096 bytes not: {}", blocks.len());
-                return false;
-            }
-            true
-        }).map(|blocks| {
-            let data = ChunkNibbleArray::wrap::<T>(nbt, "Data");
-            let add = ChunkNibbleArray::wrap::<T>(nbt, "Add");
-
-            palette.insert(air(), 0);
-            palette_states.push(air().to_owned());
-
-            let mut buffer = MaybeUninit::<u16>::uninit_array::<4096>();
-            for index in 0..buffer.len() {
-                let pos = LocalPos { index: index as u16 };
-
-                let mut state_id = (blocks[index] as u8 as u16) << 4;
-                if let Some(data) = &data {
-                    state_id |= data.get(index as u16) as u16;
+        let y = nbt.get("Y").and_then(|v| v.as_i32()).unwrap_or(0);
+        let buffer = nbt
+            .get("Blocks")
+            .and_then(|o| match o {
+                Value::ByteArray(arr) => Some(arr),
+                _ => None,
+            })
+            .filter(|blocks| {
+                if blocks.len() != 4096 {
+                    error!("Blocks array should be 4096 bytes not: {}", blocks.len());
+                    return false;
                 }
-                if let Some(add) = &add {
-                    state_id |= (add.get(index as u16) as u16) << 12;
-                }
-                if *IDS_NEEDING_FIX_SET.get((state_id >> 4) as usize).as_deref().unwrap_or(&false) {
-                    to_fix.entry(state_id >> 4).or_default().push(pos);
-                }
-                if *VIRTUAL_SET.get((state_id >> 4) as usize).as_deref().unwrap_or(&false) {
-                    let additional_sides = get_side_mask(pos.x() == 0, pos.x() == 15, pos.z() == 0, pos.z() == 15);
-                    if additional_sides == 0 {
-                        update.push(pos);
-                    } else {
-                        *sides |= additional_sides;
+                true
+            })
+            .map(|blocks| {
+                let data = ChunkNibbleArray::wrap(nbt, "Data");
+                let add = ChunkNibbleArray::wrap(nbt, "Add");
+
+                palette.insert(air(), 0);
+                palette_states.push(air().to_owned());
+
+                std::array::from_fn(|index| {
+                    let pos = LocalPos {
+                        index: index as u16,
+                    };
+
+                    let mut state_id = (blocks[index] as u8 as u16) << 4;
+                    if let Some(data) = &data {
+                        state_id |= data.get(index as u16) as u16;
                     }
-                }
+                    if let Some(add) = &add {
+                        state_id |= (add.get(index as u16) as u16) << 12;
+                    }
+                    if *IDS_NEEDING_FIX_SET
+                        .get((state_id >> 4) as usize)
+                        .as_deref()
+                        .unwrap_or(&false)
+                    {
+                        to_fix.entry(state_id >> 4).or_default().push(pos);
+                    }
+                    if *VIRTUAL_SET
+                        .get((state_id >> 4) as usize)
+                        .as_deref()
+                        .unwrap_or(&false)
+                    {
+                        let additional_sides =
+                            get_side_mask(pos.x() == 0, pos.x() == 15, pos.z() == 0, pos.z() == 15);
+                        if additional_sides == 0 {
+                            update.push(pos);
+                        } else {
+                            *sides |= additional_sides;
+                        }
+                    }
 
-                let mut state = block_flattening_v1450::get_state_for_id_raw(state_id).unwrap_or_else(|| air());
-                if state.name == "minecraft::%%FILTER_ME%%" {
-                    state = air();
-                }
-                let next_palette_index = palette.len() as u16;
-                let palette_index = *palette.entry(state).or_insert_with(|| {
-                    palette_states.push(state.to_owned());
-                    next_palette_index
-                });
-                buffer[index] = MaybeUninit::new(palette_index);
-            }
-            // SAFETY: buffer is initialized in the above loop
-            unsafe { MaybeUninit::array_assume_init(buffer) }
-        });
+                    let mut state = block_flattening_v1450::get_state_for_id_raw(state_id)
+                        .unwrap_or_else(|| air());
+                    if state.name == "minecraft::%%FILTER_ME%%" {
+                        state = air();
+                    }
+                    let next_palette_index = palette.len() as u16;
+                    let palette_index = *palette.entry(state).or_insert_with(|| {
+                        palette_states.push(state.to_owned());
+                        next_palette_index
+                    });
+                    palette_index
+                })
+            });
 
-        let palette: rust_dataconverter_engine::Map<_, _> = palette.into_iter().map(|(k, v)| (k.to_owned(), v)).collect();
+        let palette: AHashMap<_, _> = palette
+            .into_iter()
+            .map(|(k, v)| (k.to_owned(), v))
+            .collect();
 
         Self {
             palette,
@@ -869,17 +1007,18 @@ impl Section {
         }
     }
 
-    fn into_nbt<T: Types + ?Sized>(self, dest: &mut T::Map) {
+    fn into_nbt(self, dest: &mut Compound) {
         let buffer = match self.buffer {
             Some(buf) => buf,
-            None => return
+            None => return,
         };
 
-        let mut palette = T::List::create_empty();
-        for state in self.palette_states {
-            palette.add(T::Object::create_map(state.to_nbt::<T>()));
-        }
-        dest.set("Palette", T::Object::create_list(palette));
+        let palette: Vec<_> = self
+            .palette_states
+            .into_iter()
+            .map(|state| state.to_nbt())
+            .collect();
+        dest.insert("Palette", List::Compound(palette));
 
         let bit_size = ceil_log2(self.palette.len() as u32).max(4);
         let mut packed_ids = PackedBitStorage::new(bit_size, buffer.len());
@@ -887,7 +1026,7 @@ impl Section {
             packed_ids.set(index, *value as u32);
         }
 
-        dest.set("BlockStates", T::Object::create_long_array(packed_ids.into_raw()));
+        dest.insert("BlockStates", packed_ids.into_raw());
 
         dest.remove("Blocks");
         dest.remove("Data");

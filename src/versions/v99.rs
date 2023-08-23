@@ -1,55 +1,57 @@
-use std::lazy::SyncOnceCell;
+use std::sync::OnceLock;
 use log::warn;
 use rust_dataconverter_engine::*;
+use valence_nbt::{List, Value};
 use crate::helpers::hooks::{DataHookEnforceNamespacedId, DataHookValueTypeEnforceNamespaced};
+use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 99;
 
-static ITEM_ID_TO_TILE_ENTITY_ID: SyncOnceCell<Map<String, String>> = SyncOnceCell::new();
+static ITEM_ID_TO_TILE_ENTITY_ID: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
 
-fn item_id_to_tile_entity_id() -> &'static Map<String, String> {
+fn item_id_to_tile_entity_id() -> &'static McNamespaceMap<'static, &'static str> {
     ITEM_ID_TO_TILE_ENTITY_ID.get_or_init(|| {
-        let mut map = Map::new();
-        map.insert("minecraft:furnace".to_owned(), "Furnace".to_owned());
-        map.insert("minecraft:lit_furnace".to_owned(), "Furnace".to_owned());
-        map.insert("minecraft:chest".to_owned(), "Chest".to_owned());
-        map.insert("minecraft:trapped_chest".to_owned(), "Chest".to_owned());
-        map.insert("minecraft:ender_chest".to_owned(), "EnderChest".to_owned());
-        map.insert("minecraft:jukebox".to_owned(), "RecordPlayer".to_owned());
-        map.insert("minecraft:dispenser".to_owned(), "Trap".to_owned());
-        map.insert("minecraft:dropper".to_owned(), "Dropper".to_owned());
-        map.insert("minecraft:sign".to_owned(), "Sign".to_owned());
-        map.insert("minecraft:mob_spawner".to_owned(), "MobSpawner".to_owned());
-        map.insert("minecraft:noteblock".to_owned(), "Music".to_owned());
-        map.insert("minecraft:brewing_stand".to_owned(), "Cauldron".to_owned());
-        map.insert("minecraft:enhanting_table".to_owned(), "EnchantTable".to_owned());
-        map.insert("minecraft:command_block".to_owned(), "CommandBlock".to_owned());
-        map.insert("minecraft:beacon".to_owned(), "Beacon".to_owned());
-        map.insert("minecraft:skull".to_owned(), "Skull".to_owned());
-        map.insert("minecraft:daylight_detector".to_owned(), "DLDetector".to_owned());
-        map.insert("minecraft:hopper".to_owned(), "Hopper".to_owned());
-        map.insert("minecraft:banner".to_owned(), "Banner".to_owned());
-        map.insert("minecraft:flower_pot".to_owned(), "FlowerPot".to_owned());
-        map.insert("minecraft:repeating_command_block".to_owned(), "CommandBlock".to_owned());
-        map.insert("minecraft:chain_command_block".to_owned(), "CommandBlock".to_owned());
-        map.insert("minecraft:standing_sign".to_owned(), "Sign".to_owned());
-        map.insert("minecraft:wall_sign".to_owned(), "Sign".to_owned());
-        map.insert("minecraft:piston_head".to_owned(), "Piston".to_owned());
-        map.insert("minecraft:daylight_detector_inverted".to_owned(), "DLDetector".to_owned());
-        map.insert("minecraft:unpowered_comparator".to_owned(), "Comparator".to_owned());
-        map.insert("minecraft:powered_comparator".to_owned(), "Comparator".to_owned());
-        map.insert("minecraft:wall_banner".to_owned(), "Banner".to_owned());
-        map.insert("minecraft:standing_banner".to_owned(), "Banner".to_owned());
-        map.insert("minecraft:structure_block".to_owned(), "Structure".to_owned());
-        map.insert("minecraft:end_portal".to_owned(), "Airportal".to_owned());
-        map.insert("minecraft:end_gateway".to_owned(), "EndGateway".to_owned());
-        map.insert("minecraft:shield".to_owned(), "Banner".to_owned());
+        let mut map = McNamespaceMap::new();
+        map.insert_mc("furnace", "Furnace");
+        map.insert_mc("lit_furnace", "Furnace");
+        map.insert_mc("chest", "Chest");
+        map.insert_mc("trapped_chest", "Chest");
+        map.insert_mc("ender_chest", "EnderChest");
+        map.insert_mc("jukebox", "RecordPlayer");
+        map.insert_mc("dispenser", "Trap");
+        map.insert_mc("dropper", "Dropper");
+        map.insert_mc("sign", "Sign");
+        map.insert_mc("mob_spawner", "MobSpawner");
+        map.insert_mc("noteblock", "Music");
+        map.insert_mc("brewing_stand", "Cauldron");
+        map.insert_mc("enhanting_table", "EnchantTable");
+        map.insert_mc("command_block", "CommandBlock");
+        map.insert_mc("beacon", "Beacon");
+        map.insert_mc("skull", "Skull");
+        map.insert_mc("daylight_detector", "DLDetector");
+        map.insert_mc("hopper", "Hopper");
+        map.insert_mc("banner", "Banner");
+        map.insert_mc("flower_pot", "FlowerPot");
+        map.insert_mc("repeating_command_block", "CommandBlock");
+        map.insert_mc("chain_command_block", "CommandBlock");
+        map.insert_mc("standing_sign", "Sign");
+        map.insert_mc("wall_sign", "Sign");
+        map.insert_mc("piston_head", "Piston");
+        map.insert_mc("daylight_detector_inverted", "DLDetector");
+        map.insert_mc("unpowered_comparator", "Comparator");
+        map.insert_mc("powered_comparator", "Comparator");
+        map.insert_mc("wall_banner", "Banner");
+        map.insert_mc("standing_banner", "Banner");
+        map.insert_mc("structure_block", "Structure");
+        map.insert_mc("end_portal", "Airportal");
+        map.insert_mc("end_gateway", "EndGateway");
+        map.insert_mc("shield", "Banner");
         map
     })
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     // entities
     types.entity.borrow_mut().add_structure_walker(VERSION, DataWalkerMapTypePaths::new(types.entity, "Riding"));
     types.entity.borrow_mut().add_walker_for_id(VERSION, "Item", DataWalkerMapTypePaths::new(types.item_stack, "Item"));
@@ -85,7 +87,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     // for spawner type:
     for minecart_type in ["Minecart", "MinecartSpawner"] {
         let spawner_type = types.untagged_spawner;
-        types.entity.borrow_mut().add_walker_for_id(VERSION, minecart_type, data_walker::<T, _>(move |data, from_version, to_version| {
+        types.entity.borrow_mut().add_walker_for_id(VERSION, minecart_type, data_walker(move |data, from_version, to_version| {
             spawner_type.convert(data, from_version, to_version);
         }));
     }
@@ -125,15 +127,13 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     register_mob(types, "Rabbit");
     types.entity.borrow_mut().add_walker_for_id(VERSION, "Villager", DataWalkerMapListPaths::new_multi(types.item_stack, vec!["Inventory".to_owned(), "Equipment".to_owned()]));
     let item_stack_type = types.item_stack;
-    types.entity.borrow_mut().add_walker_for_id(VERSION, "Villager", data_walker::<T, _>(move |data, from_version, to_version| {
-        if let Some(offers) = data.get_map_mut("Offers") {
-            if let Some(recipes) = offers.get_list_mut("Recipes") {
-                for recipe in recipes.iter_mut() {
-                    if let Some(recipe_map) = recipe.as_map_mut() {
-                        convert_map_in_map::<_, T>(item_stack_type, recipe_map, "buy", from_version, to_version);
-                        convert_map_in_map::<_, T>(item_stack_type, recipe_map, "buyB", from_version, to_version);
-                        convert_map_in_map::<_, T>(item_stack_type, recipe_map, "sell", from_version, to_version);
-                    }
+    types.entity.borrow_mut().add_walker_for_id(VERSION, "Villager", data_walker(move |data, from_version, to_version| {
+        if let Some(Value::Compound(offers)) = data.get_mut("Offers") {
+            if let Some(Value::List(List::Compound(recipes))) = offers.get_mut("Recipes") {
+                for recipe in recipes {
+                    convert_map_in_map(item_stack_type, recipe, "buy", from_version, to_version);
+                    convert_map_in_map(item_stack_type, recipe, "buyB", from_version, to_version);
+                    convert_map_in_map(item_stack_type, recipe, "sell", from_version, to_version);
                 }
             }
         }
@@ -149,7 +149,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     register_inventory(types, "Trap");
     register_inventory(types, "Dropper");
     let spawner_type = types.untagged_spawner;
-    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, "MobSpawner", data_walker::<T, _>(move |data, from_version, to_version| {
+    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, "MobSpawner", data_walker(move |data, from_version, to_version| {
         spawner_type.convert(data, from_version, to_version);
     }));
     register_inventory(types, "Cauldron");
@@ -164,21 +164,19 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     let item_name_type = types.item_name;
     let item_stack_type = types.item_stack;
     let tile_entity_type = types.tile_entity;
-    types.item_stack.borrow_mut().add_structure_walker(VERSION, data_walker::<T, _>(move |data, from_version, to_version| {
-        convert_object_in_map::<_, T>(item_name_type, data, "id", from_version, to_version);
-        let [item_id, tag] = data.get_mut_multi(["id", "tag"]);
+    types.item_stack.borrow_mut().add_structure_walker(VERSION, data_walker(move |data, from_version, to_version| {
+        convert_object_in_map(item_name_type, data, "id", from_version, to_version);
+        let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
+        let item_id = item_id.map(|v| &*v);
 
-        let tag = match tag.and_then(|v| v.as_map_mut()) {
-            Some(tag) => tag,
-            None => return
-        };
+        let Some(Value::Compound(tag)) = tag else { return };
 
         // only things here are in tag, if changed update if above
 
-        convert_map_list_in_map::<_, T>(item_stack_type, tag, "Items", from_version, to_version);
+        convert_map_list_in_map(item_stack_type, tag, "Items", from_version, to_version);
 
-        if let Some(entity_tag) = tag.get_map_mut("EntityTag") {
-            let item_id_str = item_id.as_ref().and_then(|v| get_string_id::<T>(v));
+        if let Some(Value::Compound(entity_tag)) = tag.get_mut("EntityTag") {
+            let item_id_str = item_id.and_then(get_string_id);
             let entity_id = match item_id_str {
                 // The check for version id is removed here. For whatever reason, the legacy
                 // data converters used entity id "minecraft:armor_stand" when version was greater-than 514,
@@ -188,14 +186,17 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
                 Some("minecraft:armor_stand") => Some("ArmorStand"),
                 // add missing item_frame entity id
                 Some("minecraft:item_frame") => Some("ItemFrame"),
-                _ => entity_tag.get_string("id")
+                _ => match entity_tag.get("id") {
+                    Some(Value::String(id)) => Some(&id[..]),
+                    _ => None,
+                }
             };
 
             let remove_id = if let Some(entity_id) = entity_id {
-                let remove_id = entity_tag.get_string("id").is_none();
+                let remove_id = !matches!(entity_tag.get("id"), Some(Value::String(_)));
                 if remove_id {
                     let new_id = entity_id.to_owned();
-                    entity_tag.set("id", T::Object::create_string(new_id));
+                    entity_tag.insert("id", new_id);
                 }
                 remove_id
             } else {
@@ -212,13 +213,13 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
             }
         }
 
-        if let Some(block_entity_tag) = tag.get_map_mut("BlockEntityTag") {
-            let item_id_str = item_id.as_ref().and_then(|v| get_string_id::<T>(v));
-            let entity_id = item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id));
+        if let Some(Value::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
+            let item_id_str = item_id.as_ref().and_then(|v| get_string_id(v));
+            let entity_id = item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id).copied());
 
             let remove_id = if let Some(entity_id) = entity_id {
-                let remove_id = block_entity_tag.get_string("id").is_none();
-                block_entity_tag.set("id", T::Object::create_string(entity_id.to_owned()));
+                let remove_id = !matches!(block_entity_tag.get("id"), Some(Value::String(_)));
+                block_entity_tag.insert("id", entity_id);
                 remove_id
             } else {
                 if item_id_str != Some("minecraft:air") {
@@ -234,8 +235,8 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
             }
         }
 
-        convert_object_list_in_map::<_, T>(block_name_type, tag, "CanDestroy", from_version, to_version);
-        convert_object_list_in_map::<_, T>(block_name_type, tag, "CanPlaceOn", from_version, to_version);
+        convert_object_list_in_map(block_name_type, tag, "CanDestroy", from_version, to_version);
+        convert_object_list_in_map(block_name_type, tag, "CanPlaceOn", from_version, to_version);
     }));
 
     types.player.borrow_mut().add_structure_walker(VERSION, DataWalkerMapListPaths::new_multi(types.item_stack, vec!["Inventory".to_owned(), "EnderItems".to_owned()]));
@@ -243,19 +244,14 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     let block_name_type = types.block_name;
     let entity_type = types.entity;
     let tile_entity_type = types.tile_entity;
-    types.chunk.borrow_mut().add_structure_walker(VERSION, data_walker::<T, _>(move |data, from_version, to_version| {
-        let level = match data.get_map_mut("Level") {
-            Some(level) => level,
-            None => return
-        };
-        convert_map_list_in_map::<_, T>(entity_type, level, "Entities", from_version, to_version);
-        convert_map_list_in_map::<_, T>(tile_entity_type, level, "TileEntities", from_version, to_version);
+    types.chunk.borrow_mut().add_structure_walker(VERSION, data_walker(move |data, from_version, to_version| {
+        let Some(Value::Compound(level)) = data.get_mut("Level") else { return };
+        convert_map_list_in_map(entity_type, level, "Entities", from_version, to_version);
+        convert_map_list_in_map(tile_entity_type, level, "TileEntities", from_version, to_version);
 
-        if let Some(tile_ticks) = level.get_list_mut("TileTicks") {
-            for tile_tick in tile_ticks.iter_mut() {
-                if let Some(tile_tick) = tile_tick.as_map_mut() {
-                    convert_object_in_map::<_, T>(block_name_type, tile_tick, "i", from_version, to_version);
-                }
+        if let Some(Value::List(List::Compound(tile_ticks))) = level.get_mut("TileTicks") {
+            for tile_tick in tile_ticks {
+                convert_object_in_map(block_name_type, tile_tick, "i", from_version, to_version);
             }
         }
     }));
@@ -265,34 +261,35 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     let objective_type = types.objective;
     let structure_feature_type = types.structure_feature;
     let team_type = types.team;
-    types.saved_data.borrow_mut().add_structure_walker(VERSION, data_walker::<T, _>(move |data, from_version, to_version| {
-        let data = match data.get_map_mut("data") {
-            Some(data) => data,
-            None => return
-        };
+    types.saved_data.borrow_mut().add_structure_walker(VERSION, data_walker(move |data, from_version, to_version| {
+        let Some(Value::Compound(data)) = data.get_mut("data") else { return };
 
-        convert_values_in_map::<_, T>(structure_feature_type, data, "Features", from_version, to_version);
-        convert_map_list_in_map::<_, T>(objective_type, data, "Objectives", from_version, to_version);
-        convert_map_list_in_map::<_, T>(team_type, data, "Teams", from_version, to_version);
+        convert_values_in_map(structure_feature_type, data, "Features", from_version, to_version);
+        convert_map_list_in_map(objective_type, data, "Objectives", from_version, to_version);
+        convert_map_list_in_map(team_type, data, "Teams", from_version, to_version);
     }));
 
-    types.block_name.borrow_mut().add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced::<T>::new());
-    types.item_name.borrow_mut().add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced::<T>::new());
-    types.item_stack.borrow_mut().add_structure_hook(VERSION, DataHookEnforceNamespacedId::<T>::id());
+    types.block_name.borrow_mut().add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced);
+    types.item_name.borrow_mut().add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced);
+    types.item_stack.borrow_mut().add_structure_hook(VERSION, DataHookEnforceNamespacedId::id());
 }
 
-fn register_mob<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: impl Into<String>) {
+fn register_mob(types: &MinecraftTypesMut, id: impl Into<String>) {
     types.entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerMapListPaths::new(types.item_stack, "Equipment"));
 }
 
-fn register_projectile<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: impl Into<String>) {
+fn register_projectile(types: &MinecraftTypesMut, id: impl Into<String>) {
     types.entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerObjectTypePaths::new(types.block_name, "inTile"));
 }
 
-fn register_inventory<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: impl Into<String>) {
+fn register_inventory(types: &MinecraftTypesMut, id: impl Into<String>) {
     types.tile_entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerMapListPaths::new(types.item_stack, "Items"));
 }
 
-fn get_string_id<T: Types + ?Sized>(value: &T::Object) -> Option<&str> {
-    value.as_string().or_else(|| value.as_i64().and_then(|i| crate::helpers::item_name_v102::get_name_from_id(i as i32)))
+fn get_string_id(value: &Value) -> Option<&str> {
+    if let Value::String(str) = value {
+        Some(str)
+    } else {
+        value.as_i32().and_then(crate::helpers::item_name_v102::get_name_from_id)
+    }
 }

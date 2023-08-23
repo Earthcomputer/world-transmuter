@@ -1,74 +1,74 @@
-use std::lazy::SyncOnceCell;
-use rust_dataconverter_engine::Types;
+use std::sync::OnceLock;
+use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_recipe;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1502;
 
-static RECIPES_UPDATES: SyncOnceCell<rust_dataconverter_engine::Map<String, String>> = SyncOnceCell::new();
+static RECIPES_UPDATES: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
 
-fn recipes_updates() -> &'static rust_dataconverter_engine::Map<String, String> {
+fn recipes_updates() -> &'static McNamespaceMap<'static, &'static str> {
     RECIPES_UPDATES.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        map.insert("minecraft:acacia_wooden_slab".to_owned(), "minecraft:acacia_slab".to_owned());
-        map.insert("minecraft:birch_wooden_slab".to_owned(), "minecraft:birch_slab".to_owned());
-        map.insert("minecraft:black_stained_hardened_clay".to_owned(), "minecraft:black_terracotta".to_owned());
-        map.insert("minecraft:blue_stained_hardened_clay".to_owned(), "minecraft:blue_terracotta".to_owned());
-        map.insert("minecraft:boat".to_owned(), "minecraft:oak_boat".to_owned());
-        map.insert("minecraft:bone_meal_from_block".to_owned(), "minecraft:bone_meal_from_bone_block".to_owned());
-        map.insert("minecraft:bone_meal_from_bone".to_owned(), "minecraft:bone_meal".to_owned());
-        map.insert("minecraft:brick_block".to_owned(), "minecraft:bricks".to_owned());
-        map.insert("minecraft:brown_stained_hardened_clay".to_owned(), "minecraft:brown_terracotta".to_owned());
-        map.insert("minecraft:chiseled_stonebrick".to_owned(), "minecraft:chiseled_stone_bricks".to_owned());
-        map.insert("minecraft:cyan_stained_hardened_clay".to_owned(), "minecraft:cyan_terracotta".to_owned());
-        map.insert("minecraft:dark_oak_wooden_slab".to_owned(), "minecraft:dark_oak_slab".to_owned());
-        map.insert("minecraft:end_bricks".to_owned(), "minecraft:end_stone_bricks".to_owned());
-        map.insert("minecraft:fence_gate".to_owned(), "minecraft:oak_fence_gate".to_owned());
-        map.insert("minecraft:fence".to_owned(), "minecraft:oak_fence".to_owned());
-        map.insert("minecraft:golden_rail".to_owned(), "minecraft:powered_rail".to_owned());
-        map.insert("minecraft:gold_ingot_from_block".to_owned(), "minecraft:gold_ingot_from_gold_block".to_owned());
-        map.insert("minecraft:gray_stained_hardened_clay".to_owned(), "minecraft:gray_terracotta".to_owned());
-        map.insert("minecraft:green_stained_hardened_clay".to_owned(), "minecraft:green_terracotta".to_owned());
-        map.insert("minecraft:iron_ingot_from_block".to_owned(), "minecraft:iron_ingot_from_iron_block".to_owned());
-        map.insert("minecraft:jungle_wooden_slab".to_owned(), "minecraft:jungle_slab".to_owned());
-        map.insert("minecraft:light_blue_stained_hardened_clay".to_owned(), "minecraft:light_blue_terracotta".to_owned());
-        map.insert("minecraft:light_gray_stained_hardened_clay".to_owned(), "minecraft:light_gray_terracotta".to_owned());
-        map.insert("minecraft:lime_stained_hardened_clay".to_owned(), "minecraft:lime_terracotta".to_owned());
-        map.insert("minecraft:lit_pumpkin".to_owned(), "minecraft:jack_o_lantern".to_owned());
-        map.insert("minecraft:magenta_stained_hardened_clay".to_owned(), "minecraft:magenta_terracotta".to_owned());
-        map.insert("minecraft:magma".to_owned(), "minecraft:magma_block".to_owned());
-        map.insert("minecraft:melon_block".to_owned(), "minecraft:melon".to_owned());
-        map.insert("minecraft:mossy_stonebrick".to_owned(), "minecraft:mossy_stone_bricks".to_owned());
-        map.insert("minecraft:noteblock".to_owned(), "minecraft:note_block".to_owned());
-        map.insert("minecraft:oak_wooden_slab".to_owned(), "minecraft:oak_slab".to_owned());
-        map.insert("minecraft:orange_stained_hardened_clay".to_owned(), "minecraft:orange_terracotta".to_owned());
-        map.insert("minecraft:pillar_quartz_block".to_owned(), "minecraft:quartz_pillar".to_owned());
-        map.insert("minecraft:pink_stained_hardened_clay".to_owned(), "minecraft:pink_terracotta".to_owned());
-        map.insert("minecraft:purple_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:purple_stained_hardened_clay".to_owned(), "minecraft:purple_terracotta".to_owned());
-        map.insert("minecraft:red_nether_brick".to_owned(), "minecraft:red_nether_bricks".to_owned());
-        map.insert("minecraft:red_stained_hardened_clay".to_owned(), "minecraft:red_terracotta".to_owned());
-        map.insert("minecraft:slime".to_owned(), "minecraft:slime_block".to_owned());
-        map.insert("minecraft:smooth_red_sandstone".to_owned(), "minecraft:cut_red_sandstone".to_owned());
-        map.insert("minecraft:smooth_sandstone".to_owned(), "minecraft:cut_sandstone".to_owned());
-        map.insert("minecraft:snow_layer".to_owned(), "minecraft:snow".to_owned());
-        map.insert("minecraft:snow".to_owned(), "minecraft:snow_block".to_owned());
-        map.insert("minecraft:speckled_melon".to_owned(), "minecraft:glistering_melon_slice".to_owned());
-        map.insert("minecraft:spruce_wooden_slab".to_owned(), "minecraft:spruce_slab".to_owned());
-        map.insert("minecraft:stonebrick".to_owned(), "minecraft:stone_bricks".to_owned());
-        map.insert("minecraft:stone_stairs".to_owned(), "minecraft:cobblestone_stairs".to_owned());
-        map.insert("minecraft:string_to_wool".to_owned(), "minecraft:white_wool_from_string".to_owned());
-        map.insert("minecraft:trapdoor".to_owned(), "minecraft:oak_trapdoor".to_owned());
-        map.insert("minecraft:white_stained_hardened_clay".to_owned(), "minecraft:white_terracotta".to_owned());
-        map.insert("minecraft:wooden_button".to_owned(), "minecraft:oak_button".to_owned());
-        map.insert("minecraft:wooden_door".to_owned(), "minecraft:oak_door".to_owned());
-        map.insert("minecraft:wooden_pressure_plate".to_owned(), "minecraft:oak_pressure_plate".to_owned());
-        map.insert("minecraft:yellow_stained_hardened_clay".to_owned(), "minecraft:yellow_terracotta".to_owned());
+        let mut map = McNamespaceMap::new();
+        map.insert_mc("acacia_wooden_slab", "minecraft:acacia_slab");
+        map.insert_mc("birch_wooden_slab", "minecraft:birch_slab");
+        map.insert_mc("black_stained_hardened_clay", "minecraft:black_terracotta");
+        map.insert_mc("blue_stained_hardened_clay", "minecraft:blue_terracotta");
+        map.insert_mc("boat", "minecraft:oak_boat");
+        map.insert_mc("bone_meal_from_block", "minecraft:bone_meal_from_bone_block");
+        map.insert_mc("bone_meal_from_bone", "minecraft:bone_meal");
+        map.insert_mc("brick_block", "minecraft:bricks");
+        map.insert_mc("brown_stained_hardened_clay", "minecraft:brown_terracotta");
+        map.insert_mc("chiseled_stonebrick", "minecraft:chiseled_stone_bricks");
+        map.insert_mc("cyan_stained_hardened_clay", "minecraft:cyan_terracotta");
+        map.insert_mc("dark_oak_wooden_slab", "minecraft:dark_oak_slab");
+        map.insert_mc("end_bricks", "minecraft:end_stone_bricks");
+        map.insert_mc("fence_gate", "minecraft:oak_fence_gate");
+        map.insert_mc("fence", "minecraft:oak_fence");
+        map.insert_mc("golden_rail", "minecraft:powered_rail");
+        map.insert_mc("gold_ingot_from_block", "minecraft:gold_ingot_from_gold_block");
+        map.insert_mc("gray_stained_hardened_clay", "minecraft:gray_terracotta");
+        map.insert_mc("green_stained_hardened_clay", "minecraft:green_terracotta");
+        map.insert_mc("iron_ingot_from_block", "minecraft:iron_ingot_from_iron_block");
+        map.insert_mc("jungle_wooden_slab", "minecraft:jungle_slab");
+        map.insert_mc("light_blue_stained_hardened_clay", "minecraft:light_blue_terracotta");
+        map.insert_mc("light_gray_stained_hardened_clay", "minecraft:light_gray_terracotta");
+        map.insert_mc("lime_stained_hardened_clay", "minecraft:lime_terracotta");
+        map.insert_mc("lit_pumpkin", "minecraft:jack_o_lantern");
+        map.insert_mc("magenta_stained_hardened_clay", "minecraft:magenta_terracotta");
+        map.insert_mc("magma", "minecraft:magma_block");
+        map.insert_mc("melon_block", "minecraft:melon");
+        map.insert_mc("mossy_stonebrick", "minecraft:mossy_stone_bricks");
+        map.insert_mc("noteblock", "minecraft:note_block");
+        map.insert_mc("oak_wooden_slab", "minecraft:oak_slab");
+        map.insert_mc("orange_stained_hardened_clay", "minecraft:orange_terracotta");
+        map.insert_mc("pillar_quartz_block", "minecraft:quartz_pillar");
+        map.insert_mc("pink_stained_hardened_clay", "minecraft:pink_terracotta");
+        map.insert_mc("purple_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("purple_stained_hardened_clay", "minecraft:purple_terracotta");
+        map.insert_mc("red_nether_brick", "minecraft:red_nether_bricks");
+        map.insert_mc("red_stained_hardened_clay", "minecraft:red_terracotta");
+        map.insert_mc("slime", "minecraft:slime_block");
+        map.insert_mc("smooth_red_sandstone", "minecraft:cut_red_sandstone");
+        map.insert_mc("smooth_sandstone", "minecraft:cut_sandstone");
+        map.insert_mc("snow_layer", "minecraft:snow");
+        map.insert_mc("snow", "minecraft:snow_block");
+        map.insert_mc("speckled_melon", "minecraft:glistering_melon_slice");
+        map.insert_mc("spruce_wooden_slab", "minecraft:spruce_slab");
+        map.insert_mc("stonebrick", "minecraft:stone_bricks");
+        map.insert_mc("stone_stairs", "minecraft:cobblestone_stairs");
+        map.insert_mc("string_to_wool", "minecraft:white_wool_from_string");
+        map.insert_mc("trapdoor", "minecraft:oak_trapdoor");
+        map.insert_mc("white_stained_hardened_clay", "minecraft:white_terracotta");
+        map.insert_mc("wooden_button", "minecraft:oak_button");
+        map.insert_mc("wooden_door", "minecraft:oak_door");
+        map.insert_mc("wooden_pressure_plate", "minecraft:oak_pressure_plate");
+        map.insert_mc("yellow_stained_hardened_clay", "minecraft:yellow_terracotta");
         map
     })
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     let recipes_updates = recipes_updates();
-    rename_recipe(types, VERSION, move |name| recipes_updates.get(name).cloned());
+    rename_recipe(types, VERSION, move |name| recipes_updates.get(name).copied().map(|str| str.to_owned()));
 }

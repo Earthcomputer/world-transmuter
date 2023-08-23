@@ -1,10 +1,11 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1446;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.options.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.options.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         let mut replacements = Vec::new();
 
         for key in data.keys() {
@@ -12,7 +13,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
                 continue;
             }
 
-            if let Some(value) = data.get_string(key) {
+            if let Some(Value::String(value)) = data.get(key) {
                 if value.starts_with("key.mouse") {
                     continue;
                 }
@@ -23,7 +24,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
         }
 
         for (key, value) in replacements {
-            data.set(key, T::Object::create_string(value));
+            data.insert(key, value);
         }
     }));
 }

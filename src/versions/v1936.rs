@@ -1,15 +1,16 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1936;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.options.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(chat_opacity) = data.get_string("chatOpacity") {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.options.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::String(chat_opacity)) = data.get("chatOpacity") {
             // Vanilla uses createDouble here, but options is always string -> string. I presume they made
             // a mistake with this converter.
             let background = calculate_background(chat_opacity);
-            data.set("textBackgroundOpacity", T::Object::create_string(background));
+            data.insert("textBackgroundOpacity", background);
         }
     }));
 }

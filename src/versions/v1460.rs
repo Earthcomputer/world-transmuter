@@ -1,12 +1,13 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::helpers::resource_location::ResourceLocation;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1460;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.entity.borrow_mut().add_converter_for_id("minecraft:painting", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(motif) = data.get_string("Motive") {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.entity.borrow_mut().add_converter_for_id("minecraft:painting", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::String(motif)) = data.get("Motive") {
             let motif = motif.to_lowercase();
             let motif = match motif.as_str() {
                 "donkeykong" => "donkey_kong".to_owned(),
@@ -15,7 +16,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
                 _ => motif
             };
             if let Ok(loc) = motif.parse::<ResourceLocation>() {
-                data.set("Motive", T::Object::create_string(loc.to_string()));
+                data.insert("Motive", loc.to_string());
             }
         }
     }));

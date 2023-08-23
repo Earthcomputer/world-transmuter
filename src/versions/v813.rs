@@ -1,4 +1,5 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 813;
@@ -22,18 +23,16 @@ const SHULKER_ID_BY_COLOR: [&str; 16] = [
     "minecraft:black_shulker_box",
 ];
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.item_stack.borrow_mut().add_converter_for_id("minecraft:shulker_box", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let _: Option<_> = try {
-            let tag = data.get_map_mut("tag")?;
-            let block_entity = tag.get_map_mut("BlockEntityTag")?;
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.item_stack.borrow_mut().add_converter_for_id("minecraft:shulker_box", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let Some(Value::Compound(tag)) = data.get_mut("tag") else { return };
+        let Some(Value::Compound(block_entity)) = tag.get_mut("BlockEntityTag") else { return };
 
-            let color = block_entity.remove("Color")?.as_i64()?;
-            data.set("id", T::Object::create_string(SHULKER_ID_BY_COLOR[color.rem_euclid(SHULKER_ID_BY_COLOR.len() as i64) as usize].to_owned()));
-        };
+        let Some(color) = block_entity.remove("Color").and_then(|v| v.as_i64()) else { return };
+        data.insert("id", SHULKER_ID_BY_COLOR[color.rem_euclid(SHULKER_ID_BY_COLOR.len() as i64) as usize]);
     }));
 
-    types.tile_entity.borrow_mut().add_converter_for_id("minecraft:shulker_box", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
+    types.tile_entity.borrow_mut().add_converter_for_id("minecraft:shulker_box", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         data.remove("Color");
     }));
 }

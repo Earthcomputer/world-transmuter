@@ -1,177 +1,179 @@
-use std::lazy::SyncOnceCell;
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
 use log::warn;
-use rust_dataconverter_engine::{convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_converter_func, data_walker, DataType, DataWalkerMapListPaths, DataWalkerMapTypePaths, DataWalkerObjectTypePaths, MapType, ObjectType, Types};
+use rust_dataconverter_engine::{AbstractMapDataType, convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_walker, DataWalkerMapListPaths, DataWalkerMapTypePaths, DataWalkerObjectTypePaths, get_mut_multi, map_data_converter_func};
+use valence_nbt::Value;
 use crate::helpers::hooks::DataHookEnforceNamespacedId;
+use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 704;
 
-static ITEM_ID_TO_TILE_ENTITY_ID: SyncOnceCell<rust_dataconverter_engine::Map<String, String>> = SyncOnceCell::new();
+static ITEM_ID_TO_TILE_ENTITY_ID: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
 
-fn item_id_to_tile_entity_id() -> &'static rust_dataconverter_engine::Map<String, String> {
+fn item_id_to_tile_entity_id() -> &'static McNamespaceMap<'static, &'static str> {
     ITEM_ID_TO_TILE_ENTITY_ID.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        map.insert("minecraft:furnace".to_owned(), "minecraft:furnace".to_owned());
-        map.insert("minecraft:lit_furnace".to_owned(), "minecraft:furnace".to_owned());
-        map.insert("minecraft:chest".to_owned(), "minecraft:chest".to_owned());
-        map.insert("minecraft:trapped_chest".to_owned(), "minecraft:chest".to_owned());
-        map.insert("minecraft:ender_chest".to_owned(), "minecraft:ender_chest".to_owned());
-        map.insert("minecraft:jukebox".to_owned(), "minecraft:jukebox".to_owned());
-        map.insert("minecraft:dispenser".to_owned(), "minecraft:dispenser".to_owned());
-        map.insert("minecraft:dropper".to_owned(), "minecraft:dropper".to_owned());
-        map.insert("minecraft:sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:mob_spawner".to_owned(), "minecraft:mob_spawner".to_owned());
-        map.insert("minecraft:spawner".to_owned(), "minecraft:mob_spawner".to_owned());
-        map.insert("minecraft:noteblock".to_owned(), "minecraft:noteblock".to_owned());
-        map.insert("minecraft:brewing_stand".to_owned(), "minecraft:brewing_stand".to_owned());
-        map.insert("minecraft:enhanting_table".to_owned(), "minecraft:enchanting_table".to_owned());
-        map.insert("minecraft:command_block".to_owned(), "minecraft:command_block".to_owned());
-        map.insert("minecraft:beacon".to_owned(), "minecraft:beacon".to_owned());
-        map.insert("minecraft:skull".to_owned(), "minecraft:skull".to_owned());
-        map.insert("minecraft:daylight_detector".to_owned(), "minecraft:daylight_detector".to_owned());
-        map.insert("minecraft:hopper".to_owned(), "minecraft:hopper".to_owned());
-        map.insert("minecraft:banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:flower_pot".to_owned(), "minecraft:flower_pot".to_owned());
-        map.insert("minecraft:repeating_command_block".to_owned(), "minecraft:command_block".to_owned());
-        map.insert("minecraft:chain_command_block".to_owned(), "minecraft:command_block".to_owned());
-        map.insert("minecraft:shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:white_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:orange_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:magenta_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:light_blue_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:yellow_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:lime_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:pink_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:gray_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:silver_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:cyan_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:purple_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:blue_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:brown_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:green_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:red_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:black_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:light_gray_shulker_box".to_owned(), "minecraft:shulker_box".to_owned());
-        map.insert("minecraft:white_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:orange_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:magenta_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:light_blue_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:yellow_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:lime_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:pink_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:gray_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:silver_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:cyan_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:purple_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:blue_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:brown_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:green_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:red_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:black_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:standing_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:wall_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:piston_head".to_owned(), "minecraft:piston".to_owned());
-        map.insert("minecraft:daylight_detector_inverted".to_owned(), "minecraft:daylight_detector".to_owned());
-        map.insert("minecraft:unpowered_comparator".to_owned(), "minecraft:comparator".to_owned());
-        map.insert("minecraft:powered_comparator".to_owned(), "minecraft:comparator".to_owned());
-        map.insert("minecraft:wall_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:standing_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:structure_block".to_owned(), "minecraft:structure_block".to_owned());
-        map.insert("minecraft:end_portal".to_owned(), "minecraft:end_portal".to_owned());
-        map.insert("minecraft:end_gateway".to_owned(), "minecraft:end_gateway".to_owned());
-        map.insert("minecraft:shield".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:white_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:orange_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:magenta_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:light_blue_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:yellow_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:lime_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:pink_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:gray_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:silver_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:cyan_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:purple_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:blue_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:brown_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:green_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:red_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:black_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:oak_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:spruce_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:birch_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:jungle_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:acacia_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:dark_oak_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:crimson_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:warped_sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("minecraft:skeleton_skull".to_owned(), "minecraft:skull".to_owned());
-        map.insert("minecraft:wither_skeleton_skull".to_owned(), "minecraft:skull".to_owned());
-        map.insert("minecraft:zombie_head".to_owned(), "minecraft:skull".to_owned());
-        map.insert("minecraft:player_head".to_owned(), "minecraft:skull".to_owned());
-        map.insert("minecraft:creeper_head".to_owned(), "minecraft:skull".to_owned());
-        map.insert("minecraft:dragon_head".to_owned(), "minecraft:skull".to_owned());
-        map.insert("minecraft:barrel".to_owned(), "minecraft:barrel".to_owned());
-        map.insert("minecraft:conduit".to_owned(), "minecraft:conduit".to_owned());
-        map.insert("minecraft:smoker".to_owned(), "minecraft:smoker".to_owned());
-        map.insert("minecraft:blast_furnace".to_owned(), "minecraft:blast_furnace".to_owned());
-        map.insert("minecraft:lectern".to_owned(), "minecraft:lectern".to_owned());
-        map.insert("minecraft:bell".to_owned(), "minecraft:bell".to_owned());
-        map.insert("minecraft:jigsaw".to_owned(), "minecraft:jigsaw".to_owned());
-        map.insert("minecraft:campfire".to_owned(), "minecraft:campfire".to_owned());
-        map.insert("minecraft:bee_nest".to_owned(), "minecraft:beehive".to_owned());
-        map.insert("minecraft:beehive".to_owned(), "minecraft:beehive".to_owned());
-        map.insert("minecraft:sculk_sensor".to_owned(), "minecraft:sculk_sensor".to_owned());
+        let mut map = McNamespaceMap::new();
+        map.insert_mc("furnace", "minecraft:furnace");
+        map.insert_mc("lit_furnace", "minecraft:furnace");
+        map.insert_mc("chest", "minecraft:chest");
+        map.insert_mc("trapped_chest", "minecraft:chest");
+        map.insert_mc("ender_chest", "minecraft:ender_chest");
+        map.insert_mc("jukebox", "minecraft:jukebox");
+        map.insert_mc("dispenser", "minecraft:dispenser");
+        map.insert_mc("dropper", "minecraft:dropper");
+        map.insert_mc("sign", "minecraft:sign");
+        map.insert_mc("mob_spawner", "minecraft:mob_spawner");
+        map.insert_mc("spawner", "minecraft:mob_spawner");
+        map.insert_mc("noteblock", "minecraft:noteblock");
+        map.insert_mc("brewing_stand", "minecraft:brewing_stand");
+        map.insert_mc("enhanting_table", "minecraft:enchanting_table");
+        map.insert_mc("command_block", "minecraft:command_block");
+        map.insert_mc("beacon", "minecraft:beacon");
+        map.insert_mc("skull", "minecraft:skull");
+        map.insert_mc("daylight_detector", "minecraft:daylight_detector");
+        map.insert_mc("hopper", "minecraft:hopper");
+        map.insert_mc("banner", "minecraft:banner");
+        map.insert_mc("flower_pot", "minecraft:flower_pot");
+        map.insert_mc("repeating_command_block", "minecraft:command_block");
+        map.insert_mc("chain_command_block", "minecraft:command_block");
+        map.insert_mc("shulker_box", "minecraft:shulker_box");
+        map.insert_mc("white_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("orange_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("magenta_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("light_blue_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("yellow_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("lime_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("pink_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("gray_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("silver_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("cyan_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("purple_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("blue_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("brown_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("green_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("red_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("black_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("bed", "minecraft:bed");
+        map.insert_mc("light_gray_shulker_box", "minecraft:shulker_box");
+        map.insert_mc("white_banner", "minecraft:banner");
+        map.insert_mc("orange_banner", "minecraft:banner");
+        map.insert_mc("magenta_banner", "minecraft:banner");
+        map.insert_mc("light_blue_banner", "minecraft:banner");
+        map.insert_mc("yellow_banner", "minecraft:banner");
+        map.insert_mc("lime_banner", "minecraft:banner");
+        map.insert_mc("pink_banner", "minecraft:banner");
+        map.insert_mc("gray_banner", "minecraft:banner");
+        map.insert_mc("silver_banner", "minecraft:banner");
+        map.insert_mc("cyan_banner", "minecraft:banner");
+        map.insert_mc("purple_banner", "minecraft:banner");
+        map.insert_mc("blue_banner", "minecraft:banner");
+        map.insert_mc("brown_banner", "minecraft:banner");
+        map.insert_mc("green_banner", "minecraft:banner");
+        map.insert_mc("red_banner", "minecraft:banner");
+        map.insert_mc("black_banner", "minecraft:banner");
+        map.insert_mc("standing_sign", "minecraft:sign");
+        map.insert_mc("wall_sign", "minecraft:sign");
+        map.insert_mc("piston_head", "minecraft:piston");
+        map.insert_mc("daylight_detector_inverted", "minecraft:daylight_detector");
+        map.insert_mc("unpowered_comparator", "minecraft:comparator");
+        map.insert_mc("powered_comparator", "minecraft:comparator");
+        map.insert_mc("wall_banner", "minecraft:banner");
+        map.insert_mc("standing_banner", "minecraft:banner");
+        map.insert_mc("structure_block", "minecraft:structure_block");
+        map.insert_mc("end_portal", "minecraft:end_portal");
+        map.insert_mc("end_gateway", "minecraft:end_gateway");
+        map.insert_mc("shield", "minecraft:banner");
+        map.insert_mc("white_bed", "minecraft:bed");
+        map.insert_mc("orange_bed", "minecraft:bed");
+        map.insert_mc("magenta_bed", "minecraft:bed");
+        map.insert_mc("light_blue_bed", "minecraft:bed");
+        map.insert_mc("yellow_bed", "minecraft:bed");
+        map.insert_mc("lime_bed", "minecraft:bed");
+        map.insert_mc("pink_bed", "minecraft:bed");
+        map.insert_mc("gray_bed", "minecraft:bed");
+        map.insert_mc("silver_bed", "minecraft:bed");
+        map.insert_mc("cyan_bed", "minecraft:bed");
+        map.insert_mc("purple_bed", "minecraft:bed");
+        map.insert_mc("blue_bed", "minecraft:bed");
+        map.insert_mc("brown_bed", "minecraft:bed");
+        map.insert_mc("green_bed", "minecraft:bed");
+        map.insert_mc("red_bed", "minecraft:bed");
+        map.insert_mc("black_bed", "minecraft:bed");
+        map.insert_mc("oak_sign", "minecraft:sign");
+        map.insert_mc("spruce_sign", "minecraft:sign");
+        map.insert_mc("birch_sign", "minecraft:sign");
+        map.insert_mc("jungle_sign", "minecraft:sign");
+        map.insert_mc("acacia_sign", "minecraft:sign");
+        map.insert_mc("dark_oak_sign", "minecraft:sign");
+        map.insert_mc("crimson_sign", "minecraft:sign");
+        map.insert_mc("warped_sign", "minecraft:sign");
+        map.insert_mc("skeleton_skull", "minecraft:skull");
+        map.insert_mc("wither_skeleton_skull", "minecraft:skull");
+        map.insert_mc("zombie_head", "minecraft:skull");
+        map.insert_mc("player_head", "minecraft:skull");
+        map.insert_mc("creeper_head", "minecraft:skull");
+        map.insert_mc("dragon_head", "minecraft:skull");
+        map.insert_mc("barrel", "minecraft:barrel");
+        map.insert_mc("conduit", "minecraft:conduit");
+        map.insert_mc("smoker", "minecraft:smoker");
+        map.insert_mc("blast_furnace", "minecraft:blast_furnace");
+        map.insert_mc("lectern", "minecraft:lectern");
+        map.insert_mc("bell", "minecraft:bell");
+        map.insert_mc("jigsaw", "minecraft:jigsaw");
+        map.insert_mc("campfire", "minecraft:campfire");
+        map.insert_mc("bee_nest", "minecraft:beehive");
+        map.insert_mc("beehive", "minecraft:beehive");
+        map.insert_mc("sculk_sensor", "minecraft:sculk_sensor");
 
         // These are missing from Vanilla (TODO check on update)
         // Can also use the test below to make sure we're synced with Paper's Java version
-        map.insert("minecraft:enchanting_table".to_owned(), "minecraft:enchanting_table".to_owned());
-        map.insert("minecraft:comparator".to_owned(), "minecraft:comparator".to_owned());
-        map.insert("minecraft:light_gray_bed".to_owned(), "minecraft:bed".to_owned());
-        map.insert("minecraft:light_gray_banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("minecraft:soul_campfire".to_owned(), "minecraft:campfire".to_owned());
+        map.insert_mc("enchanting_table", "minecraft:enchanting_table");
+        map.insert_mc("comparator", "minecraft:comparator");
+        map.insert_mc("light_gray_bed", "minecraft:bed");
+        map.insert_mc("light_gray_banner", "minecraft:banner");
+        map.insert_mc("soul_campfire", "minecraft:campfire");
         map
     })
 }
 
-static TILE_ID_UPDATE: SyncOnceCell<rust_dataconverter_engine::Map<String, String>> = SyncOnceCell::new();
+static TILE_ID_UPDATE: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
 
-fn tile_id_update() -> &'static rust_dataconverter_engine::Map<String, String> {
+fn tile_id_update() -> &'static BTreeMap<&'static str, &'static str> {
     TILE_ID_UPDATE.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        map.insert("Airportal".to_owned(), "minecraft:end_portal".to_owned());
-        map.insert("Banner".to_owned(), "minecraft:banner".to_owned());
-        map.insert("Beacon".to_owned(), "minecraft:beacon".to_owned());
-        map.insert("Cauldron".to_owned(), "minecraft:brewing_stand".to_owned());
-        map.insert("Chest".to_owned(), "minecraft:chest".to_owned());
-        map.insert("Comparator".to_owned(), "minecraft:comparator".to_owned());
-        map.insert("Control".to_owned(), "minecraft:command_block".to_owned());
-        map.insert("DLDetector".to_owned(), "minecraft:daylight_detector".to_owned());
-        map.insert("Dropper".to_owned(), "minecraft:dropper".to_owned());
-        map.insert("EnchantTable".to_owned(), "minecraft:enchanting_table".to_owned());
-        map.insert("EndGateway".to_owned(), "minecraft:end_gateway".to_owned());
-        map.insert("EnderChest".to_owned(), "minecraft:ender_chest".to_owned());
-        map.insert("FlowerPot".to_owned(), "minecraft:flower_pot".to_owned());
-        map.insert("Furnace".to_owned(), "minecraft:furnace".to_owned());
-        map.insert("Hopper".to_owned(), "minecraft:hopper".to_owned());
-        map.insert("MobSpawner".to_owned(), "minecraft:mob_spawner".to_owned());
-        map.insert("Music".to_owned(), "minecraft:noteblock".to_owned());
-        map.insert("Piston".to_owned(), "minecraft:piston".to_owned());
-        map.insert("RecordPlayer".to_owned(), "minecraft:jukebox".to_owned());
-        map.insert("Sign".to_owned(), "minecraft:sign".to_owned());
-        map.insert("Skull".to_owned(), "minecraft:skull".to_owned());
-        map.insert("Structure".to_owned(), "minecraft:structure_block".to_owned());
-        map.insert("Trap".to_owned(), "minecraft:dispenser".to_owned());
+        let mut map = BTreeMap::new();
+        map.insert("Airportal", "minecraft:end_portal");
+        map.insert("Banner", "minecraft:banner");
+        map.insert("Beacon", "minecraft:beacon");
+        map.insert("Cauldron", "minecraft:brewing_stand");
+        map.insert("Chest", "minecraft:chest");
+        map.insert("Comparator", "minecraft:comparator");
+        map.insert("Control", "minecraft:command_block");
+        map.insert("DLDetector", "minecraft:daylight_detector");
+        map.insert("Dropper", "minecraft:dropper");
+        map.insert("EnchantTable", "minecraft:enchanting_table");
+        map.insert("EndGateway", "minecraft:end_gateway");
+        map.insert("EnderChest", "minecraft:ender_chest");
+        map.insert("FlowerPot", "minecraft:flower_pot");
+        map.insert("Furnace", "minecraft:furnace");
+        map.insert("Hopper", "minecraft:hopper");
+        map.insert("MobSpawner", "minecraft:mob_spawner");
+        map.insert("Music", "minecraft:noteblock");
+        map.insert("Piston", "minecraft:piston");
+        map.insert("RecordPlayer", "minecraft:jukebox");
+        map.insert("Sign", "minecraft:sign");
+        map.insert("Skull", "minecraft:skull");
+        map.insert("Structure", "minecraft:structure_block");
+        map.insert("Trap", "minecraft:dispenser");
         map
     })
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.tile_entity.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(id) = data.get_string("id") {
-            if let Some(new_id) = tile_id_update().get(id) {
-                let id = id.to_owned();
-                data.set(id, T::Object::create_string(new_id.clone()));
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.tile_entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::String(id)) = data.get_mut("id") {
+            if let Some(new_id) = tile_id_update().get(&id[..]).copied() {
+                *id = new_id.to_owned();
             }
         }
     }));
@@ -182,7 +184,7 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     register_inventory(types, "minecraft:dispenser");
     register_inventory(types, "minecraft:dropper");
     let untagged_spawner_type = types.untagged_spawner;
-    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:mob_spawner", data_walker::<T, _>(move |data, from_version, to_version| {
+    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:mob_spawner", data_walker(move |data, from_version, to_version| {
         untagged_spawner_type.convert(data, from_version, to_version);
     }));
     register_inventory(types, "minecraft:brewing_stand");
@@ -194,21 +196,23 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
     let item_name_type = types.item_name;
     let item_stack_type = types.item_stack;
     let tile_entity_type = types.tile_entity;
-    types.item_stack.borrow_mut().add_structure_walker(VERSION, data_walker::<T, _>(move |data, from_version, to_version| {
-        convert_object_in_map::<_, T>(item_name_type, data, "id", from_version, to_version);
-        let [item_id, tag] = data.get_mut_multi(["id", "tag"]);
+    types.item_stack.borrow_mut().add_structure_walker(VERSION, data_walker(move |data, from_version, to_version| {
+        convert_object_in_map(item_name_type, data, "id", from_version, to_version);
+        let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
+        let item_id = item_id.map(|v| &*v);
 
-        let tag = match tag.and_then(|v| v.as_map_mut()) {
-            Some(tag) => tag,
-            None => return
+        let Some(Value::Compound(tag)) = tag else { return };
+
+        let item_id_str = match item_id {
+            Some(Value::String(item_id_str)) => Some(&item_id_str[..]),
+            _ => None,
         };
 
         // only things here are in tag, if changed update if above
 
-        convert_map_list_in_map::<_, T>(item_stack_type, tag, "Items", from_version, to_version);
+        convert_map_list_in_map(item_stack_type, tag, "Items", from_version, to_version);
 
-        if let Some(entity_tag) = tag.get_map_mut("EntityTag") {
-            let item_id_str = item_id.as_ref().and_then(|o| o.as_string());
+        if let Some(Value::Compound(entity_tag)) = tag.get_mut("EntityTag") {
             let entity_id = match item_id_str {
                 // The check for version id is removed here. For whatever reason, the legacy
                 // data converters used entity id "minecraft:armor_stand" when version was greater-than 514,
@@ -224,15 +228,20 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
                 // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
                 // bothered to write in logic to set the sub entity id, so we have to.
                 // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
-                Some(item_id_str) => item_id_str.strip_suffix("_spawn_egg").or_else(|| entity_tag.get_string("id")),
-                None => entity_tag.get_string("id")
+                Some(item_id_str) => item_id_str.strip_suffix("_spawn_egg").or_else(|| match entity_tag.get("id") {
+                    Some(Value::String(id)) => Some(id),
+                    _ => None,
+                }),
+                None => match entity_tag.get("id") {
+                    Some(Value::String(id)) => Some(&id[..]),
+                    _ => None,
+                }
             };
 
             let remove_id = if let Some(entity_id) = entity_id {
-                let remove_id = entity_tag.get_string("id").is_none();
+                let remove_id = !matches!(entity_tag.get("id"), Some(Value::String(_)));
                 if remove_id {
-                    let new_id = entity_id.to_owned();
-                    entity_tag.set("id", T::Object::create_string(new_id));
+                    entity_tag.insert("id", entity_id.to_owned());
                 }
                 remove_id
             } else {
@@ -249,13 +258,12 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
             }
         }
 
-        if let Some(block_entity_tag) = tag.get_map_mut("BlockEntityTag") {
-            let item_id_str = item_id.as_ref().and_then(|o| o.as_string());
-            let entity_id = item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id));
+        if let Some(Value::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
+            let entity_id = item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id).copied());
 
             let remove_id = if let Some(entity_id) = entity_id {
-                let remove_id = block_entity_tag.get_string("id").is_none();
-                block_entity_tag.set("id", T::Object::create_string(entity_id.to_owned()));
+                let remove_id = !matches!(block_entity_tag.get("id"), Some(Value::String(_)));
+                block_entity_tag.insert("id", entity_id);
                 remove_id
             } else {
                 if item_id_str != Some("minecraft:air") {
@@ -271,20 +279,22 @@ pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
             }
         }
 
-        convert_object_list_in_map::<_, T>(block_name_type, tag, "CanDestroy", from_version, to_version);
-        convert_object_list_in_map::<_, T>(block_name_type, tag, "CanPlaceOn", from_version, to_version);
+        convert_object_list_in_map(block_name_type, tag, "CanDestroy", from_version, to_version);
+        convert_object_list_in_map(block_name_type, tag, "CanPlaceOn", from_version, to_version);
     }));
 
     // Enforce namespace for ids
-    types.tile_entity.borrow_mut().add_structure_hook(VERSION, DataHookEnforceNamespacedId::<T>::id());
+    types.tile_entity.borrow_mut().add_structure_hook(VERSION, DataHookEnforceNamespacedId::id());
 }
 
-fn register_inventory<T: Types + ?Sized>(types: &MinecraftTypesMut<T>, id: impl Into<String>) {
+fn register_inventory(types: &MinecraftTypesMut, id: impl Into<String>) {
     types.tile_entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerMapListPaths::new(types.item_stack, "Items"));
 }
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeMap;
+
     #[test]
     #[cfg(feature = "update_checks")]
     fn test_in_sync_with_paper() {
@@ -295,7 +305,7 @@ mod test {
 
         const URL: &str = "https://raw.githubusercontent.com/PaperMC/DataConverter/master/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V704.java";
         let response = attohttpc::get(URL).send().expect("Failed to download V704.java");
-        let mut paper_map = rust_dataconverter_engine::Map::new();
+        let mut paper_map = BTreeMap::new();
         for line in BufReader::new(response).lines() {
             let line = line.expect("Failed to download V704.java");
             if let Some(captures) = regex.captures(&line) {

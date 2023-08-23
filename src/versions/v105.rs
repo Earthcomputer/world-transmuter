@@ -1,26 +1,21 @@
-use rust_dataconverter_engine::{data_converter_func, MapEntry, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::{Compound, Value};
 use crate::helpers::spawn_egg_name_v105;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 105;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.item_stack.borrow_mut().add_converter_for_id("minecraft:spawn_egg", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let damage = data.get_i64("Damage").unwrap_or(0) as i16;
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.item_stack.borrow_mut().add_converter_for_id("minecraft:spawn_egg", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let damage = data.get("Damage").and_then(|v| v.as_i16()).unwrap_or(0);
         if damage != 0 {
-            data.set("Damage", T::Object::create_short(0));
+            data.insert("Damage", 0i16);
         }
-        let tag = match data.entry("tag").or_insert_with(|| T::Object::create_map(T::Map::create_empty())).as_map_mut() {
-            Some(map) => map,
-            None => return
-        };
-        let entity_tag = match tag.entry("EntityTag").or_insert_with(|| T::Object::create_map(T::Map::create_empty())).as_map_mut() {
-            Some(map) => map,
-            None => return
-        };
-        if entity_tag.get_string("id").is_none() {
+        let Value::Compound(tag) = data.entry("tag").or_insert_with(Compound::new) else { return };
+        let Value::Compound(entity_tag) = tag.entry("EntityTag").or_insert_with(Compound::new) else { return };
+        if !matches!(entity_tag.get("id"), Some(Value::String(_))) {
             if let Some(converted) = spawn_egg_name_v105::get_spawn_name_from_id((damage & 255) as u8) {
-                entity_tag.set("id", T::Object::create_string(converted.clone()));
+                entity_tag.insert("id", converted);
             }
         }
     }));

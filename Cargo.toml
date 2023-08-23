@@ -5,26 +5,22 @@ edition = "2021"
 
 [dependencies]
 
+ahash = "0.8.3"
 bitvec = { version = "1.0.0", default-features = false }
 log = "0.4.16"
 nom = "7.1.1"
-rust_dataconverter_engine = { path = "../rust_dataconverter_engine" } # TODO: stabilize this library then push to crates.io
+rust_dataconverter_engine = { path = "../RustDataConverterEngine" } # TODO: stabilize this library then push to crates.io
 strength_reduce = "0.2.3"
 uuid = "1"
+valence_nbt = { git = "https://github.com/valence-rs/valence", rev = "d741fbe" }
 
 [dev-dependencies]
 
-attohttpc = "0.18.0"
-quartz_nbt = "0.2.6"
+attohttpc = "0.26.0"
 regex = "1.5.5"
+valence_nbt = { git = "https://github.com/valence-rs/valence", rev = "d741fbe", features = ["snbt"] }
 
 [features]
 
-ahash = ["rust_dataconverter_engine/ahash"]
-hashbrown = ["rust_dataconverter_engine/hashbrown"]
-hematite-nbt = ["rust_dataconverter_engine/hematite-nbt"]
-indexmap = ["rust_dataconverter_engine/indexmap"]
-quartz_nbt = ["rust_dataconverter_engine/quartz_nbt"]
-serde_json = ["rust_dataconverter_engine/serde_json"]
 # Enable tests that could potentially break without code having been updated, because Minecraft has updated.
 update_checks = []

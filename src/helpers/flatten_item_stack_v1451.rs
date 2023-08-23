@@ -1,30 +1,34 @@
-use std::lazy::SyncOnceCell;
-use std::marker::PhantomData;
-use rust_dataconverter_engine::{DataConverterFunc, DataVersion, MapType, ObjectType, Types};
+use crate::helpers::mc_namespace_map::McNamespaceSet;
+use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use valence_nbt::{Compound, Value};
 
 #[derive(Default)]
 struct ItemStackFlattenData {
     // Map of ("id", damage) -> "flattened id"
-    flatten_map: rust_dataconverter_engine::Map<(String, u8), String>,
+    flatten_map: BTreeMap<(u8, &'static str), &'static str>,
     // maps out ids requiring flattening
-    ids_requiring_flattening: rust_dataconverter_engine::Map<String, ()>,
+    ids_requiring_flattening: McNamespaceSet<'static>,
     // Damage tag is moved from the ItemStack base tag to the ItemStack tag, and we only want to migrate that
     // for items that actually require it for damage purposes (Remember, old damage was used to differentiate item types)
     // It should be noted that this ID set should not be included in the flattening map, because damage for these items
     // is actual damage and not a subtype specifier
-    items_with_damage: rust_dataconverter_engine::Map<String, ()>,
+    items_with_damage: McNamespaceSet<'static>,
 }
 
-static FLATTEN_DATA: SyncOnceCell<ItemStackFlattenData> = SyncOnceCell::new();
+static FLATTEN_DATA: OnceLock<ItemStackFlattenData> = OnceLock::new();
 
 fn flatten_data() -> &'static ItemStackFlattenData {
     FLATTEN_DATA.get_or_init(|| {
         let mut flatten_data = ItemStackFlattenData::default();
 
-        let mut flatten = |id: &str, data: u8, new_id: &str| {
-            debug_assert!(data == 0 || flatten_data.flatten_map.contains_key(&(id.to_owned(), 0)));
-            flatten_data.flatten_map.insert((id.to_owned(), data), new_id.to_owned());
-            flatten_data.ids_requiring_flattening.insert(id.to_owned(), ());
+        let mut flatten = |id: &'static str, data: u8, new_id: &'static str| {
+            debug_assert!(data == 0 || flatten_data.flatten_map.contains_key(&(0, id)));
+            flatten_data.flatten_map.insert((data, id), new_id);
+            flatten_data
+                .ids_requiring_flattening
+                .insert_mc(id.strip_prefix("minecraft:").unwrap());
         };
 
         flatten("minecraft:stone", 0, "minecraft:stone");
@@ -64,7 +68,11 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:sand", 0, "minecraft:sand");
         flatten("minecraft:sand", 1, "minecraft:red_sand");
         flatten("minecraft:quartz_block", 0, "minecraft:quartz_block");
-        flatten("minecraft:quartz_block", 1, "minecraft:chiseled_quartz_block");
+        flatten(
+            "minecraft:quartz_block",
+            1,
+            "minecraft:chiseled_quartz_block",
+        );
         flatten("minecraft:quartz_block", 2, "minecraft:quartz_pillar");
         flatten("minecraft:anvil", 0, "minecraft:anvil");
         flatten("minecraft:anvil", 1, "minecraft:chipped_anvil");
@@ -102,55 +110,231 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:carpet", 14, "minecraft:red_carpet");
         flatten("minecraft:carpet", 15, "minecraft:black_carpet");
         flatten("minecraft:hardened_clay", 0, "minecraft:terracotta");
-        flatten("minecraft:stained_hardened_clay", 0, "minecraft:white_terracotta");
-        flatten("minecraft:stained_hardened_clay", 1, "minecraft:orange_terracotta");
-        flatten("minecraft:stained_hardened_clay", 2, "minecraft:magenta_terracotta");
-        flatten("minecraft:stained_hardened_clay", 3, "minecraft:light_blue_terracotta");
-        flatten("minecraft:stained_hardened_clay", 4, "minecraft:yellow_terracotta");
-        flatten("minecraft:stained_hardened_clay", 5, "minecraft:lime_terracotta");
-        flatten("minecraft:stained_hardened_clay", 6, "minecraft:pink_terracotta");
-        flatten("minecraft:stained_hardened_clay", 7, "minecraft:gray_terracotta");
-        flatten("minecraft:stained_hardened_clay", 8, "minecraft:light_gray_terracotta");
-        flatten("minecraft:stained_hardened_clay", 9, "minecraft:cyan_terracotta");
-        flatten("minecraft:stained_hardened_clay", 10, "minecraft:purple_terracotta");
-        flatten("minecraft:stained_hardened_clay", 11, "minecraft:blue_terracotta");
-        flatten("minecraft:stained_hardened_clay", 12, "minecraft:brown_terracotta");
-        flatten("minecraft:stained_hardened_clay", 13, "minecraft:green_terracotta");
-        flatten("minecraft:stained_hardened_clay", 14, "minecraft:red_terracotta");
-        flatten("minecraft:stained_hardened_clay", 15, "minecraft:black_terracotta");
-        flatten("minecraft:silver_glazed_terracotta", 0, "minecraft:light_gray_glazed_terracotta");
-        flatten("minecraft:stained_glass", 0, "minecraft:white_stained_glass");
-        flatten("minecraft:stained_glass", 1, "minecraft:orange_stained_glass");
-        flatten("minecraft:stained_glass", 2, "minecraft:magenta_stained_glass");
-        flatten("minecraft:stained_glass", 3, "minecraft:light_blue_stained_glass");
-        flatten("minecraft:stained_glass", 4, "minecraft:yellow_stained_glass");
+        flatten(
+            "minecraft:stained_hardened_clay",
+            0,
+            "minecraft:white_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            1,
+            "minecraft:orange_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            2,
+            "minecraft:magenta_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            3,
+            "minecraft:light_blue_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            4,
+            "minecraft:yellow_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            5,
+            "minecraft:lime_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            6,
+            "minecraft:pink_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            7,
+            "minecraft:gray_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            8,
+            "minecraft:light_gray_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            9,
+            "minecraft:cyan_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            10,
+            "minecraft:purple_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            11,
+            "minecraft:blue_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            12,
+            "minecraft:brown_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            13,
+            "minecraft:green_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            14,
+            "minecraft:red_terracotta",
+        );
+        flatten(
+            "minecraft:stained_hardened_clay",
+            15,
+            "minecraft:black_terracotta",
+        );
+        flatten(
+            "minecraft:silver_glazed_terracotta",
+            0,
+            "minecraft:light_gray_glazed_terracotta",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            0,
+            "minecraft:white_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            1,
+            "minecraft:orange_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            2,
+            "minecraft:magenta_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            3,
+            "minecraft:light_blue_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            4,
+            "minecraft:yellow_stained_glass",
+        );
         flatten("minecraft:stained_glass", 5, "minecraft:lime_stained_glass");
         flatten("minecraft:stained_glass", 6, "minecraft:pink_stained_glass");
         flatten("minecraft:stained_glass", 7, "minecraft:gray_stained_glass");
-        flatten("minecraft:stained_glass", 8, "minecraft:light_gray_stained_glass");
+        flatten(
+            "minecraft:stained_glass",
+            8,
+            "minecraft:light_gray_stained_glass",
+        );
         flatten("minecraft:stained_glass", 9, "minecraft:cyan_stained_glass");
-        flatten("minecraft:stained_glass", 10, "minecraft:purple_stained_glass");
-        flatten("minecraft:stained_glass", 11, "minecraft:blue_stained_glass");
-        flatten("minecraft:stained_glass", 12, "minecraft:brown_stained_glass");
-        flatten("minecraft:stained_glass", 13, "minecraft:green_stained_glass");
+        flatten(
+            "minecraft:stained_glass",
+            10,
+            "minecraft:purple_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            11,
+            "minecraft:blue_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            12,
+            "minecraft:brown_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass",
+            13,
+            "minecraft:green_stained_glass",
+        );
         flatten("minecraft:stained_glass", 14, "minecraft:red_stained_glass");
-        flatten("minecraft:stained_glass", 15, "minecraft:black_stained_glass");
-        flatten("minecraft:stained_glass_pane", 0, "minecraft:white_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 1, "minecraft:orange_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 2, "minecraft:magenta_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 3, "minecraft:light_blue_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 4, "minecraft:yellow_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 5, "minecraft:lime_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 6, "minecraft:pink_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 7, "minecraft:gray_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 8, "minecraft:light_gray_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 9, "minecraft:cyan_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 10, "minecraft:purple_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 11, "minecraft:blue_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 12, "minecraft:brown_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 13, "minecraft:green_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 14, "minecraft:red_stained_glass_pane");
-        flatten("minecraft:stained_glass_pane", 15, "minecraft:black_stained_glass_pane");
+        flatten(
+            "minecraft:stained_glass",
+            15,
+            "minecraft:black_stained_glass",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            0,
+            "minecraft:white_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            1,
+            "minecraft:orange_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            2,
+            "minecraft:magenta_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            3,
+            "minecraft:light_blue_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            4,
+            "minecraft:yellow_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            5,
+            "minecraft:lime_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            6,
+            "minecraft:pink_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            7,
+            "minecraft:gray_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            8,
+            "minecraft:light_gray_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            9,
+            "minecraft:cyan_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            10,
+            "minecraft:purple_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            11,
+            "minecraft:blue_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            12,
+            "minecraft:brown_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            13,
+            "minecraft:green_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            14,
+            "minecraft:red_stained_glass_pane",
+        );
+        flatten(
+            "minecraft:stained_glass_pane",
+            15,
+            "minecraft:black_stained_glass_pane",
+        );
         flatten("minecraft:prismarine", 0, "minecraft:prismarine");
         flatten("minecraft:prismarine", 1, "minecraft:prismarine_bricks");
         flatten("minecraft:prismarine", 2, "minecraft:dark_prismarine");
@@ -170,29 +354,105 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:concrete", 13, "minecraft:green_concrete");
         flatten("minecraft:concrete", 14, "minecraft:red_concrete");
         flatten("minecraft:concrete", 15, "minecraft:black_concrete");
-        flatten("minecraft:concrete_powder", 0, "minecraft:white_concrete_powder");
-        flatten("minecraft:concrete_powder", 1, "minecraft:orange_concrete_powder");
-        flatten("minecraft:concrete_powder", 2, "minecraft:magenta_concrete_powder");
-        flatten("minecraft:concrete_powder", 3, "minecraft:light_blue_concrete_powder");
-        flatten("minecraft:concrete_powder", 4, "minecraft:yellow_concrete_powder");
-        flatten("minecraft:concrete_powder", 5, "minecraft:lime_concrete_powder");
-        flatten("minecraft:concrete_powder", 6, "minecraft:pink_concrete_powder");
-        flatten("minecraft:concrete_powder", 7, "minecraft:gray_concrete_powder");
-        flatten("minecraft:concrete_powder", 8, "minecraft:light_gray_concrete_powder");
-        flatten("minecraft:concrete_powder", 9, "minecraft:cyan_concrete_powder");
-        flatten("minecraft:concrete_powder", 10, "minecraft:purple_concrete_powder");
-        flatten("minecraft:concrete_powder", 11, "minecraft:blue_concrete_powder");
-        flatten("minecraft:concrete_powder", 12, "minecraft:brown_concrete_powder");
-        flatten("minecraft:concrete_powder", 13, "minecraft:green_concrete_powder");
-        flatten("minecraft:concrete_powder", 14, "minecraft:red_concrete_powder");
-        flatten("minecraft:concrete_powder", 15, "minecraft:black_concrete_powder");
-        flatten("minecraft:cobblestone_wall", 0, "minecraft:cobblestone_wall");
-        flatten("minecraft:cobblestone_wall", 1, "minecraft:mossy_cobblestone_wall");
+        flatten(
+            "minecraft:concrete_powder",
+            0,
+            "minecraft:white_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            1,
+            "minecraft:orange_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            2,
+            "minecraft:magenta_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            3,
+            "minecraft:light_blue_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            4,
+            "minecraft:yellow_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            5,
+            "minecraft:lime_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            6,
+            "minecraft:pink_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            7,
+            "minecraft:gray_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            8,
+            "minecraft:light_gray_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            9,
+            "minecraft:cyan_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            10,
+            "minecraft:purple_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            11,
+            "minecraft:blue_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            12,
+            "minecraft:brown_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            13,
+            "minecraft:green_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            14,
+            "minecraft:red_concrete_powder",
+        );
+        flatten(
+            "minecraft:concrete_powder",
+            15,
+            "minecraft:black_concrete_powder",
+        );
+        flatten(
+            "minecraft:cobblestone_wall",
+            0,
+            "minecraft:cobblestone_wall",
+        );
+        flatten(
+            "minecraft:cobblestone_wall",
+            1,
+            "minecraft:mossy_cobblestone_wall",
+        );
         flatten("minecraft:sandstone", 0, "minecraft:sandstone");
         flatten("minecraft:sandstone", 1, "minecraft:chiseled_sandstone");
         flatten("minecraft:sandstone", 2, "minecraft:cut_sandstone");
         flatten("minecraft:red_sandstone", 0, "minecraft:red_sandstone");
-        flatten("minecraft:red_sandstone", 1, "minecraft:chiseled_red_sandstone");
+        flatten(
+            "minecraft:red_sandstone",
+            1,
+            "minecraft:chiseled_red_sandstone",
+        );
         flatten("minecraft:red_sandstone", 2, "minecraft:cut_red_sandstone");
         flatten("minecraft:stonebrick", 0, "minecraft:stone_bricks");
         flatten("minecraft:stonebrick", 1, "minecraft:mossy_stone_bricks");
@@ -200,10 +460,26 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:stonebrick", 3, "minecraft:chiseled_stone_bricks");
         flatten("minecraft:monster_egg", 0, "minecraft:infested_stone");
         flatten("minecraft:monster_egg", 1, "minecraft:infested_cobblestone");
-        flatten("minecraft:monster_egg", 2, "minecraft:infested_stone_bricks");
-        flatten("minecraft:monster_egg", 3, "minecraft:infested_mossy_stone_bricks");
-        flatten("minecraft:monster_egg", 4, "minecraft:infested_cracked_stone_bricks");
-        flatten("minecraft:monster_egg", 5, "minecraft:infested_chiseled_stone_bricks");
+        flatten(
+            "minecraft:monster_egg",
+            2,
+            "minecraft:infested_stone_bricks",
+        );
+        flatten(
+            "minecraft:monster_egg",
+            3,
+            "minecraft:infested_mossy_stone_bricks",
+        );
+        flatten(
+            "minecraft:monster_egg",
+            4,
+            "minecraft:infested_cracked_stone_bricks",
+        );
+        flatten(
+            "minecraft:monster_egg",
+            5,
+            "minecraft:infested_chiseled_stone_bricks",
+        );
         flatten("minecraft:yellow_flower", 0, "minecraft:dandelion");
         flatten("minecraft:red_flower", 0, "minecraft:poppy");
         flatten("minecraft:red_flower", 1, "minecraft:blue_orchid");
@@ -257,7 +533,11 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:skull", 4, "minecraft:creeper_head");
         flatten("minecraft:skull", 5, "minecraft:dragon_head");
         flatten("minecraft:golden_apple", 0, "minecraft:golden_apple");
-        flatten("minecraft:golden_apple", 1, "minecraft:enchanted_golden_apple");
+        flatten(
+            "minecraft:golden_apple",
+            1,
+            "minecraft:enchanted_golden_apple",
+        );
         flatten("minecraft:fireworks", 0, "minecraft:firework_rocket");
         flatten("minecraft:firework_charge", 0, "minecraft:firework_star");
         flatten("minecraft:dye", 0, "minecraft:ink_sac");
@@ -276,7 +556,11 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:dye", 13, "minecraft:magenta_dye");
         flatten("minecraft:dye", 14, "minecraft:orange_dye");
         flatten("minecraft:dye", 15, "minecraft:bone_meal");
-        flatten("minecraft:silver_shulker_box", 0, "minecraft:light_gray_shulker_box");
+        flatten(
+            "minecraft:silver_shulker_box",
+            0,
+            "minecraft:light_gray_shulker_box",
+        );
         flatten("minecraft:fence", 0, "minecraft:oak_fence");
         flatten("minecraft:fence_gate", 0, "minecraft:oak_fence_gate");
         flatten("minecraft:wooden_door", 0, "minecraft:oak_door");
@@ -285,10 +569,18 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:pumpkin", 0, "minecraft:carved_pumpkin");
         flatten("minecraft:trapdoor", 0, "minecraft:oak_trapdoor");
         flatten("minecraft:nether_brick", 0, "minecraft:nether_bricks");
-        flatten("minecraft:red_nether_brick", 0, "minecraft:red_nether_bricks");
+        flatten(
+            "minecraft:red_nether_brick",
+            0,
+            "minecraft:red_nether_bricks",
+        );
         flatten("minecraft:netherbrick", 0, "minecraft:nether_brick");
         flatten("minecraft:wooden_button", 0, "minecraft:oak_button");
-        flatten("minecraft:wooden_pressure_plate", 0, "minecraft:oak_pressure_plate");
+        flatten(
+            "minecraft:wooden_pressure_plate",
+            0,
+            "minecraft:oak_pressure_plate",
+        );
         flatten("minecraft:noteblock", 0, "minecraft:note_block");
         flatten("minecraft:bed", 0, "minecraft:white_bed");
         flatten("minecraft:bed", 1, "minecraft:orange_bed");
@@ -342,107 +634,122 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         flatten("minecraft:record_chirp", 0, "minecraft:music_disc_chirp");
         flatten("minecraft:record_far", 0, "minecraft:music_disc_far");
         flatten("minecraft:record_mall", 0, "minecraft:music_disc_mall");
-        flatten("minecraft:record_mellohi", 0, "minecraft:music_disc_mellohi");
+        flatten(
+            "minecraft:record_mellohi",
+            0,
+            "minecraft:music_disc_mellohi",
+        );
         flatten("minecraft:record_stal", 0, "minecraft:music_disc_stal");
         flatten("minecraft:record_strad", 0, "minecraft:music_disc_strad");
         flatten("minecraft:record_wait", 0, "minecraft:music_disc_wait");
         flatten("minecraft:record_ward", 0, "minecraft:music_disc_ward");
 
-        flatten_data.items_with_damage.insert("minecraft:bow".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:carrot_on_a_stick".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:chainmail_boots".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:chainmail_chestplate".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:chainmail_helmet".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:chainmail_leggings".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_axe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_boots".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_chestplate".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_helmet".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_hoe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_leggings".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_pickaxe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_shovel".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:diamond_sword".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:elytra".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:fishing_rod".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:flint_and_steel".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_axe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_boots".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_chestplate".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_helmet".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_hoe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_leggings".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_pickaxe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_shovel".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:golden_sword".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_axe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_boots".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_chestplate".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_helmet".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_hoe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_leggings".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_pickaxe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_shovel".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:iron_sword".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:leather_boots".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:leather_chestplate".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:leather_helmet".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:leather_leggings".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:shears".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:shield".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:stone_axe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:stone_hoe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:stone_pickaxe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:stone_shovel".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:stone_sword".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:wooden_axe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:wooden_hoe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:wooden_pickaxe".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:wooden_shovel".to_owned(), ());
-        flatten_data.items_with_damage.insert("minecraft:wooden_sword".to_owned(), ());
+        flatten_data.items_with_damage.insert_mc("bow");
+        flatten_data
+            .items_with_damage
+            .insert_mc("carrot_on_a_stick");
+        flatten_data.items_with_damage.insert_mc("chainmail_boots");
+        flatten_data
+            .items_with_damage
+            .insert_mc("chainmail_chestplate");
+        flatten_data.items_with_damage.insert_mc("chainmail_helmet");
+        flatten_data
+            .items_with_damage
+            .insert_mc("chainmail_leggings");
+        flatten_data.items_with_damage.insert_mc("diamond_axe");
+        flatten_data.items_with_damage.insert_mc("diamond_boots");
+        flatten_data
+            .items_with_damage
+            .insert_mc("diamond_chestplate");
+        flatten_data.items_with_damage.insert_mc("diamond_helmet");
+        flatten_data.items_with_damage.insert_mc("diamond_hoe");
+        flatten_data.items_with_damage.insert_mc("diamond_leggings");
+        flatten_data.items_with_damage.insert_mc("diamond_pickaxe");
+        flatten_data.items_with_damage.insert_mc("diamond_shovel");
+        flatten_data.items_with_damage.insert_mc("diamond_sword");
+        flatten_data.items_with_damage.insert_mc("elytra");
+        flatten_data.items_with_damage.insert_mc("fishing_rod");
+        flatten_data.items_with_damage.insert_mc("flint_and_steel");
+        flatten_data.items_with_damage.insert_mc("golden_axe");
+        flatten_data.items_with_damage.insert_mc("golden_boots");
+        flatten_data
+            .items_with_damage
+            .insert_mc("golden_chestplate");
+        flatten_data.items_with_damage.insert_mc("golden_helmet");
+        flatten_data.items_with_damage.insert_mc("golden_hoe");
+        flatten_data.items_with_damage.insert_mc("golden_leggings");
+        flatten_data.items_with_damage.insert_mc("golden_pickaxe");
+        flatten_data.items_with_damage.insert_mc("golden_shovel");
+        flatten_data.items_with_damage.insert_mc("golden_sword");
+        flatten_data.items_with_damage.insert_mc("iron_axe");
+        flatten_data.items_with_damage.insert_mc("iron_boots");
+        flatten_data.items_with_damage.insert_mc("iron_chestplate");
+        flatten_data.items_with_damage.insert_mc("iron_helmet");
+        flatten_data.items_with_damage.insert_mc("iron_hoe");
+        flatten_data.items_with_damage.insert_mc("iron_leggings");
+        flatten_data.items_with_damage.insert_mc("iron_pickaxe");
+        flatten_data.items_with_damage.insert_mc("iron_shovel");
+        flatten_data.items_with_damage.insert_mc("iron_sword");
+        flatten_data.items_with_damage.insert_mc("leather_boots");
+        flatten_data
+            .items_with_damage
+            .insert_mc("leather_chestplate");
+        flatten_data.items_with_damage.insert_mc("leather_helmet");
+        flatten_data.items_with_damage.insert_mc("leather_leggings");
+        flatten_data.items_with_damage.insert_mc("shears");
+        flatten_data.items_with_damage.insert_mc("shield");
+        flatten_data.items_with_damage.insert_mc("stone_axe");
+        flatten_data.items_with_damage.insert_mc("stone_hoe");
+        flatten_data.items_with_damage.insert_mc("stone_pickaxe");
+        flatten_data.items_with_damage.insert_mc("stone_shovel");
+        flatten_data.items_with_damage.insert_mc("stone_sword");
+        flatten_data.items_with_damage.insert_mc("wooden_axe");
+        flatten_data.items_with_damage.insert_mc("wooden_hoe");
+        flatten_data.items_with_damage.insert_mc("wooden_pickaxe");
+        flatten_data.items_with_damage.insert_mc("wooden_shovel");
+        flatten_data.items_with_damage.insert_mc("wooden_sword");
 
         flatten_data
     })
 }
 
-pub(crate) fn flatten_item(old_name: &str, data: u8) -> Option<&String> {
+pub(crate) fn flatten_item(old_name: &str, data: u8) -> Option<&'static str> {
     let flatten_data = flatten_data();
-    if flatten_data.ids_requiring_flattening.contains_key(old_name) {
-        flatten_data.flatten_map.get(&(old_name.to_string(), data))
-            .or_else(|| flatten_data.flatten_map.get(&(old_name.to_string(), 0)))
+    if flatten_data.ids_requiring_flattening.contains(old_name) {
+        flatten_data
+            .flatten_map
+            .get(&(data, old_name))
+            .or_else(|| flatten_data.flatten_map.get(&(0, old_name)))
+            .copied()
     } else {
         None
     }
 }
 
-pub(crate) struct ConverterFlattenItemStack<T: Types + ?Sized> {
-    _phantom: PhantomData<T>,
-}
+pub(crate) struct ConverterFlattenItemStack;
 
-impl<T: Types + ?Sized> ConverterFlattenItemStack<T> {
-    pub(crate) fn new() -> Self { Self { _phantom: PhantomData } }
-}
-
-impl<T: Types + ?Sized> DataConverterFunc<T::Map> for ConverterFlattenItemStack<T> {
-    fn convert(&self, data: &mut T::Map, _from_version: DataVersion, _to_version: DataVersion) {
-        if let Some(id) = data.get_string("id") {
+impl MapDataConverterFunc for ConverterFlattenItemStack {
+    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+        if let Some(Value::String(id)) = data.get("id") {
             let flatten_data = flatten_data();
 
-            let damage = data.get_i64("Damage").unwrap_or(0) as i16;
+            let damage = data.get("Damage").and_then(|v| v.as_i16()).unwrap_or(0);
 
-            if flatten_data.ids_requiring_flattening.contains_key(id) {
-                let remap = damage.try_into().ok()
-                    .and_then(|damage: u8| flatten_data.flatten_map.get(&(id.to_owned(), damage)))
-                    .or_else(|| flatten_data.flatten_map.get(&(id.to_owned(), 0)))
-                    .unwrap().clone();
-                data.set("id", T::Object::create_string(remap));
-            } else if damage != 0 && flatten_data.items_with_damage.contains_key(id) {
+            if flatten_data.ids_requiring_flattening.contains(id) {
+                let remap = *damage
+                    .try_into()
+                    .ok()
+                    .and_then(|damage: u8| flatten_data.flatten_map.get(&(damage, id)))
+                    .or_else(|| flatten_data.flatten_map.get(&(0, id)))
+                    .unwrap();
+                data.insert("id", remap);
+            } else if damage != 0 && flatten_data.items_with_damage.contains(id) {
                 // migrate damage
-                if data.get_map("tag").is_none() {
-                    data.set("tag", T::Object::create_map(T::Map::create_empty()));
+                if !matches!(data.get("tag"), Some(Value::Compound(_))) {
+                    data.insert("tag", Compound::new());
                 }
-                let tag = data.get_map_mut("tag").unwrap();
-                tag.set("Damage", T::Object::create_int(damage as i32));
+                let Some(Value::Compound(tag)) = data.get_mut("tag") else { unreachable!() };
+                tag.insert("Damage", damage as i32);
             }
 
             data.remove("Damage");

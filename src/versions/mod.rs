@@ -4,7 +4,7 @@ macro_rules! versions {
             pub(crate) mod $version;
         )*
 
-        pub(crate) fn register_versions<T: rust_dataconverter_engine::Types + ?Sized>(types: &$crate::types::MinecraftTypesMut<T>) {
+        pub(crate) fn register_versions(types: &$crate::types::MinecraftTypesMut) {
             $(
                 $version::register(types);
             )*

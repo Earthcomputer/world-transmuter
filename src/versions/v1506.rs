@@ -1,17 +1,19 @@
-use std::lazy::SyncOnceCell;
+use std::sync::OnceLock;
+use ahash::AHashMap;
 use log::warn;
-use rust_dataconverter_engine::{data_converter_func, ListType, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::{Compound, compound, List, Value};
 use crate::helpers::gson_lenient_fix::{fix_gson_lenient, FixedGsonLenient, JsonType};
 use crate::helpers::json_parser;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1506;
 
-static BIOME_MAP: SyncOnceCell<rust_dataconverter_engine::Map<&'static str, &'static str>> = SyncOnceCell::new();
+static BIOME_MAP: OnceLock<AHashMap<&'static str, &'static str>> = OnceLock::new();
 
-fn biome_map() -> &'static rust_dataconverter_engine::Map<&'static str, &'static str> {
+fn biome_map() -> &'static AHashMap<&'static str, &'static str> {
     BIOME_MAP.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
+        let mut map = AHashMap::new();
         map.insert("0", "minecraft:ocean");
         map.insert("1", "minecraft:plains");
         map.insert("2", "minecraft:desert");
@@ -89,32 +91,36 @@ fn biome_map() -> &'static rust_dataconverter_engine::Map<&'static str, &'static
     })
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.level.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let generator_options = data.get_string("generatorOptions").map(|str| str.to_owned());
-        match (data.get_string("generatorName").map(|str| str.to_lowercase()).as_deref(), &generator_options) {
-            (Some("flat"), _) => data.set("generatorOptions", T::Object::create_map(convert::<T>(generator_options.as_deref().unwrap_or("")))),
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.level.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let generator_options = match data.get("generatorOptions") {
+            Some(Value::String(str)) => Some(&str[..]),
+            _ => None,
+        };
+        let generator_name = match data.get("generatorName") {
+            Some(Value::String(str)) => Some(&str[..]),
+            _ => None,
+        };
+        match (generator_name, generator_options) {
+            (Some("flat"), _) => {data.insert("generatorOptions", convert(generator_options.unwrap_or("")));},
             (Some("buffet"), Some(generator_options)) => {
-                let mut is_valid = false;
                 if let Ok(FixedGsonLenient { value_type: JsonType::Object, fixed_str: fixed_gson }) = fix_gson_lenient(generator_options) {
-                    if let Ok(result) = json_parser::parse_map::<T>(&fixed_gson) {
-                        is_valid = true;
-                        data.set("generatorOptions", T::Object::create_map(result));
+                    if let Ok(result) = json_parser::parse_map(&fixed_gson) {
+                        data.insert("generatorOptions", result);
+                        return;
                     }
                 }
-                if !is_valid {
-                    warn!("Invalid generatorOptions syntax: {}", generator_options);
-                }
+                warn!("Invalid generatorOptions syntax: {}", generator_options);
             },
             _ => {}
-        }
+        };
     }));
 }
 
-fn convert<T: Types + ?Sized>(generator_settings: &str) -> T::Map {
+fn convert(generator_settings: &str) -> Compound {
     let mut split_settings = generator_settings.split(';');
     let mut biome = "minecraft:plains";
-    let mut structures = T::Map::create_empty();
+    let mut structures = Compound::new();
     let layers = if let Some(layers) = split_settings.next().filter(|_| !generator_settings.is_empty()) {
         let layers = layers_info_from_string(layers);
         if !layers.is_empty() {
@@ -130,39 +136,38 @@ fn convert<T: Types + ?Sized>(generator_settings: &str) -> T::Map {
                         Some(paren_index) => structure_str.split_at(paren_index),
                         None => (structure_str, "")
                     };
-                    structures.set(structure_name, T::Object::create_map(T::Map::create_empty()));
+                    structures.insert(structure_name, Compound::new());
                     if structure_values.ends_with(')') && structure_values.len() > 2 {
                         for kv in structure_values[1..structure_values.len()-1].split(' ') {
                             if let Some(eq_index) = kv.find('=') {
-                                structures.get_map_mut(structure_name).unwrap()
-                                    .set(kv[..eq_index].to_owned(), T::Object::create_string(kv[eq_index+1..].to_owned()));
+                                let Some(Value::Compound(structure)) = structures.get_mut(structure_name) else { unreachable!() };
+                                structure.insert(&kv[..eq_index], &kv[eq_index+1..]);
                             }
                         }
                     }
                 }
             } else {
-                structures.set("village", T::Object::create_map(T::Map::create_empty()));
+                structures.insert("village", Compound::new());
             }
         }
         layers
     } else {
-        structures.set("village", T::Object::create_map(T::Map::create_empty()));
+        structures.insert("village", Compound::new());
         vec![(1, "minecraft:bedrock".to_owned()), (2, "minecraft:dirt".to_owned()), (1, "minecraft:grass_block".to_owned())]
     };
 
-    let mut layer_tag = T::List::create_empty();
-    for (height, block) in layers {
-        let mut layer = T::Map::create_empty();
-        layer.set("height", T::Object::create_int(height));
-        layer.set("block", T::Object::create_string(block));
-        layer_tag.add(T::Object::create_map(layer));
-    }
+    let layer_tag: Vec<_> = layers.into_iter().map(|(height, block)| {
+        compound! {
+            "height" => height,
+            "block" => block,
+        }
+    }).collect();
 
-    let mut ret = T::Map::create_empty();
-    ret.set("layers", T::Object::create_list(layer_tag));
-    ret.set("biome", T::Object::create_string(biome.to_owned()));
-    ret.set("structures", T::Object::create_map(structures));
-    ret
+    compound! {
+        "layers" => List::Compound(layer_tag),
+        "biome" => biome,
+        "structures" => structures,
+    }
 }
 
 fn layer_info_from_string(layer_string: &str) -> Option<(i32, String)> {

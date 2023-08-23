@@ -1,14 +1,16 @@
-use std::lazy::SyncOnceCell;
-use rust_dataconverter_engine::{data_converter_func, DataVersion, ListType, MapType, ObjectType, Types};
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use rust_dataconverter_engine::{DataVersion, map_data_converter_func};
+use valence_nbt::{Compound, List, Value};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2523;
 
-static RENAMES: SyncOnceCell<rust_dataconverter_engine::Map<&'static str, &'static str>> = SyncOnceCell::new();
+static RENAMES: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
 
-fn renames() -> &'static rust_dataconverter_engine::Map<&'static str, &'static str> {
+fn renames() -> &'static BTreeMap<&'static str, &'static str> {
     RENAMES.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
+        let mut map = BTreeMap::new();
         map.insert("generic.maxHealth", "generic.max_health");
         map.insert("Max Health", "generic.max_health");
         map.insert("zombie.spawnReinforcements", "zombie.spawn_reinforcements");
@@ -31,33 +33,30 @@ fn renames() -> &'static rust_dataconverter_engine::Map<&'static str, &'static s
     })
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.entity.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(entity_converter::<T>));
-    types.player.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(entity_converter::<T>));
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(entity_converter));
+    types.player.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(entity_converter));
 
-    types.item_stack.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(attributes) = data.get_list_mut("AttributeModifiers") {
-            for attribute in attributes.iter_mut() {
-                if let Some(attribute) = attribute.as_map_mut() {
-                    update_name::<T>(attribute, "AttributeName");
-                }
+    types.item_stack.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::List(List::Compound(attributes))) = data.get_mut("AttributeModifiers") {
+            for attribute in attributes {
+                update_name(attribute, "AttributeName");
             }
         }
     }));
 }
 
-fn entity_converter<T: Types + ?Sized>(data: &mut T::Map, _from_version: DataVersion, _to_version: DataVersion) {
-    if let Some(attributes) = data.get_list_mut("Attributes") {
-        for attribute in attributes.iter_mut() {
-            if let Some(attribute) = attribute.as_map_mut() {
-                update_name::<T>(attribute, "Name");
-            }
+fn entity_converter(data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+    if let Some(Value::List(List::Compound(attributes))) = data.get_mut("Attributes") {
+        for attribute in attributes {
+            update_name(attribute, "Name");
         }
     }
 }
 
-fn update_name<T: Types + ?Sized>(data: &mut T::Map, path: &str) {
-    if let Some(new_name) = data.get_string(path).and_then(|name| renames().get(name)).copied() {
-        data.set(path, T::Object::create_string(new_name.to_owned()));
+fn update_name(data: &mut Compound, path: &str) {
+    let Some(Value::String(name)) = data.get_mut(path) else { return };
+    if let Some(new_name) = renames().get(&name[..]).copied() {
+        *name = new_name.to_owned();
     }
 }

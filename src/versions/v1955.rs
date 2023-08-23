@@ -1,4 +1,5 @@
-use rust_dataconverter_engine::{data_converter_func, ListType, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::{Compound, compound, Value};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1955;
@@ -9,40 +10,50 @@ fn get_min_xp_per_level(level: i32) -> i32 {
     LEVEL_XP_THRESHOLDS[(level - 1).clamp(0, LEVEL_XP_THRESHOLDS.len() as i32 - 1) as usize]
 }
 
-fn add_level<T: Types + ?Sized>(data: &mut T::Map, level: i32) {
-    if let Some(villager_data) = data.get_map_mut("VillagerData") {
-        villager_data.set("level", T::Object::create_int(level));
+fn add_level(data: &mut Compound, level: i32) {
+    if let Some(Value::Compound(villager_data)) = data.get_mut("VillagerData") {
+        villager_data.insert("level", level);
     } else {
-        let mut villager_data = T::Map::create_empty();
-        villager_data.set("level", T::Object::create_int(level));
-        data.set("VillagerData", T::Object::create_map(villager_data));
+        let villager_data = compound! {
+            "level" => level,
+        };
+        data.insert("VillagerData", villager_data);
     }
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.entity.borrow_mut().add_converter_for_id("minecraft:villager", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        let mut level = data.get_map("VillagerData").and_then(|villager_data| villager_data.get_i64("level")).unwrap_or(0) as i32;
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.entity.borrow_mut().add_converter_for_id("minecraft:villager", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let mut level = match data.get("VillagerData") {
+            Some(Value::Compound(villager_data)) => villager_data.get("level").and_then(|v| v.as_i32()).unwrap_or(0),
+            _ => 0,
+        };
         if level == 0 || level == 1 {
             // count recipes
-            let recipes_count = data.get_map("Offers")
-                .and_then(|offers| offers.get_list("Recipes"))
-                .map(|recipes| recipes.size())
-                .unwrap_or(0);
+            let recipes_count = match data.get("Offers") {
+                Some(Value::Compound(offers)) => match offers.get("Recipes") {
+                    Some(Value::List(recipes)) => recipes.len(),
+                    _ => 0,
+                }
+                _ => 0,
+            };
             level = (recipes_count / 2).clamp(1, 5) as i32;
             if level > 1 {
-                add_level::<T>(data, level);
+                add_level(data, level);
             }
         }
 
-        if data.get_i64("Xp").is_none() {
-            data.set("Xp", T::Object::create_int(get_min_xp_per_level(level)));
+        if data.get("Xp").map(|v| v.is_number()) != Some(true) {
+            data.insert("Xp", get_min_xp_per_level(level));
         }
     }));
 
-    types.entity.borrow_mut().add_converter_for_id("minecraft:zombie_villager", VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if data.get_i64("Xp").is_none() {
-            let level = data.get_map("VillagerData").and_then(|villager_data| villager_data.get_i64("level")).unwrap_or(1) as i32;
-            data.set("Xp", T::Object::create_int(get_min_xp_per_level(level)));
+    types.entity.borrow_mut().add_converter_for_id("minecraft:zombie_villager", VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if data.get("Xp").map(|v| v.is_number()) != Some(true) {
+            let level = match data.get("VillagerData") {
+                Some(Value::Compound(villager_data)) => villager_data.get("level").and_then(|v| v.as_i32()).unwrap_or(1),
+                _ => 1,
+            };
+            data.insert("Xp", get_min_xp_per_level(level));
         }
     }));
 }

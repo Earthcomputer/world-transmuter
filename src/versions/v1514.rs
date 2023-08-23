@@ -1,28 +1,29 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1514;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.objective.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(display_name) = data.get_string("DisplayName") {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.objective.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::String(display_name)) = data.get_mut("DisplayName") {
             let update = format!("{{\"text\":\"{}\"}}", display_name.replace('\\', "\\\\").replace('"', "\\\""));
-            data.set("DisplayName", T::Object::create_string(update));
+            *display_name = update;
         }
 
-        if data.get_string("RenderType").is_none() {
-            let criteria_name = match data.get_string("CriteriaName") {
-                Some("health") => "hearts",
+        if !matches!(data.get("RenderType"), Some(Value::String(_))) {
+            let criteria_name = match data.get("CriteriaName") {
+                Some(Value::String(str)) if str == "health" => "hearts",
                 _ => "integer",
             };
-            data.set("RenderType", T::Object::create_string(criteria_name.to_owned()));
+            data.insert("RenderType", criteria_name);
         }
     }));
 
-    types.team.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(display_name) = data.get_string("DisplayName") {
+    types.team.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::String(display_name)) = data.get_mut("DisplayName") {
             let update = format!("{{\"text\":\"{}\"}}", display_name.replace('\\', "\\\\").replace('"', "\\\""));
-            data.set("DisplayName", T::Object::create_string(update));
+            *display_name = update;
         }
     }));
 }

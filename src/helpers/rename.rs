@@ -1,157 +1,204 @@
-use rust_dataconverter_engine::{data_converter_func, DataType, DataVersion, ListType, MapType, ObjectType, Types};
 use crate::MinecraftTypesMut;
+use rust_dataconverter_engine::{
+    map_data_converter_func, value_data_converter_func, AbstractValueDataType, DataVersion,
+};
+use valence_nbt::value::ValueMut;
+use valence_nbt::{Compound, List, Value};
 
-pub(crate) fn rename_entity<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
+pub(crate) fn rename_entity<'a>(
+    types: &MinecraftTypesMut<'a>,
     version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
     let version = version.into();
-    types.entity.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        if let Some(new_id) = data.get_string("id").and_then(renamer) {
-            data.set("id", T::Object::create_string(new_id));
-        }
-    }));
-    types.entity_name.borrow_mut().add_structure_converter(version, data_converter_func::<T::Object, _>(move |data, _from_version, _to_version| {
-        if let Some(new_id) = data.as_string().and_then(renamer) {
-            *data = T::Object::create_string(new_id);
-        }
-    }));
+    types.entity.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            if let Some(Value::String(id)) = data.get_mut("id") {
+                if let Some(new_id) = renamer(id) {
+                    *id = new_id;
+                }
+            }
+        }),
+    );
+    types.entity_name.borrow_mut().add_structure_converter(
+        version,
+        value_data_converter_func(move |data, _from_version, _to_version| {
+            if let ValueMut::String(id) = data {
+                if let Some(new_id) = renamer(&id[..]) {
+                    **id = new_id;
+                }
+            }
+        }),
+    );
 }
 
-pub(crate) fn rename_block<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
+pub(crate) fn rename_block<'a>(
+    types: &MinecraftTypesMut<'a>,
     version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
     let version = version.into();
-    types.block_state.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        if let Some(new_name) = data.get_string("Name").and_then(renamer) {
-            data.set("Name", T::Object::create_string(new_name));
-        }
-    }));
-    types.block_name.borrow_mut().add_structure_converter(version, data_converter_func::<T::Object, _>(move |data, _from_verison, _to_version| {
-        if let Some(new_id) = data.as_string().and_then(renamer) {
-            *data = T::Object::create_string(new_id);
-        }
-    }));
+    types.block_state.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            if let Some(Value::String(name)) = data.get_mut("Name") {
+                if let Some(new_name) = renamer(name) {
+                    *name = new_name;
+                }
+            }
+        }),
+    );
+    types.block_name.borrow_mut().add_structure_converter(
+        version,
+        value_data_converter_func(move |data, _from_verison, _to_version| {
+            if let ValueMut::String(id) = data {
+                if let Some(new_id) = renamer(&id[..]) {
+                    **id = new_id;
+                }
+            }
+        }),
+    );
 }
 
-pub(crate) fn rename_block_and_fix_jigsaw<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
+pub(crate) fn rename_block_and_fix_jigsaw<'a>(
+    types: &MinecraftTypesMut<'a>,
     version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
     let version = version.into();
     rename_block(types, version, renamer);
 
-    types.tile_entity.borrow_mut().add_converter_for_id("minecraft:jigsaw", version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        if let Some(final_state) = data.get_string("final_state") {
-            if !final_state.is_empty() {
-                let state_name_end = if let Some(nbt_start) = (&final_state[1..]).find(&['[', '{']) {
-                    nbt_start + 1
-                } else {
-                    final_state.len()
-                };
+    types.tile_entity.borrow_mut().add_converter_for_id(
+        "minecraft:jigsaw",
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            if let Some(Value::String(final_state)) = data.get_mut("final_state") {
+                if !final_state.is_empty() {
+                    let state_name_end = if let Some(nbt_start) = final_state[1..].find(['[', '{'])
+                    {
+                        nbt_start + 1
+                    } else {
+                        final_state.len()
+                    };
 
-                if let Some(mut converted) = renamer(&final_state[..state_name_end]) {
-                    converted.push_str(&final_state[state_name_end..]);
-                    data.set("final_state", T::Object::create_string(converted));
-                }
-            }
-        }
-    }));
-}
-
-pub(crate) fn rename_item<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
-    version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
-) {
-    types.item_name.borrow_mut().add_structure_converter(version, data_converter_func::<T::Object, _>(move |data, _from_version, _to_version| {
-        if let Some(new_name) = data.as_string().and_then(renamer) {
-            *data = T::Object::create_string(new_name);
-        }
-    }));
-}
-
-pub(crate) fn rename_advancement<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
-    version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
-) {
-    types.advancements.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        data.rename_keys(renamer);
-    }));
-}
-
-pub(crate) fn rename_recipe<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
-    version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
-) {
-    types.recipe.borrow_mut().add_structure_converter(version, data_converter_func::<T::Object, _>(move |data, _from_version, _to_version| {
-        if let Some(new_name) = data.as_string().and_then(renamer) {
-            *data = T::Object::create_string(new_name);
-        }
-    }));
-}
-
-pub(crate) fn rename_stat<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
-    version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
-) {
-    let version = version.into();
-    types.objective.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        let _: Option<_> = try {
-            let criteria_type = data.get_map_mut("CriteriaType")?;
-            if criteria_type.get_string("type")? == "minecraft:custom" {
-                let new_id = renamer(criteria_type.get_string("id")?)?;
-                criteria_type.set("id", T::Object::create_string(new_id));
-            }
-        };
-    }));
-    types.stats.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        let _: Option<_> = try {
-            data.get_map_mut("stats")?.get_map_mut("minecraft:custom")?.rename_keys(renamer);
-        };
-    }));
-}
-
-pub(crate) fn rename_option<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
-    version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
-) {
-    types.options.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        data.rename_keys(renamer);
-    }));
-}
-
-pub(crate) fn rename_poi<'a, T: Types + ?Sized>(
-    types: &MinecraftTypesMut<'a, T>,
-    version: impl Into<DataVersion>,
-    renamer: impl 'a + Copy + Fn(&str) -> Option<String>
-) {
-    types.poi_chunk.borrow_mut().add_structure_converter(version, data_converter_func::<T::Map, _>(move |data, _from_version, _to_version| {
-        if let Some(sections) = data.get_map_mut("Sections") {
-            for section in sections.values_mut() {
-                if let Some(records) = section.as_map_mut().and_then(|section| section.get_list_mut("Records")) {
-                    for record in records.iter_mut() {
-                        if let Some(record) = record.as_map_mut() {
-                            if let Some(new_type) = record.get_string("type").and_then(renamer) {
-                                record.set("type", T::Object::create_string(new_type));
-                            }
-                        }
+                    if let Some(mut converted) = renamer(&final_state[..state_name_end]) {
+                        converted.push_str(&final_state[state_name_end..]);
+                        *final_state = converted;
                     }
                 }
             }
+        }),
+    );
+}
+
+pub(crate) fn rename_item<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    types.item_name.borrow_mut().add_structure_converter(
+        version,
+        value_data_converter_func(move |data, _from_version, _to_version| {
+            if let ValueMut::String(name) = data {
+                if let Some(new_name) = renamer(&name[..]) {
+                    **name = new_name;
+                }
+            }
+        }),
+    );
+}
+
+pub(crate) fn rename_advancement<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    types.advancements.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            rust_dataconverter_engine::rename_keys(data, renamer);
+        }),
+    );
+}
+
+pub(crate) fn rename_recipe<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    types.recipe.borrow_mut().add_structure_converter(
+        version,
+        value_data_converter_func(move |data, _from_version, _to_version| {
+            if let ValueMut::String(name) = data {
+                if let Some(new_name) = renamer(&name[..]) {
+                    **name = new_name;
+                }
+            }
+        }),
+    );
+}
+
+pub(crate) fn rename_stat<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    let version = version.into();
+    types.objective.borrow_mut().add_structure_converter(version, map_data_converter_func(move |data, _from_version, _to_version| {
+        let Some(Value::Compound(criteria_type)) = data.get_mut("CriteriaType") else { return };
+        if matches!(criteria_type.get("type"), Some(Value::String(typ)) if typ == "minecraft:custom") {
+            let Some(Value::String(id)) = criteria_type.get("id") else { return };
+            let Some(new_id) = renamer(id) else { return };
+            criteria_type.insert("id", new_id);
+        }
+    }));
+    types.stats.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            let Some(Value::Compound(stats)) = data.get_mut("stats") else { return };
+            let Some(Value::Compound(custom)) = stats.get_mut("minecraft:custom") else { return };
+            rust_dataconverter_engine::rename_keys(custom, renamer);
+        }),
+    );
+}
+
+pub(crate) fn rename_option<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    types.options.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            rust_dataconverter_engine::rename_keys(data, renamer);
+        }),
+    );
+}
+
+pub(crate) fn rename_poi<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    types.poi_chunk.borrow_mut().add_structure_converter(version, map_data_converter_func(move |data, _from_version, _to_version| {
+        let Some(Value::Compound(sections)) = data.get_mut("Sections") else { return };
+        for section in sections.values_mut() {
+            let Value::Compound(section) = section else { continue };
+            let Some(Value::List(List::Compound(records))) = section.get_mut("Records") else { continue };
+            for record in records {
+                let Some(Value::String(typ)) = record.get_mut("type") else { continue };
+                let Some(new_type) = renamer(typ) else { continue };
+                *typ = new_type;
+            }
         }
     }));
 }
 
-pub(crate) fn simple_rename<'a>(from: &'a str, to: &'a str) -> impl 'a + Copy + Fn(&str) -> Option<String> {
+pub(crate) fn simple_rename<'a>(
+    from: &'a str,
+    to: &'a str,
+) -> impl 'a + Copy + Fn(&str) -> Option<String> {
     move |name| {
         if name == from {
             Some(to.to_owned())
@@ -161,21 +208,35 @@ pub(crate) fn simple_rename<'a>(from: &'a str, to: &'a str) -> impl 'a + Copy + 
     }
 }
 
-pub(crate) fn rename_keys_in_map<T: Types + ?Sized>(typ: impl DataType<T::Object>, owning_map: &mut T::Map, key: &str, from_version: DataVersion, to_version: DataVersion) {
-    if let Some(map) = owning_map.get_map_mut(key) {
-        rename_keys::<T>(typ, map, from_version, to_version);
+pub(crate) fn rename_keys_in_map(
+    typ: impl AbstractValueDataType,
+    owning_map: &mut Compound,
+    key: &str,
+    from_version: DataVersion,
+    to_version: DataVersion,
+) {
+    if let Some(Value::Compound(map)) = owning_map.get_mut(key) {
+        rename_keys(typ, map, from_version, to_version);
     }
 }
 
-pub(crate) fn rename_keys<T: Types + ?Sized>(typ: impl DataType<T::Object>, map: &mut T::Map, from_version: DataVersion, to_version: DataVersion) {
-    map.rename_keys(move |key| {
-        let mut new_key = T::Object::create_string(key.to_owned());
-        typ.convert(&mut new_key, from_version, to_version);
-        if let Some(new_key) = new_key.into_string() {
-            if new_key != key {
-                return Some(new_key);
-            }
+pub(crate) fn rename_keys(
+    typ: impl AbstractValueDataType,
+    map: &mut Compound,
+    from_version: DataVersion,
+    to_version: DataVersion,
+) {
+    rust_dataconverter_engine::rename_keys(map, move |key| {
+        let mut new_key = key.to_owned();
+        typ.convert(
+            &mut ValueMut::String(&mut new_key),
+            from_version,
+            to_version,
+        );
+        if new_key != key {
+            Some(new_key)
+        } else {
+            None
         }
-        None
     });
 }

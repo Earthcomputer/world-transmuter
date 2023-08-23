@@ -1,11 +1,12 @@
-use rust_dataconverter_engine::{data_converter_func, MapType, Types};
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1961;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.chunk.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if let Some(level) = data.get_map_mut("Level") {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.chunk.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        if let Some(Value::Compound(level)) = data.get_mut("Level") {
             level.remove("isLightOn");
         }
     }));

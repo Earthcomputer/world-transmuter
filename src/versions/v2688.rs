@@ -1,9 +1,9 @@
-use rust_dataconverter_engine::{DataWalkerMapListPaths, DataWalkerMapTypePaths, Types};
+use rust_dataconverter_engine::{DataWalkerMapListPaths, DataWalkerMapTypePaths};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2688;
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
+pub(crate) fn register(types: &MinecraftTypesMut) {
     types.entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:glow_squid", DataWalkerMapListPaths::new_multi(types.item_stack, vec!["ArmorItems".to_owned(), "HandItems".to_owned()]));
     types.entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:glow_item_frame", DataWalkerMapTypePaths::new(types.item_stack, "Item"));
 }

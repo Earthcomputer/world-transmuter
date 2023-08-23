@@ -1,41 +1,44 @@
-use std::lazy::SyncOnceCell;
-use rust_dataconverter_engine::{data_converter_func, MapType, ObjectType, Types};
+use std::sync::OnceLock;
+use rust_dataconverter_engine::map_data_converter_func;
+use valence_nbt::Value;
+use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::helpers::rename::{rename_advancement, simple_rename};
 use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2503;
 
-static WALL_BLOCKS: SyncOnceCell<rust_dataconverter_engine::Map<&'static str, ()>> = SyncOnceCell::new();
+static WALL_BLOCKS: OnceLock<McNamespaceSet> = OnceLock::new();
 
-fn wall_blocks() -> &'static rust_dataconverter_engine::Map<&'static str, ()> {
+fn wall_blocks() -> &'static McNamespaceSet<'static> {
     WALL_BLOCKS.get_or_init(|| {
-        let mut map = rust_dataconverter_engine::Map::new();
-        map.insert("minecraft:andesite_wall", ());
-        map.insert("minecraft:brick_wall", ());
-        map.insert("minecraft:cobblestone_wall", ());
-        map.insert("minecraft:diorite_wall", ());
-        map.insert("minecraft:end_stone_brick_wall", ());
-        map.insert("minecraft:granite_wall", ());
-        map.insert("minecraft:mossy_cobblestone_wall", ());
-        map.insert("minecraft:mossy_stone_brick_wall", ());
-        map.insert("minecraft:nether_brick_wall", ());
-        map.insert("minecraft:prismarine_wall", ());
-        map.insert("minecraft:red_nether_brick_wall", ());
-        map.insert("minecraft:red_sandstone_wall", ());
-        map.insert("minecraft:sandstone_wall", ());
-        map.insert("minecraft:stone_brick_wall", ());
+        let mut map = McNamespaceSet::new();
+        map.insert_mc("andesite_wall");
+        map.insert_mc("brick_wall");
+        map.insert_mc("cobblestone_wall");
+        map.insert_mc("diorite_wall");
+        map.insert_mc("end_stone_brick_wall");
+        map.insert_mc("granite_wall");
+        map.insert_mc("mossy_cobblestone_wall");
+        map.insert_mc("mossy_stone_brick_wall");
+        map.insert_mc("nether_brick_wall");
+        map.insert_mc("prismarine_wall");
+        map.insert_mc("red_nether_brick_wall");
+        map.insert_mc("red_sandstone_wall");
+        map.insert_mc("sandstone_wall");
+        map.insert_mc("stone_brick_wall");
         map
     })
 }
 
-pub(crate) fn register<T: Types + ?Sized>(types: &MinecraftTypesMut<T>) {
-    types.block_state.borrow_mut().add_structure_converter(VERSION, data_converter_func::<T::Map, _>(|data, _from_version, _to_version| {
-        if data.get_string("Name").map(|name| wall_blocks().contains_key(name)) == Some(true) {
-            if let Some(properties) = data.get_map_mut("Properties") {
+pub(crate) fn register(types: &MinecraftTypesMut) {
+    types.block_state.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        let Some(Value::String(name)) = data.get("Name") else { return };
+        if wall_blocks().contains(name) {
+            if let Some(Value::Compound(properties)) = data.get_mut("Properties") {
                 for side in ["east", "west", "north", "south"] {
-                    if let Some(value) = properties.get_string(side) {
+                    if let Some(Value::String(value)) = properties.get_mut(side) {
                         let new_value = if value == "true" { "low" } else { "none" };
-                        properties.set(side, T::Object::create_string(new_value.to_owned()));
+                        *value = new_value.to_owned();
                     }
                 }
             }
