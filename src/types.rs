@@ -83,6 +83,8 @@ define_minecraft_types! {
     biome: ObjectDataType("Biome"),
     world_gen_settings: MapDataType("WorldGenSettings"),
     game_event_name: ObjectDataType("GameEventName"),
+
+    multi_noise_biome_source_parameter_list: ObjectDataType("MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST"),
 }
 
 impl<'a> MinecraftTypes<'a> {

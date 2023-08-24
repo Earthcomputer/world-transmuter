@@ -69,7 +69,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         let mut skippable = true;
 
         for section in sections.iter_mut() {
-            if let Some(section_obj) = Section::new(chunk_x, chunk_z, section, &mut LeavesSectionInitializer) {
+            if let Some(section_obj) = Section::wrap_1451(chunk_x, chunk_z, section, &mut LeavesSectionInitializer) {
                 let section_y = section_obj.section_y;
                 if section_y >= 0 && (section_y as usize) < sections_arr.len() {
                     sections_arr[section_y as usize] = Some(section_obj);

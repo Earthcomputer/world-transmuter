@@ -2,8 +2,7 @@ use crate::helpers::block_state::{BlockState, BlockStateOwned};
 use log::{error, warn};
 use rust_dataconverter_engine::get_mut_multi;
 use strength_reduce::StrengthReducedUsize;
-use valence_nbt::value::ValueRef;
-use valence_nbt::{Compound, Value};
+use valence_nbt::{Compound, List, Value};
 
 pub(crate) const fn bitset_size(size: usize) -> usize {
     const USIZE_BITS: usize = std::mem::size_of::<usize>() * 8;
@@ -476,9 +475,68 @@ pub(crate) struct Section<S> {
 
 impl<'a, S> Section<S>
 where
+    S: BitStorage<Storage = &'a [i64]>,
+{
+    pub(crate) fn wrap_2832(
+        chunk_x: i32,
+        chunk_z: i32,
+        section: &'a Compound,
+        initializer: &mut impl SectionInitializer,
+    ) -> Option<Self> {
+        let section_y = section.get("Y").and_then(|v| v.as_i32()).unwrap_or(0);
+        let Some(Value::Compound(block_states)) = section.get("block_states") else { return None };
+        let Some(Value::List(palette)) = block_states.get("palette") else { return None };
+        if palette.is_empty() {
+            warn!(
+                "Chunk {}x{} section {} has empty palette",
+                chunk_x, chunk_z, section_y
+            );
+            return None;
+        }
+        let List::Compound(palette) = palette else { return None };
+        let data = match block_states.get("data") {
+            Some(Value::LongArray(data)) => &data[..],
+            _ => &[0; 256],
+        };
+
+        let mut palette: Vec<_> = palette.iter().flat_map(BlockState::from_nbt).collect();
+
+        if palette.is_empty() {
+            return None;
+        }
+
+        if initializer.init_skippable(&mut palette, section_y) {
+            return None;
+        }
+
+        let palette: Vec<_> = <&Vec<_>>::into_iter(&palette)
+            .map(|state| state.to_owned())
+            .collect();
+        let bits = ceil_log2(palette.len() as u32).max(4);
+        let storage = match S::try_wrap(bits, 4096, data) {
+            Ok(storage) => storage,
+            Err(err) => {
+                warn!(
+                    "Chunk {}x{} section {} has invalid block data: {}",
+                    chunk_x, chunk_z, section_y, err
+                );
+                return None;
+            }
+        };
+
+        Some(Self {
+            palette,
+            section_y,
+            storage,
+        })
+    }
+}
+
+impl<'a, S> Section<S>
+where
     S: BitStorage<Storage = &'a mut Vec<i64>>,
 {
-    pub(crate) fn new(
+    pub(crate) fn wrap_1451(
         chunk_x: i32,
         chunk_z: i32,
         section: &'a mut Compound,
@@ -487,7 +545,7 @@ where
         let [palette, section_y, block_states] =
             get_mut_multi(section, ["Palette", "Y", "BlockStates"]);
         let Some(Value::List(palette)) = palette else { return None };
-        let section_y = section_y.and_then(|o| o.as_i64()).unwrap_or(0) as i32;
+        let section_y = section_y.and_then(|v| v.as_i32()).unwrap_or(0);
         if palette.is_empty() {
             warn!(
                 "Chunk {}x{} section {} has empty palette",
@@ -495,16 +553,14 @@ where
             );
             return None;
         }
+        let List::Compound(palette) = palette else { return None };
         let Some(Value::LongArray(block_states)) = block_states else { return None };
 
-        let mut palette: Vec<_> = palette
-            .iter()
-            .flat_map(|state| match state {
-                ValueRef::Compound(state) => Some(state),
-                _ => None,
-            })
-            .flat_map(BlockState::from_nbt)
-            .collect();
+        let mut palette: Vec<_> = palette.iter().flat_map(BlockState::from_nbt).collect();
+
+        if palette.is_empty() {
+            return None;
+        }
 
         if initializer.init_skippable(&mut palette, section_y) {
             return None;
@@ -580,4 +636,11 @@ where
 
 pub(crate) trait SectionInitializer {
     fn init_skippable(&mut self, palette: &mut [BlockState], section_y: i32) -> bool;
+}
+
+pub(crate) struct NullSectionInitializer;
+impl SectionInitializer for NullSectionInitializer {
+    fn init_skippable(&mut self, _palette: &mut [BlockState], _section_y: i32) -> bool {
+        false
+    }
 }

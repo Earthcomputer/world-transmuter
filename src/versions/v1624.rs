@@ -17,7 +17,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         let [Some(Value::List(List::Compound(sections))), Some(Value::List(List::Compound(tile_entities)))] = get_mut_multi(level, ["Sections", "TileEntities"]) else { return };
         let mut positions = AHashSet::new();
         for section in sections {
-            if let Some(section_obj) = Section::<PackedBitStorage<_>>::new(chunk_x, chunk_z, section, &mut TrappedChestSectionInitializer) {
+            if let Some(section_obj) = Section::<PackedBitStorage<_>>::wrap_1451(chunk_x, chunk_z, section, &mut TrappedChestSectionInitializer) {
                 for index in 0..4096 {
                     let pos = LocalPos { index };
                     if section_obj.get_block(pos).map(|block| block.name == "minecraft:trapped_chest") == Some(true) {
