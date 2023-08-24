@@ -147,6 +147,7 @@ versions! {
     mod v2825;
     mod v2831;
     mod v2832;
+    mod v2833;
 }
 
 mod v2841; // TODO: make it a version
