@@ -831,7 +831,7 @@ impl<'a> UpgradeChunk<'a> {
             indices.insert(
                 section.y.to_string(),
                 <&Vec<LocalPos>>::into_iter(&section.update)
-                    .map(|pos| pos.index as i32)
+                    .map(|pos| pos.raw_index() as i32)
                     .collect::<Vec<_>>(),
             );
 
@@ -868,7 +868,9 @@ impl<'a> UpgradeChunk<'a> {
         self.get_section(pos)
             .as_ref()
             .and_then(|sec| sec.buffer.as_ref().map(|buf| (buf, &sec.palette_states)))
-            .map(|(buf, palette)| &palette[buf[pos.index as usize & (buf.len() - 1)] as usize])
+            .map(|(buf, palette)| {
+                &palette[buf[pos.raw_index() as usize & (buf.len() - 1)] as usize]
+            })
             .unwrap_or_else(|| OwnedStates::air())
     }
 
@@ -896,7 +898,7 @@ impl<'a> UpgradeChunk<'a> {
             palette_id
         };
 
-        buffer[pos.index as usize & (buffer.len() - 1)] = palette_id;
+        buffer[pos.raw_index() as usize & (buffer.len() - 1)] = palette_id;
     }
 
     // in the case of skulls, this doesn't fully remove it, just removes some properties
@@ -946,9 +948,7 @@ impl Section {
                 palette_states.push(air().to_owned());
 
                 std::array::from_fn(|index| {
-                    let pos = LocalPos {
-                        index: index as u16,
-                    };
+                    let pos = LocalPos::from_raw(index as u16);
 
                     let mut state_id = (blocks[index] as u8 as u16) << 4;
                     if let Some(data) = &data {

@@ -19,7 +19,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         for section in sections {
             if let Some(section_obj) = Section::<PackedBitStorage<_>>::wrap_1451(chunk_x, chunk_z, section, &mut TrappedChestSectionInitializer) {
                 for index in 0..4096 {
-                    let pos = LocalPos { index };
+                    let pos = LocalPos::from_raw(index);
                     if section_obj.get_block(pos).map(|block| block.name == "minecraft:trapped_chest") == Some(true) {
                         positions.insert(pos.with_section_y(section_obj.section_y as u8));
                     }

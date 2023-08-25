@@ -318,9 +318,14 @@ impl BitStorageOwned for AlignedBitStorage<Vec<i64>> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) struct LocalPos {
-    pub(crate) index: u16,
+    index: u16,
 }
 impl LocalPos {
+    pub(crate) fn from_raw(index: u16) -> Self {
+        Self {
+            index: index & 0xfff,
+        }
+    }
     pub(crate) fn new(x: u8, y: u8, z: u8) -> Self {
         Self {
             index: ((x & 15) as u16) | ((y as u16) << 8) | (((z & 15) as u16) << 4),
@@ -334,6 +339,9 @@ impl LocalPos {
     }
     pub(crate) fn z(self) -> u8 {
         ((self.index >> 4) & 15) as u8
+    }
+    pub(crate) fn raw_index(self) -> u16 {
+        self.index
     }
 
     pub(crate) fn down(self) -> Self {

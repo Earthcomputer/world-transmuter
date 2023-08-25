@@ -86,7 +86,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
 
         for section in sections_arr.iter().flatten() {
             for index in 0..4096 {
-                let pos = LocalPos { index };
+                let pos = LocalPos::from_raw(index);
                 let block = section.get_block(pos);
                 if block.map(|block| logs().contains(&block.name)) == Some(true) {
                     positions_equal.insert(pos.with_section_y(section.section_y as u8));
