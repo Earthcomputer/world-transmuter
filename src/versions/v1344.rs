@@ -1,8 +1,8 @@
-use std::sync::OnceLock;
+use crate::MinecraftTypesMut;
 use ahash::AHashMap;
 use rust_dataconverter_engine::map_data_converter_func;
+use std::sync::OnceLock;
 use valence_nbt::Value;
-use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1344;
 
@@ -128,29 +128,40 @@ fn button_id_to_name() -> &'static AHashMap<u8, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.options.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        let mut replacements = Vec::new();
-        for key in data.keys() {
-            if !key.starts_with("key_") {
-                continue;
+    types.options.borrow_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            let mut replacements = Vec::new();
+            for key in data.keys() {
+                if !key.starts_with("key_") {
+                    continue;
+                }
+                let Some(Value::String(code)) = data.get(key) else {
+                    continue;
+                };
+                let Ok(code) = code.parse::<i32>() else {
+                    continue;
+                };
+
+                let new_entry = match code {
+                    -100 => "key.mouse.left".to_owned(),
+                    -99 => "key.mouse.right".to_owned(),
+                    -98 => "key.mouse.middle".to_owned(),
+                    i32::MIN..=-1 => format!("key.mouse.{}", code + 101),
+                    0..=255 => button_id_to_name()
+                        .get(&(code as u8))
+                        .copied()
+                        .unwrap_or("key.unknown")
+                        .to_owned(),
+                    _ => "key.unknown".to_owned(),
+                };
+
+                replacements.push((key.clone(), new_entry));
             }
-            let Some(Value::String(code)) = data.get(key) else { continue };
-            let Ok(code) = code.parse::<i32>() else { continue };
 
-            let new_entry = match code {
-                -100 => "key.mouse.left".to_owned(),
-                -99 => "key.mouse.right".to_owned(),
-                -98 => "key.mouse.middle".to_owned(),
-                i32::MIN..=-1 => format!("key.mouse.{}", code + 101),
-                0..=255 => button_id_to_name().get(&(code as u8)).copied().unwrap_or("key.unknown").to_owned(),
-                _ => "key.unknown".to_owned()
-            };
-
-            replacements.push((key.clone(), new_entry));
-        }
-
-        for (key, new_entry) in replacements {
-            data.insert(key, new_entry);
-        }
-    }));
+            for (key, new_entry) in replacements {
+                data.insert(key, new_entry);
+            }
+        }),
+    );
 }

@@ -1,23 +1,36 @@
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::compound;
-use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1918;
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
     for entity_id in ["minecraft:villager", "minecraft:zombie_villager"] {
-        types.entity.borrow_mut().add_converter_for_id(entity_id, VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-            let profession = data.remove("Profession").and_then(|obj| obj.as_i32()).unwrap_or(0);
-            let career = data.remove("Career").and_then(|obj| obj.as_i32()).unwrap_or(0);
-            let career_level = data.remove("CareerLevel").and_then(|obj| obj.as_i32()).unwrap_or(1);
+        types.entity.borrow_mut().add_converter_for_id(
+            entity_id,
+            VERSION,
+            map_data_converter_func(|data, _from_version, _to_version| {
+                let profession = data
+                    .remove("Profession")
+                    .and_then(|obj| obj.as_i32())
+                    .unwrap_or(0);
+                let career = data
+                    .remove("Career")
+                    .and_then(|obj| obj.as_i32())
+                    .unwrap_or(0);
+                let career_level = data
+                    .remove("CareerLevel")
+                    .and_then(|obj| obj.as_i32())
+                    .unwrap_or(1);
 
-            let villager_data = compound! {
-                "type" => "minecraft:plains",
-                "profession" => get_profession_string(profession, career),
-                "level" => career_level,
-            };
-            data.insert("VillagerData", villager_data);
-        }));
+                let villager_data = compound! {
+                    "type" => "minecraft:plains",
+                    "profession" => get_profession_string(profession, career),
+                    "level" => career_level,
+                };
+                data.insert("VillagerData", villager_data);
+            }),
+        );
     }
 }
 

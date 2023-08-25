@@ -1,11 +1,11 @@
-use std::sync::OnceLock;
-use ahash::AHashMap;
-use log::warn;
-use rust_dataconverter_engine::map_data_converter_func;
-use valence_nbt::{Compound, compound, List, Value};
 use crate::helpers::gson_lenient_fix::{fix_gson_lenient, FixedGsonLenient, JsonType};
 use crate::helpers::json_parser;
 use crate::MinecraftTypesMut;
+use ahash::AHashMap;
+use log::warn;
+use rust_dataconverter_engine::map_data_converter_func;
+use std::sync::OnceLock;
+use valence_nbt::{compound, Compound, List, Value};
 
 const VERSION: u32 = 1506;
 
@@ -92,41 +92,56 @@ fn biome_map() -> &'static AHashMap<&'static str, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.level.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        let generator_options = match data.get("generatorOptions") {
-            Some(Value::String(str)) => Some(&str[..]),
-            _ => None,
-        };
-        let generator_name = match data.get("generatorName") {
-            Some(Value::String(str)) => Some(&str[..]),
-            _ => None,
-        };
-        match (generator_name, generator_options) {
-            (Some("flat"), _) => {data.insert("generatorOptions", convert(generator_options.unwrap_or("")));},
-            (Some("buffet"), Some(generator_options)) => {
-                if let Ok(FixedGsonLenient { value_type: JsonType::Object, fixed_str: fixed_gson }) = fix_gson_lenient(generator_options) {
-                    if let Ok(result) = json_parser::parse_map(&fixed_gson) {
-                        data.insert("generatorOptions", result);
-                        return;
-                    }
+    types.level.borrow_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            let generator_options = match data.get("generatorOptions") {
+                Some(Value::String(str)) => Some(&str[..]),
+                _ => None,
+            };
+            let generator_name = match data.get("generatorName") {
+                Some(Value::String(str)) => Some(&str[..]),
+                _ => None,
+            };
+            match (generator_name, generator_options) {
+                (Some("flat"), _) => {
+                    data.insert("generatorOptions", convert(generator_options.unwrap_or("")));
                 }
-                warn!("Invalid generatorOptions syntax: {}", generator_options);
-            },
-            _ => {}
-        };
-    }));
+                (Some("buffet"), Some(generator_options)) => {
+                    if let Ok(FixedGsonLenient {
+                        value_type: JsonType::Object,
+                        fixed_str: fixed_gson,
+                    }) = fix_gson_lenient(generator_options)
+                    {
+                        if let Ok(result) = json_parser::parse_map(&fixed_gson) {
+                            data.insert("generatorOptions", result);
+                            return;
+                        }
+                    }
+                    warn!("Invalid generatorOptions syntax: {}", generator_options);
+                }
+                _ => {}
+            };
+        }),
+    );
 }
 
 fn convert(generator_settings: &str) -> Compound {
     let mut split_settings = generator_settings.split(';');
     let mut biome = "minecraft:plains";
     let mut structures = Compound::new();
-    let layers = if let Some(layers) = split_settings.next().filter(|_| !generator_settings.is_empty()) {
+    let layers = if let Some(layers) = split_settings
+        .next()
+        .filter(|_| !generator_settings.is_empty())
+    {
         let layers = layers_info_from_string(layers);
         if !layers.is_empty() {
             // biomes is next
             if let Some(biome_id) = split_settings.next() {
-                biome = biome_map().get(biome_id).copied().unwrap_or("minecraft:plains");
+                biome = biome_map()
+                    .get(biome_id)
+                    .copied()
+                    .unwrap_or("minecraft:plains");
             }
 
             // structures is next
@@ -134,14 +149,18 @@ fn convert(generator_settings: &str) -> Compound {
                 for structure_str in structures_str.to_lowercase().split(',') {
                     let (structure_name, structure_values) = match structure_str.find('(') {
                         Some(paren_index) => structure_str.split_at(paren_index),
-                        None => (structure_str, "")
+                        None => (structure_str, ""),
                     };
                     structures.insert(structure_name, Compound::new());
                     if structure_values.ends_with(')') && structure_values.len() > 2 {
-                        for kv in structure_values[1..structure_values.len()-1].split(' ') {
+                        for kv in structure_values[1..structure_values.len() - 1].split(' ') {
                             if let Some(eq_index) = kv.find('=') {
-                                let Some(Value::Compound(structure)) = structures.get_mut(structure_name) else { unreachable!() };
-                                structure.insert(&kv[..eq_index], &kv[eq_index+1..]);
+                                let Some(Value::Compound(structure)) =
+                                    structures.get_mut(structure_name)
+                                else {
+                                    unreachable!()
+                                };
+                                structure.insert(&kv[..eq_index], &kv[eq_index + 1..]);
                             }
                         }
                     }
@@ -153,15 +172,22 @@ fn convert(generator_settings: &str) -> Compound {
         layers
     } else {
         structures.insert("village", Compound::new());
-        vec![(1, "minecraft:bedrock".to_owned()), (2, "minecraft:dirt".to_owned()), (1, "minecraft:grass_block".to_owned())]
+        vec![
+            (1, "minecraft:bedrock".to_owned()),
+            (2, "minecraft:dirt".to_owned()),
+            (1, "minecraft:grass_block".to_owned()),
+        ]
     };
 
-    let layer_tag: Vec<_> = layers.into_iter().map(|(height, block)| {
-        compound! {
-            "height" => height,
-            "block" => block,
-        }
-    }).collect();
+    let layer_tag: Vec<_> = layers
+        .into_iter()
+        .map(|(height, block)| {
+            compound! {
+                "height" => height,
+                "block" => block,
+            }
+        })
+        .collect();
 
     compound! {
         "layers" => List::Compound(layer_tag),
@@ -172,8 +198,11 @@ fn convert(generator_settings: &str) -> Compound {
 
 fn layer_info_from_string(layer_string: &str) -> Option<(i32, String)> {
     match layer_string.find('*') {
-        Some(star_index) => Some((layer_string[..star_index].parse().ok()?, layer_string[star_index+1..].to_owned())),
-        None => Some((1, layer_string.to_owned()))
+        Some(star_index) => Some((
+            layer_string[..star_index].parse().ok()?,
+            layer_string[star_index + 1..].to_owned(),
+        )),
+        None => Some((1, layer_string.to_owned())),
     }
 }
 

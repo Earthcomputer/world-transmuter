@@ -1,11 +1,15 @@
-use std::collections::BTreeMap;
-use std::sync::OnceLock;
-use log::warn;
-use rust_dataconverter_engine::{AbstractMapDataType, convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_walker, DataWalkerMapListPaths, DataWalkerMapTypePaths, DataWalkerObjectTypePaths, get_mut_multi, map_data_converter_func};
-use valence_nbt::Value;
 use crate::helpers::hooks::DataHookEnforceNamespacedId;
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::MinecraftTypesMut;
+use log::warn;
+use rust_dataconverter_engine::{
+    convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_walker,
+    get_mut_multi, map_data_converter_func, AbstractMapDataType, DataWalkerMapListPaths,
+    DataWalkerMapTypePaths, DataWalkerObjectTypePaths,
+};
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use valence_nbt::Value;
 
 const VERSION: u32 = 704;
 
@@ -170,125 +174,181 @@ fn tile_id_update() -> &'static BTreeMap<&'static str, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.tile_entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        if let Some(Value::String(id)) = data.get_mut("id") {
-            if let Some(new_id) = tile_id_update().get(&id[..]).copied() {
-                *id = new_id.to_owned();
+    types.tile_entity.borrow_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            if let Some(Value::String(id)) = data.get_mut("id") {
+                if let Some(new_id) = tile_id_update().get(&id[..]).copied() {
+                    *id = new_id.to_owned();
+                }
             }
-        }
-    }));
+        }),
+    );
 
     register_inventory(types, "minecraft:furnace");
     register_inventory(types, "minecraft:chest");
-    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:jukebox", DataWalkerMapTypePaths::new(types.item_stack, "RecordItem"));
+    types.tile_entity.borrow_mut().add_walker_for_id(
+        VERSION,
+        "minecraft:jukebox",
+        DataWalkerMapTypePaths::new(types.item_stack, "RecordItem"),
+    );
     register_inventory(types, "minecraft:dispenser");
     register_inventory(types, "minecraft:dropper");
     let untagged_spawner_type = types.untagged_spawner;
-    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:mob_spawner", data_walker(move |data, from_version, to_version| {
-        untagged_spawner_type.convert(data, from_version, to_version);
-    }));
+    types.tile_entity.borrow_mut().add_walker_for_id(
+        VERSION,
+        "minecraft:mob_spawner",
+        data_walker(move |data, from_version, to_version| {
+            untagged_spawner_type.convert(data, from_version, to_version);
+        }),
+    );
     register_inventory(types, "minecraft:brewing_stand");
     register_inventory(types, "minecraft:hopper");
-    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:flower_pot", DataWalkerObjectTypePaths::new(types.item_name, "Item"));
+    types.tile_entity.borrow_mut().add_walker_for_id(
+        VERSION,
+        "minecraft:flower_pot",
+        DataWalkerObjectTypePaths::new(types.item_name, "Item"),
+    );
 
     let block_name_type = types.block_name;
     let entity_type = types.entity;
     let item_name_type = types.item_name;
     let item_stack_type = types.item_stack;
     let tile_entity_type = types.tile_entity;
-    types.item_stack.borrow_mut().add_structure_walker(VERSION, data_walker(move |data, from_version, to_version| {
-        convert_object_in_map(item_name_type, data, "id", from_version, to_version);
-        let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
-        let item_id = item_id.map(|v| &*v);
+    types.item_stack.borrow_mut().add_structure_walker(
+        VERSION,
+        data_walker(move |data, from_version, to_version| {
+            convert_object_in_map(item_name_type, data, "id", from_version, to_version);
+            let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
+            let item_id = item_id.map(|v| &*v);
 
-        let Some(Value::Compound(tag)) = tag else { return };
-
-        let item_id_str = match item_id {
-            Some(Value::String(item_id_str)) => Some(&item_id_str[..]),
-            _ => None,
-        };
-
-        // only things here are in tag, if changed update if above
-
-        convert_map_list_in_map(item_stack_type, tag, "Items", from_version, to_version);
-
-        if let Some(Value::Compound(entity_tag)) = tag.get_mut("EntityTag") {
-            let entity_id = match item_id_str {
-                // The check for version id is removed here. For whatever reason, the legacy
-                // data converters used entity id "minecraft:armor_stand" when version was greater-than 514,
-                // but entity ids were not namespaced until V705! So somebody fucked up the legacy converters.
-                // DFU agrees with my analysis here, it will only set the entityId here to the namespaced variant
-                // with the V705 schema.
-                Some("minecraft:armor_stand") => Some(if from_version.get_version() < 705 {"ArmorStand"} else {"minecraft:armor_stand"}),
-                // add missing item_frame entity id
-                // version check is same for armorstand, as both were namespaced at the same time
-                Some("minecraft:item_frame") => Some(if from_version.get_version() < 705 {"ItemFrame"} else {"minecraft:item_frame"}),
-                // add missing glow_item_frame entity id
-                Some("minecraft:glow_item_frame") => Some("minecraft:glow_item_frame"),
-                // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
-                // bothered to write in logic to set the sub entity id, so we have to.
-                // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
-                Some(item_id_str) => item_id_str.strip_suffix("_spawn_egg").or_else(|| match entity_tag.get("id") {
-                    Some(Value::String(id)) => Some(id),
-                    _ => None,
-                }),
-                None => match entity_tag.get("id") {
-                    Some(Value::String(id)) => Some(&id[..]),
-                    _ => None,
-                }
+            let Some(Value::Compound(tag)) = tag else {
+                return;
             };
 
-            let remove_id = if let Some(entity_id) = entity_id {
-                let remove_id = !matches!(entity_tag.get("id"), Some(Value::String(_)));
+            let item_id_str = match item_id {
+                Some(Value::String(item_id_str)) => Some(&item_id_str[..]),
+                _ => None,
+            };
+
+            // only things here are in tag, if changed update if above
+
+            convert_map_list_in_map(item_stack_type, tag, "Items", from_version, to_version);
+
+            if let Some(Value::Compound(entity_tag)) = tag.get_mut("EntityTag") {
+                let entity_id = match item_id_str {
+                    // The check for version id is removed here. For whatever reason, the legacy
+                    // data converters used entity id "minecraft:armor_stand" when version was greater-than 514,
+                    // but entity ids were not namespaced until V705! So somebody fucked up the legacy converters.
+                    // DFU agrees with my analysis here, it will only set the entityId here to the namespaced variant
+                    // with the V705 schema.
+                    Some("minecraft:armor_stand") => Some(if from_version.get_version() < 705 {
+                        "ArmorStand"
+                    } else {
+                        "minecraft:armor_stand"
+                    }),
+                    // add missing item_frame entity id
+                    // version check is same for armorstand, as both were namespaced at the same time
+                    Some("minecraft:item_frame") => Some(if from_version.get_version() < 705 {
+                        "ItemFrame"
+                    } else {
+                        "minecraft:item_frame"
+                    }),
+                    // add missing glow_item_frame entity id
+                    Some("minecraft:glow_item_frame") => Some("minecraft:glow_item_frame"),
+                    // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
+                    // bothered to write in logic to set the sub entity id, so we have to.
+                    // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
+                    Some(item_id_str) => item_id_str.strip_suffix("_spawn_egg").or_else(|| {
+                        match entity_tag.get("id") {
+                            Some(Value::String(id)) => Some(id),
+                            _ => None,
+                        }
+                    }),
+                    None => match entity_tag.get("id") {
+                        Some(Value::String(id)) => Some(&id[..]),
+                        _ => None,
+                    },
+                };
+
+                let remove_id = if let Some(entity_id) = entity_id {
+                    let remove_id = !matches!(entity_tag.get("id"), Some(Value::String(_)));
+                    if remove_id {
+                        entity_tag.insert("id", entity_id.to_owned());
+                    }
+                    remove_id
+                } else {
+                    if item_id_str != Some("minecraft:air") {
+                        warn!(
+                            "Unable to resolve Entity for ItemStack (V704): {:?}",
+                            item_id
+                        );
+                    }
+                    false
+                };
+
+                entity_type.convert(entity_tag, from_version, to_version);
+
                 if remove_id {
-                    entity_tag.insert("id", entity_id.to_owned());
+                    entity_tag.remove("id");
                 }
-                remove_id
-            } else {
-                if item_id_str != Some("minecraft:air") {
-                    warn!("Unable to resolve Entity for ItemStack (V704): {:?}", item_id);
-                }
-                false
-            };
-
-            entity_type.convert(entity_tag, from_version, to_version);
-
-            if remove_id {
-                entity_tag.remove("id");
             }
-        }
 
-        if let Some(Value::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
-            let entity_id = item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id).copied());
+            if let Some(Value::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
+                let entity_id =
+                    item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id).copied());
 
-            let remove_id = if let Some(entity_id) = entity_id {
-                let remove_id = !matches!(block_entity_tag.get("id"), Some(Value::String(_)));
-                block_entity_tag.insert("id", entity_id);
-                remove_id
-            } else {
-                if item_id_str != Some("minecraft:air") {
-                    warn!("Unable to resolve BlockEntity for ItemStack (V704): {:?}", item_id);
+                let remove_id = if let Some(entity_id) = entity_id {
+                    let remove_id = !matches!(block_entity_tag.get("id"), Some(Value::String(_)));
+                    block_entity_tag.insert("id", entity_id);
+                    remove_id
+                } else {
+                    if item_id_str != Some("minecraft:air") {
+                        warn!(
+                            "Unable to resolve BlockEntity for ItemStack (V704): {:?}",
+                            item_id
+                        );
+                    }
+                    false
+                };
+
+                tile_entity_type.convert(block_entity_tag, from_version, to_version);
+
+                if remove_id {
+                    block_entity_tag.remove("id");
                 }
-                false
-            };
-
-            tile_entity_type.convert(block_entity_tag, from_version, to_version);
-
-            if remove_id {
-                block_entity_tag.remove("id");
             }
-        }
 
-        convert_object_list_in_map(block_name_type, tag, "CanDestroy", from_version, to_version);
-        convert_object_list_in_map(block_name_type, tag, "CanPlaceOn", from_version, to_version);
-    }));
+            convert_object_list_in_map(
+                block_name_type,
+                tag,
+                "CanDestroy",
+                from_version,
+                to_version,
+            );
+            convert_object_list_in_map(
+                block_name_type,
+                tag,
+                "CanPlaceOn",
+                from_version,
+                to_version,
+            );
+        }),
+    );
 
     // Enforce namespace for ids
-    types.tile_entity.borrow_mut().add_structure_hook(VERSION, DataHookEnforceNamespacedId::id());
+    types
+        .tile_entity
+        .borrow_mut()
+        .add_structure_hook(VERSION, DataHookEnforceNamespacedId::id());
 }
 
 fn register_inventory(types: &MinecraftTypesMut, id: impl Into<String>) {
-    types.tile_entity.borrow_mut().add_walker_for_id(VERSION, id, DataWalkerMapListPaths::new(types.item_stack, "Items"));
+    types.tile_entity.borrow_mut().add_walker_for_id(
+        VERSION,
+        id,
+        DataWalkerMapListPaths::new(types.item_stack, "Items"),
+    );
 }
 
 #[cfg(test)]
@@ -298,18 +358,23 @@ mod test {
     #[test]
     #[cfg(feature = "update_checks")]
     fn test_in_sync_with_paper() {
-        use std::io::{BufRead, BufReader};
         use crate::versions::v704::item_id_to_tile_entity_id;
+        use std::io::{BufRead, BufReader};
 
         let regex = regex::Regex::new(r#"\s*ITEM_ID_TO_TILE_ENTITY_ID\s*\.\s*put\s*\("([\w:]*)"\s*,\s*"([\w:]*)"\s*\)\s*;\s*"#).unwrap();
 
         const URL: &str = "https://raw.githubusercontent.com/PaperMC/DataConverter/master/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V704.java";
-        let response = attohttpc::get(URL).send().expect("Failed to download V704.java");
+        let response = attohttpc::get(URL)
+            .send()
+            .expect("Failed to download V704.java");
         let mut paper_map = BTreeMap::new();
         for line in BufReader::new(response).lines() {
             let line = line.expect("Failed to download V704.java");
             if let Some(captures) = regex.captures(&line) {
-                paper_map.insert(captures.get(1).unwrap().as_str().to_owned(), captures.get(2).unwrap().as_str().to_owned());
+                paper_map.insert(
+                    captures.get(1).unwrap().as_str().to_owned(),
+                    captures.get(2).unwrap().as_str().to_owned(),
+                );
             }
         }
 
@@ -320,10 +385,12 @@ mod test {
         let mut different = Vec::new();
         for (our_key, our_val) in our_map {
             match paper_map.get(our_key) {
-                Some(paper_val) => if paper_val != our_val {
-                    different.push(our_key);
+                Some(paper_val) => {
+                    if paper_val != our_val {
+                        different.push(our_key);
+                    }
                 }
-                None => missing_from_paper.push(our_key)
+                None => missing_from_paper.push(our_key),
             }
         }
         for paper_key in paper_map.keys() {
@@ -332,24 +399,51 @@ mod test {
             }
         }
 
-        if !missing_from_ours.is_empty() || !missing_from_paper.is_empty() || !different.is_empty() {
+        if !missing_from_ours.is_empty() || !missing_from_paper.is_empty() || !different.is_empty()
+        {
             let mut error = String::new();
             if !missing_from_ours.is_empty() {
-                error.push_str(format!("Paper has {} entries missing from ours:\n", missing_from_ours.len()).as_str());
+                error.push_str(
+                    format!(
+                        "Paper has {} entries missing from ours:\n",
+                        missing_from_ours.len()
+                    )
+                    .as_str(),
+                );
                 for elem in missing_from_ours {
                     error.push_str(format!("- {}\n", elem).as_str());
                 }
             }
             if !missing_from_paper.is_empty() {
-                error.push_str(format!("We have {} extra entries that are absent in Paper:\n", missing_from_paper.len()).as_str());
+                error.push_str(
+                    format!(
+                        "We have {} extra entries that are absent in Paper:\n",
+                        missing_from_paper.len()
+                    )
+                    .as_str(),
+                );
                 for elem in missing_from_paper {
                     error.push_str(format!("- {}\n", elem).as_str());
                 }
             }
             if !different.is_empty() {
-                error.push_str(format!("We have {} entries that are different from Paper:\n", different.len()).as_str());
+                error.push_str(
+                    format!(
+                        "We have {} entries that are different from Paper:\n",
+                        different.len()
+                    )
+                    .as_str(),
+                );
                 for elem in different {
-                    error.push_str(format!("- {}: {} (ours) vs {} (paper)\n", elem, our_map.get(elem).unwrap(), paper_map.get(elem).unwrap()).as_str());
+                    error.push_str(
+                        format!(
+                            "- {}: {} (ours) vs {} (paper)\n",
+                            elem,
+                            our_map.get(elem).unwrap(),
+                            paper_map.get(elem).unwrap()
+                        )
+                        .as_str(),
+                    );
                 }
             }
             if error.ends_with('\n') {

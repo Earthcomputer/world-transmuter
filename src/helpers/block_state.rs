@@ -62,11 +62,15 @@ impl<'a> From<&'a BlockStateOwned> for BlockState<'a> {
 
 impl<'a> BlockState<'a> {
     pub(crate) fn from_nbt(nbt: &'a Compound) -> Option<Self> {
-        let Some(Value::String(name)) = nbt.get("Name") else { return None };
+        let Some(Value::String(name)) = nbt.get("Name") else {
+            return None;
+        };
         let mut properties = BTreeMap::new();
         if let Some(Value::Compound(props)) = nbt.get("Properties") {
             for (key, value) in props {
-                let Value::String(value) = value else { return None };
+                let Value::String(value) = value else {
+                    return None;
+                };
                 properties.insert(key.as_str(), value.as_str());
             }
         }

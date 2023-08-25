@@ -156,8 +156,12 @@ pub(crate) fn rename_stat<'a>(
     types.stats.borrow_mut().add_structure_converter(
         version,
         map_data_converter_func(move |data, _from_version, _to_version| {
-            let Some(Value::Compound(stats)) = data.get_mut("stats") else { return };
-            let Some(Value::Compound(custom)) = stats.get_mut("minecraft:custom") else { return };
+            let Some(Value::Compound(stats)) = data.get_mut("stats") else {
+                return;
+            };
+            let Some(Value::Compound(custom)) = stats.get_mut("minecraft:custom") else {
+                return;
+            };
             rust_dataconverter_engine::rename_keys(custom, renamer);
         }),
     );
@@ -181,18 +185,31 @@ pub(crate) fn rename_poi<'a>(
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
-    types.poi_chunk.borrow_mut().add_structure_converter(version, map_data_converter_func(move |data, _from_version, _to_version| {
-        let Some(Value::Compound(sections)) = data.get_mut("Sections") else { return };
-        for section in sections.values_mut() {
-            let Value::Compound(section) = section else { continue };
-            let Some(Value::List(List::Compound(records))) = section.get_mut("Records") else { continue };
-            for record in records {
-                let Some(Value::String(typ)) = record.get_mut("type") else { continue };
-                let Some(new_type) = renamer(typ) else { continue };
-                *typ = new_type;
+    types.poi_chunk.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            let Some(Value::Compound(sections)) = data.get_mut("Sections") else {
+                return;
+            };
+            for section in sections.values_mut() {
+                let Value::Compound(section) = section else {
+                    continue;
+                };
+                let Some(Value::List(List::Compound(records))) = section.get_mut("Records") else {
+                    continue;
+                };
+                for record in records {
+                    let Some(Value::String(typ)) = record.get_mut("type") else {
+                        continue;
+                    };
+                    let Some(new_type) = renamer(typ) else {
+                        continue;
+                    };
+                    *typ = new_type;
+                }
             }
-        }
-    }));
+        }),
+    );
 }
 
 pub(crate) fn simple_rename<'a>(

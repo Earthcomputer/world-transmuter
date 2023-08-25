@@ -748,7 +748,9 @@ impl MapDataConverterFunc for ConverterFlattenItemStack {
                 if !matches!(data.get("tag"), Some(Value::Compound(_))) {
                     data.insert("tag", Compound::new());
                 }
-                let Some(Value::Compound(tag)) = data.get_mut("tag") else { unreachable!() };
+                let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+                    unreachable!()
+                };
                 tag.insert("Damage", damage as i32);
             }
 

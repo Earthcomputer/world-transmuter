@@ -7,7 +7,7 @@ fn remap(name: &str) -> Option<String> {
     match name {
         "minecraft:warped_fungi" => Some("minecraft:warped_fungus".to_owned()),
         "minecraft:crimson_fungi" => Some("minecraft:crimson_fungus".to_owned()),
-        _ => None
+        _ => None,
     }
 }
 

@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
-use std::sync::OnceLock;
-use rust_dataconverter_engine::map_data_converter_func;
-use valence_nbt::{compound, Compound, List, Value};
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::MinecraftTypesMut;
+use rust_dataconverter_engine::map_data_converter_func;
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use valence_nbt::{compound, Compound, List, Value};
 
 const VERSION: u32 = 2550;
 
@@ -12,15 +12,39 @@ static DEFAULTS: OnceLock<McNamespaceMap<StructureFeatureConfiguration>> = OnceL
 fn defaults() -> &'static McNamespaceMap<'static, StructureFeatureConfiguration> {
     DEFAULTS.get_or_init(|| {
         let mut map = McNamespaceMap::new();
-        map.insert_mc("village", StructureFeatureConfiguration::new(32, 8, 10387312));
-        map.insert_mc("desert_pyramid", StructureFeatureConfiguration::new(32, 8, 14357617));
+        map.insert_mc(
+            "village",
+            StructureFeatureConfiguration::new(32, 8, 10387312),
+        );
+        map.insert_mc(
+            "desert_pyramid",
+            StructureFeatureConfiguration::new(32, 8, 14357617),
+        );
         map.insert_mc("igloo", StructureFeatureConfiguration::new(32, 8, 14357618));
-        map.insert_mc("jungle_pyramid", StructureFeatureConfiguration::new(32, 8, 14357619));
-        map.insert_mc("swamp_hut", StructureFeatureConfiguration::new(32, 8, 14357620));
-        map.insert_mc("pillager_outpost", StructureFeatureConfiguration::new(32, 8, 165745296));
-        map.insert_mc("monument", StructureFeatureConfiguration::new(32, 5, 10387313));
-        map.insert_mc("endcity", StructureFeatureConfiguration::new(20, 11, 10387313));
-        map.insert_mc("mansion", StructureFeatureConfiguration::new(80, 20, 10387319));
+        map.insert_mc(
+            "jungle_pyramid",
+            StructureFeatureConfiguration::new(32, 8, 14357619),
+        );
+        map.insert_mc(
+            "swamp_hut",
+            StructureFeatureConfiguration::new(32, 8, 14357620),
+        );
+        map.insert_mc(
+            "pillager_outpost",
+            StructureFeatureConfiguration::new(32, 8, 165745296),
+        );
+        map.insert_mc(
+            "monument",
+            StructureFeatureConfiguration::new(32, 5, 10387313),
+        );
+        map.insert_mc(
+            "endcity",
+            StructureFeatureConfiguration::new(20, 11, 10387313),
+        );
+        map.insert_mc(
+            "mansion",
+            StructureFeatureConfiguration::new(80, 20, 10387319),
+        );
         map
     })
 }
@@ -189,12 +213,19 @@ fn fix_flat_structures(generator_options: Option<&Compound>) -> Compound {
 
     if generator_options.is_none() {
         stronghold = true;
-        new_structures.insert("minecraft:village", defaults().get("minecraft:village").unwrap().clone());
+        new_structures.insert(
+            "minecraft:village",
+            defaults().get("minecraft:village").unwrap().clone(),
+        );
     }
 
-    if let Some(Value::Compound(old_structures)) = generator_options.and_then(|options| options.get("structures")) {
+    if let Some(Value::Compound(old_structures)) =
+        generator_options.and_then(|options| options.get("structures"))
+    {
         for (structure_name, structure_values) in old_structures {
-            let Value::Compound(structure_values) = structure_values else { continue };
+            let Value::Compound(structure_values) = structure_values else {
+                continue;
+            };
             match &structure_name[..] {
                 "stronghold" => {
                     stronghold = true;
@@ -215,33 +246,85 @@ fn fix_flat_structures(generator_options: Option<&Compound>) -> Compound {
                     }
                 }
                 "village" => {
-                    set_spacing(&mut new_structures, "minecraft:village", structure_values.get("distance"), 9);
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:village",
+                        structure_values.get("distance"),
+                        9,
+                    );
                 }
                 "biome_1" => {
-                    set_spacing(&mut new_structures, "minecraft:desert_pyramid", structure_values.get("distance"), 9);
-                    set_spacing(&mut new_structures, "minecraft:igloo", structure_values.get("distance"), 9);
-                    set_spacing(&mut new_structures, "minecraft:jungle_pyramid", structure_values.get("distance"), 9);
-                    set_spacing(&mut new_structures, "minecraft:swamp_hut", structure_values.get("distance"), 9);
-                    set_spacing(&mut new_structures, "minecraft:pillager_outpost", structure_values.get("distance"), 9);
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:desert_pyramid",
+                        structure_values.get("distance"),
+                        9,
+                    );
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:igloo",
+                        structure_values.get("distance"),
+                        9,
+                    );
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:jungle_pyramid",
+                        structure_values.get("distance"),
+                        9,
+                    );
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:swamp_hut",
+                        structure_values.get("distance"),
+                        9,
+                    );
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:pillager_outpost",
+                        structure_values.get("distance"),
+                        9,
+                    );
                 }
                 "endcity" => {
-                    set_spacing(&mut new_structures, "minecraft:endcity", structure_values.get("distance"), 1);
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:endcity",
+                        structure_values.get("distance"),
+                        1,
+                    );
                 }
                 "mansion" => {
-                    set_spacing(&mut new_structures, "minecraft:mansion", structure_values.get("distance"), 1);
+                    set_spacing(
+                        &mut new_structures,
+                        "minecraft:mansion",
+                        structure_values.get("distance"),
+                        1,
+                    );
                 }
                 "oceanmonument" => {
                     // Vanilla and Paper overwrite the spacing with the separation here, we set the separation to the separation
-                    let structure = new_structures.get("minecraft:monument").unwrap_or_else(|| defaults().get("minecraft:monument").expect("Missing minecraft:monument in defaults"));
+                    let structure = new_structures.get("minecraft:monument").unwrap_or_else(|| {
+                        defaults()
+                            .get("minecraft:monument")
+                            .expect("Missing minecraft:monument in defaults")
+                    });
                     let new_spacing = match structure_values.get("spacing") {
                         Some(Value::String(spacing)) => spacing.parse().ok(),
                         _ => None,
-                    }.unwrap_or(structure.spacing).max(1);
+                    }
+                    .unwrap_or(structure.spacing)
+                    .max(1);
                     let new_separation = match structure_values.get("separation") {
                         Some(Value::String(separation)) => separation.parse().ok(),
                         _ => None,
-                    }.unwrap_or(structure.separation).max(1);
-                    let new_structure = StructureFeatureConfiguration::new(new_spacing, new_separation, structure.salt);
+                    }
+                    .unwrap_or(structure.separation)
+                    .max(1);
+                    let new_structure = StructureFeatureConfiguration::new(
+                        new_spacing,
+                        new_separation,
+                        structure.salt,
+                    );
                     new_structures.insert("minecraft:monument", new_structure);
                 }
                 _ => {}
@@ -249,7 +332,10 @@ fn fix_flat_structures(generator_options: Option<&Compound>) -> Compound {
         }
     }
 
-    let structures_serialized: Compound = new_structures.into_iter().map(|(key, value)| (key.to_owned(), Value::Compound(value.serialize()))).collect();
+    let structures_serialized: Compound = new_structures
+        .into_iter()
+        .map(|(key, value)| (key.to_owned(), Value::Compound(value.serialize())))
+        .collect();
     let mut ret = compound! {
         "structures" => structures_serialized,
     };
@@ -291,21 +377,32 @@ pub(crate) fn vanilla_levels(seed: i64, generator: Compound, caves: bool) -> Com
 }
 
 pub(crate) fn default_overworld(seed: i64) -> Compound {
-    noise(seed, "minecraft:overworld", vanilla_biome_source(seed, false, false))
+    noise(
+        seed,
+        "minecraft:overworld",
+        vanilla_biome_source(seed, false, false),
+    )
 }
 
 fn set_spacing<'a>(
     structures: &mut BTreeMap<&'a str, StructureFeatureConfiguration>,
     structure_name: &'a str,
     structure_value: Option<&Value>,
-    min_val: i32
+    min_val: i32,
 ) {
-    let structure = structures.get(structure_name).unwrap_or_else(|| defaults().get(structure_name).expect("Unknown structure given to set_spacing"));
+    let structure = structures.get(structure_name).unwrap_or_else(|| {
+        defaults()
+            .get(structure_name)
+            .expect("Unknown structure given to set_spacing")
+    });
     let new_spacing = match structure_value {
         Some(Value::String(str)) => str.parse().ok(),
         _ => None,
-    }.unwrap_or(structure.spacing).max(min_val);
-    let new_structure = StructureFeatureConfiguration::new(new_spacing, structure.separation, structure.salt);
+    }
+    .unwrap_or(structure.spacing)
+    .max(min_val);
+    let new_structure =
+        StructureFeatureConfiguration::new(new_spacing, structure.separation, structure.salt);
     structures.insert(structure_name, new_structure);
 }
 
@@ -318,7 +415,11 @@ struct StructureFeatureConfiguration {
 
 impl StructureFeatureConfiguration {
     fn new(spacing: i32, separation: i32, salt: i32) -> Self {
-        Self { spacing, separation, salt }
+        Self {
+            spacing,
+            separation,
+            salt,
+        }
     }
 
     fn serialize(&self) -> Compound {

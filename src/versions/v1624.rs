@@ -1,10 +1,10 @@
+use crate::helpers::bit_storage::{LocalPos, PackedBitStorage, Section, SectionInitializer};
+use crate::helpers::block_state::BlockState;
+use crate::MinecraftTypesMut;
 use ahash::AHashSet;
 use log::warn;
 use rust_dataconverter_engine::{get_mut_multi, map_data_converter_func};
 use valence_nbt::{List, Value};
-use crate::helpers::bit_storage::{LocalPos, PackedBitStorage, Section, SectionInitializer};
-use crate::helpers::block_state::BlockState;
-use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1624;
 
@@ -44,6 +44,8 @@ struct TrappedChestSectionInitializer;
 
 impl SectionInitializer for TrappedChestSectionInitializer {
     fn init_skippable(&mut self, palette: &mut [BlockState], _section_y: i32) -> bool {
-        palette.iter().any(|block| block.name == "minecraft:trapped_chest")
+        palette
+            .iter()
+            .any(|block| block.name == "minecraft:trapped_chest")
     }
 }

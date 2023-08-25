@@ -1,8 +1,8 @@
-use std::sync::OnceLock;
+use crate::MinecraftTypesMut;
 use ahash::AHashMap;
 use rust_dataconverter_engine::map_data_converter_func;
+use std::sync::OnceLock;
 use valence_nbt::{List, Value};
-use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1494;
 
@@ -50,23 +50,40 @@ fn ench_id_to_name() -> &'static AHashMap<u8, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.item_stack.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        let Some(Value::Compound(tag)) = data.get_mut("tag") else { return };
+    types.item_stack.borrow_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+                return;
+            };
 
-        if let Some(Value::List(List::Compound(mut ench))) = tag.remove("ench") {
-            for ench in &mut ench {
-                let new_id = ench.get("id").and_then(|v| v.as_i8()).and_then(|id| ench_id_to_name().get(&(id as u8))).copied().unwrap_or("null");
-                ench.insert("id", new_id);
+            if let Some(Value::List(List::Compound(mut ench))) = tag.remove("ench") {
+                for ench in &mut ench {
+                    let new_id = ench
+                        .get("id")
+                        .and_then(|v| v.as_i8())
+                        .and_then(|id| ench_id_to_name().get(&(id as u8)))
+                        .copied()
+                        .unwrap_or("null");
+                    ench.insert("id", new_id);
+                }
+
+                tag.insert("Enchantments", List::Compound(ench));
             }
 
-            tag.insert("Enchantments", List::Compound(ench));
-        }
-
-        if let Some(Value::List(List::Compound(stored_enchants))) = tag.get_mut("StoredEnchantments") {
-            for ench in stored_enchants {
-                let new_id = ench.get("id").and_then(|v| v.as_i8()).and_then(|id| ench_id_to_name().get(&(id as u8))).copied().unwrap_or("null");
-                ench.insert("id", new_id);
+            if let Some(Value::List(List::Compound(stored_enchants))) =
+                tag.get_mut("StoredEnchantments")
+            {
+                for ench in stored_enchants {
+                    let new_id = ench
+                        .get("id")
+                        .and_then(|v| v.as_i8())
+                        .and_then(|id| ench_id_to_name().get(&(id as u8)))
+                        .copied()
+                        .unwrap_or("null");
+                    ench.insert("id", new_id);
+                }
             }
-        }
-    }));
+        }),
+    );
 }

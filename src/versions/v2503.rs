@@ -1,9 +1,9 @@
-use std::sync::OnceLock;
-use rust_dataconverter_engine::map_data_converter_func;
-use valence_nbt::Value;
 use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::helpers::rename::{rename_advancement, simple_rename};
 use crate::MinecraftTypesMut;
+use rust_dataconverter_engine::map_data_converter_func;
+use std::sync::OnceLock;
+use valence_nbt::Value;
 
 const VERSION: u32 = 2503;
 
@@ -31,19 +31,31 @@ fn wall_blocks() -> &'static McNamespaceSet<'static> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.block_state.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        let Some(Value::String(name)) = data.get("Name") else { return };
-        if wall_blocks().contains(name) {
-            if let Some(Value::Compound(properties)) = data.get_mut("Properties") {
-                for side in ["east", "west", "north", "south"] {
-                    if let Some(Value::String(value)) = properties.get_mut(side) {
-                        let new_value = if value == "true" { "low" } else { "none" };
-                        *value = new_value.to_owned();
+    types.block_state.borrow_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            let Some(Value::String(name)) = data.get("Name") else {
+                return;
+            };
+            if wall_blocks().contains(name) {
+                if let Some(Value::Compound(properties)) = data.get_mut("Properties") {
+                    for side in ["east", "west", "north", "south"] {
+                        if let Some(Value::String(value)) = properties.get_mut(side) {
+                            let new_value = if value == "true" { "low" } else { "none" };
+                            *value = new_value.to_owned();
+                        }
                     }
                 }
             }
-        }
-    }));
+        }),
+    );
 
-    rename_advancement(types, VERSION, simple_rename("minecraft:recipes/misc/composter", "minecraft:recipes/decorations/composter"));
+    rename_advancement(
+        types,
+        VERSION,
+        simple_rename(
+            "minecraft:recipes/misc/composter",
+            "minecraft:recipes/decorations/composter",
+        ),
+    );
 }

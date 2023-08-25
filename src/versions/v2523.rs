@@ -1,8 +1,8 @@
+use crate::MinecraftTypesMut;
+use rust_dataconverter_engine::{map_data_converter_func, DataVersion};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use rust_dataconverter_engine::{DataVersion, map_data_converter_func};
 use valence_nbt::{Compound, List, Value};
-use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2523;
 
@@ -19,7 +19,10 @@ fn renames() -> &'static BTreeMap<&'static str, &'static str> {
         map.insert("Jump Strength", "horse.jump_strength");
         map.insert("generic.followRange", "generic.follow_range");
         map.insert("Follow Range", "generic.follow_range");
-        map.insert("generic.knockbackResistance", "generic.knockback_resistance");
+        map.insert(
+            "generic.knockbackResistance",
+            "generic.knockback_resistance",
+        );
         map.insert("Knockback Resistance", "generic.knockback_resistance");
         map.insert("generic.movementSpeed", "generic.movement_speed");
         map.insert("Movement Speed", "generic.movement_speed");
@@ -34,16 +37,27 @@ fn renames() -> &'static BTreeMap<&'static str, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(entity_converter));
-    types.player.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(entity_converter));
+    types
+        .entity
+        .borrow_mut()
+        .add_structure_converter(VERSION, map_data_converter_func(entity_converter));
+    types
+        .player
+        .borrow_mut()
+        .add_structure_converter(VERSION, map_data_converter_func(entity_converter));
 
-    types.item_stack.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        if let Some(Value::List(List::Compound(attributes))) = data.get_mut("AttributeModifiers") {
-            for attribute in attributes {
-                update_name(attribute, "AttributeName");
+    types.item_stack.borrow_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            if let Some(Value::List(List::Compound(attributes))) =
+                data.get_mut("AttributeModifiers")
+            {
+                for attribute in attributes {
+                    update_name(attribute, "AttributeName");
+                }
             }
-        }
-    }));
+        }),
+    );
 }
 
 fn entity_converter(data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
@@ -55,7 +69,9 @@ fn entity_converter(data: &mut Compound, _from_version: DataVersion, _to_version
 }
 
 fn update_name(data: &mut Compound, path: &str) {
-    let Some(Value::String(name)) = data.get_mut(path) else { return };
+    let Some(Value::String(name)) = data.get_mut(path) else {
+        return;
+    };
     if let Some(new_name) = renames().get(&name[..]).copied() {
         *name = new_name.to_owned();
     }

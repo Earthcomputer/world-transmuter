@@ -1,8 +1,8 @@
+use crate::MinecraftTypesMut;
+use rust_dataconverter_engine::map_data_converter_func;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::Value;
-use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1911;
 
@@ -26,14 +26,17 @@ fn chunk_status_remap() -> &'static BTreeMap<&'static str, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.chunk.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        if let Some(Value::Compound(level)) = data.get_mut("Level") {
-            let status = match level.get("Status") {
-                Some(Value::String(status)) => &status[..],
-                _ => "empty",
-            };
-            let new_status = chunk_status_remap().get(status).copied().unwrap_or("empty");
-            level.insert("Status", new_status);
-        }
-    }));
+    types.chunk.borrow_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            if let Some(Value::Compound(level)) = data.get_mut("Level") {
+                let status = match level.get("Status") {
+                    Some(Value::String(status)) => &status[..],
+                    _ => "empty",
+                };
+                let new_status = chunk_status_remap().get(status).copied().unwrap_or("empty");
+                level.insert("Status", new_status);
+            }
+        }),
+    );
 }

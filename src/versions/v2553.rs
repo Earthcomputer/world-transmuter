@@ -1,8 +1,8 @@
-use std::sync::OnceLock;
-use rust_dataconverter_engine::value_data_converter_func;
-use valence_nbt::value::ValueMut;
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::MinecraftTypesMut;
+use rust_dataconverter_engine::value_data_converter_func;
+use std::sync::OnceLock;
+use valence_nbt::value::ValueMut;
 
 const VERSION: u32 = 2553;
 
@@ -53,13 +53,28 @@ fn biome_renames() -> &'static McNamespaceMap<'static, &'static str> {
         map.insert_mc("mutated_roofed_forest", "minecraft:dark_forest_hills");
         map.insert_mc("mutated_taiga_cold", "minecraft:snowy_taiga_mountains");
         map.insert_mc("mutated_redwood_taiga", "minecraft:giant_spruce_taiga");
-        map.insert_mc("mutated_redwood_taiga_hills", "minecraft:giant_spruce_taiga_hills");
-        map.insert_mc("mutated_extreme_hills_with_trees", "minecraft:modified_gravelly_mountains");
+        map.insert_mc(
+            "mutated_redwood_taiga_hills",
+            "minecraft:giant_spruce_taiga_hills",
+        );
+        map.insert_mc(
+            "mutated_extreme_hills_with_trees",
+            "minecraft:modified_gravelly_mountains",
+        );
         map.insert_mc("mutated_savanna", "minecraft:shattered_savanna");
-        map.insert_mc("mutated_savanna_rock", "minecraft:shattered_savanna_plateau");
+        map.insert_mc(
+            "mutated_savanna_rock",
+            "minecraft:shattered_savanna_plateau",
+        );
         map.insert_mc("mutated_mesa", "minecraft:eroded_badlands");
-        map.insert_mc("mutated_mesa_rock", "minecraft:modified_wooded_badlands_plateau");
-        map.insert_mc("mutated_mesa_clear_rock", "minecraft:modified_badlands_plateau");
+        map.insert_mc(
+            "mutated_mesa_rock",
+            "minecraft:modified_wooded_badlands_plateau",
+        );
+        map.insert_mc(
+            "mutated_mesa_clear_rock",
+            "minecraft:modified_badlands_plateau",
+        );
         map.insert_mc("warm_deep_ocean", "minecraft:deep_warm_ocean");
         map.insert_mc("lukewarm_deep_ocean", "minecraft:deep_lukewarm_ocean");
         map.insert_mc("cold_deep_ocean", "minecraft:deep_cold_ocean");
@@ -69,11 +84,14 @@ fn biome_renames() -> &'static McNamespaceMap<'static, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    types.biome.borrow_mut().add_structure_converter(VERSION, value_data_converter_func(|data, _from_version, _to_version| {
-        if let ValueMut::String(data) = data {
-            if let Some(new_name) = biome_renames().get(&data[..]).copied() {
-                **data = new_name.to_owned();
+    types.biome.borrow_mut().add_structure_converter(
+        VERSION,
+        value_data_converter_func(|data, _from_version, _to_version| {
+            if let ValueMut::String(data) = data {
+                if let Some(new_name) = biome_renames().get(&data[..]).copied() {
+                    **data = new_name.to_owned();
+                }
             }
-        }
-    }));
+        }),
+    );
 }

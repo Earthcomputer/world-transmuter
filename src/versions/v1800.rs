@@ -1,8 +1,8 @@
-use std::sync::OnceLock;
-use rust_dataconverter_engine::DataWalkerMapListPaths;
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_item;
 use crate::MinecraftTypesMut;
+use rust_dataconverter_engine::DataWalkerMapListPaths;
+use std::sync::OnceLock;
 
 const VERSION: u32 = 1800;
 
@@ -19,8 +19,28 @@ fn renamed_item_ids() -> &'static McNamespaceMap<'static, &'static str> {
 }
 
 pub(crate) fn register(types: &MinecraftTypesMut) {
-    rename_item(types, VERSION, |name| renamed_item_ids().get(name).map(|&str| str.to_owned()));
+    rename_item(types, VERSION, |name| {
+        renamed_item_ids().get(name).map(|&str| str.to_owned())
+    });
 
-    types.entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:panda", DataWalkerMapListPaths::new_multi(types.item_stack, vec!["ArmorItems".to_owned(), "HandItems".to_owned()]));
-    types.entity.borrow_mut().add_walker_for_id(VERSION, "minecraft:pillager", DataWalkerMapListPaths::new_multi(types.item_stack, vec!["Inventory".to_owned(), "ArmorItems".to_owned(), "HandItems".to_owned()]));
+    types.entity.borrow_mut().add_walker_for_id(
+        VERSION,
+        "minecraft:panda",
+        DataWalkerMapListPaths::new_multi(
+            types.item_stack,
+            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
+        ),
+    );
+    types.entity.borrow_mut().add_walker_for_id(
+        VERSION,
+        "minecraft:pillager",
+        DataWalkerMapListPaths::new_multi(
+            types.item_stack,
+            vec![
+                "Inventory".to_owned(),
+                "ArmorItems".to_owned(),
+                "HandItems".to_owned(),
+            ],
+        ),
+    );
 }
