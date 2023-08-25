@@ -153,4 +153,5 @@ versions! {
     mod v2842;
     mod v2843;
     mod v2846;
+    mod v2852;
 }
