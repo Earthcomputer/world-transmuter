@@ -15,8 +15,8 @@ impl<'a, V> McNamespaceMap<'a, V> {
         McNamespaceMap(BTreeMap::new())
     }
 
-    pub fn insert_mc(&mut self, key: &'a str, value: V) {
-        self.0.insert(key, value);
+    pub fn insert_mc(&mut self, key: &'a str, value: V) -> Option<V> {
+        self.0.insert(key, value)
     }
 
     pub fn contains_key(&self, key: &str) -> bool {
@@ -36,6 +36,14 @@ impl<'a, V> McNamespaceMap<'a, V> {
         Q: Ord,
     {
         self.0.get(key)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
     pub fn iter_mc_to_value(&self) -> std::collections::btree_map::Iter<&'a str, V> {
