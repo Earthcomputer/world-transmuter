@@ -122,6 +122,26 @@ pub(crate) fn rename_advancement<'a>(
     );
 }
 
+pub(crate) fn rename_criteria<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    advancement: &'a str,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    types.advancements.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            let Some(Value::Compound(advancement)) = data.get_mut(advancement) else {
+                return;
+            };
+            let Some(Value::Compound(criteria)) = advancement.get_mut("criteria") else {
+                return;
+            };
+            rust_dataconverter_engine::rename_keys(criteria, renamer);
+        }),
+    );
+}
+
 pub(crate) fn rename_recipe<'a>(
     types: &MinecraftTypesMut<'a>,
     version: impl Into<DataVersion>,
