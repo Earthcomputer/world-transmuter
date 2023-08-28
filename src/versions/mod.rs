@@ -167,4 +167,5 @@ versions! {
     mod v3088;
     mod v3090;
     mod v3093;
+    mod v3094;
 }
