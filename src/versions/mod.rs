@@ -176,4 +176,5 @@ versions! {
     mod v3209;
     mod v3214;
     mod v3319;
+    mod v3322;
 }
