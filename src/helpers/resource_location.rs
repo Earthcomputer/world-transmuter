@@ -16,7 +16,7 @@ impl ResourceLocation {
         }
     }
 
-    pub(crate) fn parse_with_separator(s: &str, sep: char) -> Result<Self, String> {
+    pub(crate) fn parse_with_separator(s: &str, sep: char) -> Result<Self, ResourceLocationError> {
         if let Some(index) = s.find(sep) {
             let (namespace, path) = s.split_at(index);
             let path = path.slice(1..);
@@ -29,31 +29,29 @@ impl ResourceLocation {
         }
     }
 
-    fn validate_namespace(namespace: &str) -> Result<(), String> {
+    fn validate_namespace(namespace: &str) -> Result<(), ResourceLocationError> {
         if namespace
             .chars()
             .all(|c| matches!(c, 'a'..='z' | '0'..='9' | '_' | '.' | '-'))
         {
             Ok(())
         } else {
-            Err(format!(
-                "Non [a-z0-9_.-] character in resource location namespace {}",
-                namespace
-            ))
+            Err(ResourceLocationError::Namespace {
+                namespace: namespace.to_owned(),
+            })
         }
     }
 
-    fn validate_path(path: &str) -> Result<(), String> {
+    fn validate_path(path: &str) -> Result<(), ResourceLocationError> {
         if path
             .chars()
             .all(|c| matches!(c, 'a'..='z' | '0'..='9' | '/' | '_' | '.' | '-'))
         {
             Ok(())
         } else {
-            Err(format!(
-                "Non [a-z0-9/_.-] character in resource location path {}",
-                path
-            ))
+            Err(ResourceLocationError::Path {
+                path: path.to_owned(),
+            })
         }
     }
 }
@@ -65,9 +63,32 @@ impl Display for ResourceLocation {
 }
 
 impl FromStr for ResourceLocation {
-    type Err = String;
+    type Err = ResourceLocationError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::parse_with_separator(s, ':')
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum ResourceLocationError {
+    Namespace { namespace: String },
+    Path { path: String },
+}
+
+impl Display for ResourceLocationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResourceLocationError::Namespace { namespace } => write!(
+                f,
+                "Non [a-z0-9_.-] character in resource location namespace {namespace}"
+            ),
+            ResourceLocationError::Path { path } => write!(
+                f,
+                "Non [a-z0-9/_.-] character in resource location path {path}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ResourceLocationError {}
