@@ -8,7 +8,7 @@ use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, data_walker,
     map_data_converter_func, rename_key, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, MapDataHook,
+    DataWalkerMapTypePaths, MapDataConverterFunc, MapDataHook,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
@@ -760,19 +760,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     types.item_stack.borrow_mut().add_converter_for_id(
         "minecraft:spawn_egg",
         DataVersion::new(VERSION, 5),
-        map_data_converter_func(|data, _from_version, _to_version| {
-            if let Some(Value::Compound(tag)) = data.get("tag") {
-                if let Some(Value::Compound(entity_tag)) = tag.get("EntityTag") {
-                    if let Some(Value::String(id)) = entity_tag.get("id") {
-                        let new_id = entity_id_to_new_egg_id()
-                            .get(id)
-                            .copied()
-                            .unwrap_or("minecraft:pig_spawn_egg");
-                        data.insert("id", new_id);
-                    }
-                }
-            }
-        }),
+        ConverterFlattenSpawnEgg,
     );
     // Skip the wolf collar color converter.
     // See: https://github.com/PaperMC/DataConverter/blob/b8c345c76f7bd6554666ef856ebd2043775ee47a/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V1451.java#L146-L160
@@ -1381,4 +1369,22 @@ fn convert_entity_state<'a>(
             );
         }),
     );
+}
+
+pub(crate) struct ConverterFlattenSpawnEgg;
+
+impl MapDataConverterFunc for ConverterFlattenSpawnEgg {
+    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+        if let Some(Value::Compound(tag)) = data.get("tag") {
+            if let Some(Value::Compound(entity_tag)) = tag.get("EntityTag") {
+                if let Some(Value::String(id)) = entity_tag.get("id") {
+                    let new_id = entity_id_to_new_egg_id()
+                        .get(id)
+                        .copied()
+                        .unwrap_or("minecraft:pig_spawn_egg");
+                    data.insert("id", new_id);
+                }
+            }
+        }
+    }
 }
