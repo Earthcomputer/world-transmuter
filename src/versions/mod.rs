@@ -178,4 +178,5 @@ versions! {
     mod v3319;
     mod v3322;
     mod v3325;
+    mod v3326;
 }
