@@ -172,4 +172,5 @@ versions! {
     mod v3108;
     mod v3201;
     mod v3203;
+    mod v3204;
 }
