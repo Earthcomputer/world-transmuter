@@ -33,6 +33,24 @@ pub(crate) fn rename_entity<'a>(
     );
 }
 
+pub(crate) fn rename_tile_entity<'a>(
+    types: &MinecraftTypesMut<'a>,
+    version: impl Into<DataVersion>,
+    renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
+) {
+    types.tile_entity.borrow_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            let Some(Value::String(id)) = data.get_mut("id") else {
+                return;
+            };
+            if let Some(new_name) = renamer(id) {
+                *id = new_name;
+            }
+        }),
+    );
+}
+
 pub(crate) fn rename_block<'a>(
     types: &MinecraftTypesMut<'a>,
     version: impl Into<DataVersion>,
