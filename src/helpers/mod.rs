@@ -8,6 +8,7 @@ pub(crate) mod hooks;
 pub(crate) mod item_name_v102;
 pub(crate) mod json_parser;
 pub(crate) mod mc_namespace_map;
+pub(crate) mod remove_feature_flag;
 pub(crate) mod rename;
 pub(crate) mod resource_location;
 pub(crate) mod spawn_egg_name_v105;
