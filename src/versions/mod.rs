@@ -186,4 +186,5 @@ versions! {
     mod v3440;
     mod v3441;
     mod v3447;
+    mod v3448;
 }
