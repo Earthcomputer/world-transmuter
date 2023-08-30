@@ -1,17 +1,17 @@
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use rust_dataconverter_engine::{DataWalkerMapTypePaths, DataWalkerObjectListPaths};
 
 const VERSION: u32 = 3327;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:decorated_pot",
-        DataWalkerObjectListPaths::new(types.item_name, "shards"),
+        DataWalkerObjectListPaths::new(&types.item_name, "shards"),
     );
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:suspicious_sand",
-        DataWalkerMapTypePaths::new(types.item_stack, "item"),
+        DataWalkerMapTypePaths::new(&types.item_stack, "item"),
     );
 }

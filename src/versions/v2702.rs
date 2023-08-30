@@ -1,9 +1,9 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 
 const VERSION: u32 = 2702;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     for id in [
         "minecraft:arrow",
         "minecraft:spectral_arrow",

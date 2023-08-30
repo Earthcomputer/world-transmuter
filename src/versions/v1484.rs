@@ -1,11 +1,11 @@
 use crate::helpers::rename::{rename_block, rename_item};
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 use valence_nbt::Value;
 
 const VERSION: u32 = 1484;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     let renamer = |name: &str| match name {
         "minecraft:sea_grass" => Some("minecraft:seagrass".to_owned()),
         "minecraft:tall_sea_grass" => Some("minecraft:tall_seagrass".to_owned()),

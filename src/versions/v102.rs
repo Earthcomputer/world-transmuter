@@ -1,12 +1,12 @@
 use crate::helpers::item_name_v102;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use log::warn;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 102;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // V102 schema only modifies ITEM_STACK to have only a string ID, but our ITEM_NAME is generic (int or String) so we don't
     // actually need to update the walker
 

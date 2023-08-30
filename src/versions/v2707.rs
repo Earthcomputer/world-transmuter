@@ -1,9 +1,9 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 
 const VERSION: u32 = 2707;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types
         .world_gen_settings
         .borrow_mut()
@@ -20,7 +20,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         VERSION,
         "minecraft:marker",
         DataWalkerMapListPaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     ); // ?????????????

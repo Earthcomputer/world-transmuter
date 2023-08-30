@@ -1,10 +1,10 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 806;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     struct PotionWaterUpdater;
     impl MapDataConverterFunc for PotionWaterUpdater {
         fn convert(

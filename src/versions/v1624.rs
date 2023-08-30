@@ -1,6 +1,6 @@
 use crate::helpers::bit_storage::{LocalPos, PackedBitStorage, Section, SectionInitializer};
 use crate::helpers::block_state::BlockState;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use ahash::AHashSet;
 use log::warn;
 use rust_dataconverter_engine::{get_mut_multi, map_data_converter_func};
@@ -8,7 +8,7 @@ use valence_nbt::{List, Value};
 
 const VERSION: u32 = 1624;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.chunk.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         let Some(Value::Compound(level)) = data.get_mut("Level") else { return };
         let chunk_x = level.get("xPos").and_then(|v| v.as_i32()).unwrap_or(0);

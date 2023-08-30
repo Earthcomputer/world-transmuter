@@ -1,5 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, DataVersion, MapDataConverterFunc};
 use std::sync::OnceLock;
 use valence_nbt::{Compound, List, Value};
@@ -39,7 +39,7 @@ fn update_effect_list(root: &mut Compound, path: &str) {
     }
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     struct EntityEffectFix;
     impl MapDataConverterFunc for EntityEffectFix {
         fn convert(

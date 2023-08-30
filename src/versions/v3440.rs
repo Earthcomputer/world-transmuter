@@ -1,13 +1,13 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::helpers::remove_feature_flag::ConverterRemoveFeatureFlags;
 use crate::helpers::resource_location::ResourceLocation;
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use rust_dataconverter_engine::value_data_converter_func;
 use valence_nbt::value::ValueMut;
 
 const VERSION: u32 = 3440;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // Note: MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST is namespaced string
     types
         .multi_noise_biome_source_parameter_list

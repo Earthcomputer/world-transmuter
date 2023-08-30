@@ -1,6 +1,6 @@
 use crate::helpers::hooks::{DataHookEnforceNamespacedId, DataHookValueTypeEnforceNamespaced};
 use crate::helpers::mc_namespace_map::McNamespaceMap;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use log::warn;
 use rust_dataconverter_engine::*;
 use std::sync::OnceLock;
@@ -51,16 +51,16 @@ fn item_id_to_tile_entity_id() -> &'static McNamespaceMap<'static, &'static str>
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // entities
-    types
-        .entity
-        .borrow_mut()
-        .add_structure_walker(VERSION, DataWalkerMapTypePaths::new(types.entity, "Riding"));
+    types.entity.borrow_mut().add_structure_walker(
+        VERSION,
+        DataWalkerMapTypePaths::new(&types.entity, "Riding"),
+    );
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "Item",
-        DataWalkerMapTypePaths::new(types.item_stack, "Item"),
+        DataWalkerMapTypePaths::new(&types.item_stack, "Item"),
     );
     register_projectile(types, "ThrownEgg");
     register_projectile(types, "Arrow");
@@ -74,29 +74,29 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "ThrownPotion",
-        DataWalkerMapTypePaths::new(types.item_stack, "Potion"),
+        DataWalkerMapTypePaths::new(&types.item_stack, "Potion"),
     );
     register_projectile(types, "ThrownExpBottle");
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "ItemFrame",
-        DataWalkerMapTypePaths::new(types.item_stack, "Item"),
+        DataWalkerMapTypePaths::new(&types.item_stack, "Item"),
     );
     register_projectile(types, "WitherSkull");
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "FallingSand",
-        DataWalkerObjectTypePaths::new(types.block_name, "Block"),
+        DataWalkerObjectTypePaths::new(&types.block_name, "Block"),
     );
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "FallingSand",
-        DataWalkerMapTypePaths::new(types.tile_entity, "BlockEntityData"),
+        DataWalkerMapTypePaths::new(&types.tile_entity, "BlockEntityData"),
     );
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "FireworksRocketEntity",
-        DataWalkerMapTypePaths::new(types.item_stack, "FireworksItem"),
+        DataWalkerMapTypePaths::new(&types.item_stack, "FireworksItem"),
     );
     // Note: Minecart is the generic entity. It can be subtyped via an int to become one of the specific minecarts
     // (i.e rideable, chest, furnace, tnt, etc)
@@ -117,7 +117,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         types.entity.borrow_mut().add_walker_for_id(
             VERSION,
             minecart_type,
-            DataWalkerObjectTypePaths::new(types.block_name, "DisplayTile"),
+            DataWalkerObjectTypePaths::new(&types.block_name, "DisplayTile"),
         );
     }
     // for chest types:
@@ -125,12 +125,12 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         types.entity.borrow_mut().add_walker_for_id(
             VERSION,
             minecart_type,
-            DataWalkerMapListPaths::new(types.item_stack, "Items"),
+            DataWalkerMapListPaths::new(&types.item_stack, "Items"),
         );
     }
     // for spawner type:
     for minecart_type in ["Minecart", "MinecartSpawner"] {
-        let spawner_type = types.untagged_spawner;
+        let spawner_type = &types.untagged_spawner;
         types.entity.borrow_mut().add_walker_for_id(
             VERSION,
             minecart_type,
@@ -152,7 +152,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "Enderman",
-        DataWalkerObjectTypePaths::new(types.block_name, "carried"),
+        DataWalkerObjectTypePaths::new(&types.block_name, "carried"),
     );
     register_mob(types, "CaveSpider");
     register_mob(types, "Silverfish");
@@ -178,7 +178,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         VERSION,
         "EntityHorse",
         DataWalkerMapListPaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["Items".to_owned(), "Equipment".to_owned()],
         ),
     );
@@ -186,7 +186,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         VERSION,
         "EntityHorse",
         DataWalkerMapTypePaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["ArmorItem".to_owned(), "SaddleItem".to_owned()],
         ),
     );
@@ -195,11 +195,11 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         VERSION,
         "Villager",
         DataWalkerMapListPaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["Inventory".to_owned(), "Equipment".to_owned()],
         ),
     );
-    let item_stack_type = types.item_stack;
+    let item_stack_type = &types.item_stack;
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "Villager",
@@ -243,11 +243,11 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         "RecordPlayer",
-        DataWalkerMapTypePaths::new(types.item_stack, "RecordItem"),
+        DataWalkerMapTypePaths::new(&types.item_stack, "RecordItem"),
     );
     register_inventory(types, "Trap");
     register_inventory(types, "Dropper");
-    let spawner_type = types.untagged_spawner;
+    let spawner_type = &types.untagged_spawner;
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         "MobSpawner",
@@ -261,16 +261,16 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         "FlowerPot",
-        DataWalkerObjectTypePaths::new(types.item_name, "Item"),
+        DataWalkerObjectTypePaths::new(&types.item_name, "Item"),
     );
 
     // rest
 
-    let block_name_type = types.block_name;
-    let entity_type = types.entity;
-    let item_name_type = types.item_name;
-    let item_stack_type = types.item_stack;
-    let tile_entity_type = types.tile_entity;
+    let block_name_type = &types.block_name;
+    let entity_type = &types.entity;
+    let item_name_type = &types.item_name;
+    let item_stack_type = &types.item_stack;
+    let tile_entity_type = &types.tile_entity;
     types.item_stack.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
@@ -373,14 +373,14 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     types.player.borrow_mut().add_structure_walker(
         VERSION,
         DataWalkerMapListPaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["Inventory".to_owned(), "EnderItems".to_owned()],
         ),
     );
 
-    let block_name_type = types.block_name;
-    let entity_type = types.entity;
-    let tile_entity_type = types.tile_entity;
+    let block_name_type = &types.block_name;
+    let entity_type = &types.entity;
+    let tile_entity_type = &types.tile_entity;
     types.chunk.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
@@ -412,12 +412,12 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
 
     types.entity_chunk.borrow_mut().add_structure_walker(
         VERSION,
-        DataWalkerMapListPaths::new(types.entity, "Entities"),
+        DataWalkerMapListPaths::new(&types.entity, "Entities"),
     );
 
-    let objective_type = types.objective;
-    let structure_feature_type = types.structure_feature;
-    let team_type = types.team;
+    let objective_type = &types.objective;
+    let structure_feature_type = &types.structure_feature;
+    let team_type = &types.team;
     types.saved_data.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
@@ -451,27 +451,27 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         .add_structure_hook(VERSION, DataHookEnforceNamespacedId::id());
 }
 
-fn register_mob(types: &MinecraftTypesMut, id: impl Into<String>) {
+fn register_mob<'a>(types: &'a MinecraftTypes<'a>, id: impl Into<String>) {
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         id,
-        DataWalkerMapListPaths::new(types.item_stack, "Equipment"),
+        DataWalkerMapListPaths::new(&types.item_stack, "Equipment"),
     );
 }
 
-fn register_projectile(types: &MinecraftTypesMut, id: impl Into<String>) {
+fn register_projectile<'a>(types: &'a MinecraftTypes<'a>, id: impl Into<String>) {
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         id,
-        DataWalkerObjectTypePaths::new(types.block_name, "inTile"),
+        DataWalkerObjectTypePaths::new(&types.block_name, "inTile"),
     );
 }
 
-fn register_inventory(types: &MinecraftTypesMut, id: impl Into<String>) {
+fn register_inventory<'a>(types: &'a MinecraftTypes<'a>, id: impl Into<String>) {
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         id,
-        DataWalkerMapListPaths::new(types.item_stack, "Items"),
+        DataWalkerMapListPaths::new(&types.item_stack, "Items"),
     );
 }
 

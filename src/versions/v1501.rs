@@ -1,5 +1,5 @@
 use crate::helpers::rename::rename_advancement;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use ahash::AHashMap;
 use std::sync::OnceLock;
 
@@ -234,7 +234,7 @@ fn renames() -> &'static AHashMap<&'static str, &'static str> {
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     let renames = renames();
     rename_advancement(types, VERSION, move |name| {
         renames.get(name).copied().map(|str| str.to_owned())

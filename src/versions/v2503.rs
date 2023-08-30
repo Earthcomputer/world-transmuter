@@ -1,6 +1,6 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::helpers::rename::{rename_advancement, simple_rename};
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 use std::sync::OnceLock;
 use valence_nbt::Value;
@@ -30,7 +30,7 @@ fn wall_blocks() -> &'static McNamespaceSet<'static> {
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.block_state.borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

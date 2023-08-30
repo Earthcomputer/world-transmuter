@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 use valence_nbt::{Compound, List, Value};
 
@@ -58,7 +58,7 @@ fn create_uuid_from_longs(least: i64, most: i64) -> Vec<i32> {
     ]
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // Entity UUID fixes
 
     types.entity.borrow_mut().add_structure_converter(

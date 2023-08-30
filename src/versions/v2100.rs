@@ -1,22 +1,22 @@
 use crate::helpers::rename::{rename_advancement, rename_recipe, simple_rename};
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{convert_map_in_map, data_walker, DataWalkerMapListPaths};
 use valence_nbt::{List, Value};
 
 const VERSION: u32 = 2100;
 
-fn register_mob(types: &MinecraftTypesMut, id: &str) {
+fn register_mob<'a>(types: &'a MinecraftTypes<'a>, id: &str) {
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         id,
         DataWalkerMapListPaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_recipe(
         types,
         VERSION,
@@ -32,7 +32,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     );
     register_mob(types, "minecraft:bee");
     register_mob(types, "minecraft:bee_stinger");
-    let entity_type = types.entity;
+    let entity_type = &types.entity;
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:beehive",

@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::Value;
 
@@ -23,7 +23,7 @@ const SHULKER_ID_BY_COLOR: [&str; 16] = [
     "minecraft:black_shulker_box",
 ];
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.item_stack.borrow_mut().add_converter_for_id(
         "minecraft:shulker_box",
         VERSION,

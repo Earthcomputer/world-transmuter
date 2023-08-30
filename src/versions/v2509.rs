@@ -1,10 +1,10 @@
 use crate::helpers::rename::{rename_entity, rename_item, simple_rename};
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::DataWalkerMapListPaths;
 
 const VERSION: u32 = 2509;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_item(
         types,
         VERSION,
@@ -22,7 +22,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         VERSION,
         "minecraft:zombified_piglin",
         DataWalkerMapListPaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );

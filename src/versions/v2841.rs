@@ -1,7 +1,7 @@
 use crate::helpers::bit_storage::{AlignedBitStorage, LocalPos, NullSectionInitializer, Section};
 use crate::helpers::block_state::BlockStateOwned;
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use ahash::AHashMap;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 use std::sync::OnceLock;
@@ -23,7 +23,7 @@ fn always_waterlogged() -> &'static McNamespaceSet<'static> {
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.chunk.borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

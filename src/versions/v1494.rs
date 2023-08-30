@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use ahash::AHashMap;
 use rust_dataconverter_engine::map_data_converter_func;
 use std::sync::OnceLock;
@@ -49,7 +49,7 @@ fn ench_id_to_name() -> &'static AHashMap<u8, &'static str> {
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.item_stack.borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

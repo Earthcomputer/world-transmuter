@@ -1,10 +1,10 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{convert_map_in_map, data_walker, map_data_converter_func};
 use valence_nbt::{Compound, List, Value};
 
 const VERSION: u32 = 106;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.untagged_spawner.borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -46,7 +46,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         }),
     );
 
-    let entity_type = types.entity;
+    let entity_type = &types.entity;
     types.untagged_spawner.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data: &mut Compound, from_version, to_version| {

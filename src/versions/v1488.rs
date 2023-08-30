@@ -1,13 +1,13 @@
 use crate::helpers::rename::{rename_block, rename_item, simple_rename};
 use crate::versions::v1458;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::value::ValueRef;
 use valence_nbt::Value;
 
 const VERSION: u32 = 1488;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_block(types, VERSION, |name| match name {
         "minecraft:kelp_top" => Some("minecraft:kelp".to_owned()),
         "minecraft:kelp" => Some("minecraft:kelp_plant".to_owned()),

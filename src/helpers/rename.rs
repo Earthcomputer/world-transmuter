@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{
     map_data_converter_func, value_data_converter_func, AbstractValueDataType, DataVersion,
 };
@@ -6,7 +6,7 @@ use valence_nbt::value::ValueMut;
 use valence_nbt::{Compound, List, Value};
 
 pub(crate) fn rename_entity<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -34,7 +34,7 @@ pub(crate) fn rename_entity<'a>(
 }
 
 pub(crate) fn rename_tile_entity<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -52,7 +52,7 @@ pub(crate) fn rename_tile_entity<'a>(
 }
 
 pub(crate) fn rename_block<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -80,7 +80,7 @@ pub(crate) fn rename_block<'a>(
 }
 
 pub(crate) fn rename_block_and_fix_jigsaw<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -111,7 +111,7 @@ pub(crate) fn rename_block_and_fix_jigsaw<'a>(
 }
 
 pub(crate) fn rename_item<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -128,7 +128,7 @@ pub(crate) fn rename_item<'a>(
 }
 
 pub(crate) fn rename_advancement<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -141,7 +141,7 @@ pub(crate) fn rename_advancement<'a>(
 }
 
 pub(crate) fn rename_criteria<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     advancement: &'a str,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
@@ -161,7 +161,7 @@ pub(crate) fn rename_criteria<'a>(
 }
 
 pub(crate) fn rename_recipe<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -178,7 +178,7 @@ pub(crate) fn rename_recipe<'a>(
 }
 
 pub(crate) fn rename_stat<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -206,7 +206,7 @@ pub(crate) fn rename_stat<'a>(
 }
 
 pub(crate) fn rename_option<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {
@@ -219,7 +219,7 @@ pub(crate) fn rename_option<'a>(
 }
 
 pub(crate) fn rename_poi<'a>(
-    types: &MinecraftTypesMut<'a>,
+    types: &'a MinecraftTypes<'a>,
     version: impl Into<DataVersion>,
     renamer: impl 'a + Copy + Fn(&str) -> Option<String>,
 ) {

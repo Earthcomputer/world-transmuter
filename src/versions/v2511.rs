@@ -1,10 +1,10 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, DataVersion, DataWalkerMapTypePaths};
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 2511;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.entity.borrow_mut().add_converter_for_id(
         "minecraft:egg",
         VERSION,
@@ -60,7 +60,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:potion",
-        DataWalkerMapTypePaths::new(types.item_stack, "Item"),
+        DataWalkerMapTypePaths::new(&types.item_stack, "Item"),
     );
 }
 

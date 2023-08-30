@@ -1,6 +1,6 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::{rename_block_and_fix_jigsaw, rename_item};
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use std::sync::OnceLock;
 
 const VERSION: u32 = 2696;
@@ -40,7 +40,7 @@ fn renames() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_item(types, VERSION, |name| {
         renames().get(name).map(|&str| str.to_owned())
     });

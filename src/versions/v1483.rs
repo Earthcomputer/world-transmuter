@@ -1,9 +1,9 @@
 use crate::helpers::rename::{rename_entity, rename_item, simple_rename};
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 
 const VERSION: u32 = 1483;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_entity(
         types,
         VERSION,

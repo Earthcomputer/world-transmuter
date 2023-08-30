@@ -1,11 +1,11 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use log::warn;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::Value;
 
 const VERSION: u32 = 108;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // Convert String UUID into UUIDMost and UUIDLeast
     types.entity.borrow_mut().add_structure_converter(
         VERSION,

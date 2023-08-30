@@ -2,7 +2,7 @@ use crate::helpers::bit_storage::{
     ceil_log2, AlignedBitStorage, LocalPos, NullSectionInitializer, Section,
 };
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use crate::versions::v2841;
 use ahash::{AHashMap, AHashSet};
 use bitvec::array::BitArray;
@@ -323,7 +323,7 @@ fn fix_lithium_chunks(data: &mut Compound) {
     }
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // See V2551 for the layout of world gen settings
     types.world_gen_settings.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         // converters were added to older versions note whether the world has increased height already or not
@@ -503,10 +503,10 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         }),
     );
 
-    let biome_type = types.biome;
-    let block_name_type = types.block_name;
+    let biome_type = &types.biome;
+    let block_name_type = &types.block_name;
     let multi_noise_biome_source_parameter_list_type =
-        types.multi_noise_biome_source_parameter_list;
+        &types.multi_noise_biome_source_parameter_list;
     types.world_gen_settings.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
@@ -632,12 +632,12 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         }),
     );
 
-    let entity_type = types.entity;
-    let tile_entity_type = types.tile_entity;
-    let block_name_type = types.block_name;
-    let biome_type = types.biome;
-    let block_state_type = types.block_state;
-    let structure_feature_type = types.structure_feature;
+    let entity_type = &types.entity;
+    let tile_entity_type = &types.tile_entity;
+    let block_name_type = &types.block_name;
+    let biome_type = &types.biome;
+    let block_state_type = &types.block_state;
+    let structure_feature_type = &types.structure_feature;
     types.chunk.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {

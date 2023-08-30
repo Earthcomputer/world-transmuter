@@ -1,12 +1,12 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{convert_object_in_map, convert_object_list_in_map, data_walker};
 use valence_nbt::{List, Value};
 
 const VERSION: u32 = 2551;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
-    let biome_type = types.biome;
-    let block_name_type = types.block_name;
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+    let biome_type = &types.biome;
+    let block_name_type = &types.block_name;
     types.world_gen_settings.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {

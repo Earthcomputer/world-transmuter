@@ -1,11 +1,11 @@
 use crate::helpers::resource_location::ResourceLocation;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::Value;
 
 const VERSION: u32 = 1460;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.entity.borrow_mut().add_converter_for_id(
         "minecraft:painting",
         VERSION,

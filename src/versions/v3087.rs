@@ -1,11 +1,11 @@
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use crate::versions::v3086::ConverterEntityToVariant;
 
 const VERSION: u32 = 3087;
 
 const FROG_ID_CONVERSION: [&str; 3] = ["minecraft:temperate", "minecraft:warm", "minecraft:cold"];
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.entity.borrow_mut().add_converter_for_id(
         "minecraft:frog",
         VERSION,

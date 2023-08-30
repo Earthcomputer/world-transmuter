@@ -1,5 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::value_data_converter_func;
 use std::sync::OnceLock;
 use valence_nbt::value::ValueMut;
@@ -83,7 +83,7 @@ fn biome_renames() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.biome.borrow_mut().add_structure_converter(
         VERSION,
         value_data_converter_func(|data, _from_version, _to_version| {

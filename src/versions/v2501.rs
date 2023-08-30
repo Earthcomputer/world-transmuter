@@ -1,17 +1,17 @@
 use crate::helpers::rename::rename_keys_in_map;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{convert_map_list_in_map, data_walker, map_data_converter_func};
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 2501;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     register_furnace(types, "minecraft:furnace");
     register_furnace(types, "minecraft:blast_furnace");
     register_furnace(types, "minecraft:smoker");
 }
 
-fn register_furnace(types: &MinecraftTypesMut, id: &str) {
+fn register_furnace<'a>(types: &'a MinecraftTypes<'a>, id: &str) {
     types.tile_entity.borrow_mut().add_converter_for_id(
         id,
         VERSION,
@@ -40,8 +40,8 @@ fn register_furnace(types: &MinecraftTypesMut, id: &str) {
         }),
     );
 
-    let item_stack_type = types.item_stack;
-    let recipe_type = types.recipe;
+    let item_stack_type = &types.item_stack;
+    let recipe_type = &types.recipe;
     types.tile_entity.borrow_mut().add_walker_for_id(
         VERSION,
         id,

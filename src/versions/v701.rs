@@ -1,9 +1,9 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 
 const VERSION: u32 = 701;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.entity.borrow_mut().add_converter_for_id(
         "Skeleton",
         VERSION,
@@ -24,12 +24,12 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     register_mob(types, "Stray");
 }
 
-fn register_mob(types: &MinecraftTypesMut, id: impl Into<String>) {
+fn register_mob<'a>(types: &'a MinecraftTypes<'a>, id: impl Into<String>) {
     types.entity.borrow_mut().add_walker_for_id(
         VERSION,
         id,
         DataWalkerMapListPaths::new_multi(
-            types.item_stack,
+            &types.item_stack,
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );

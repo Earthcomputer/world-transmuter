@@ -1,10 +1,10 @@
 use crate::helpers::rename::{rename_item, rename_tile_entity};
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 
 const VERSION: u32 = 3438;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // brushable block rename
     types.tile_entity.borrow_mut().copy_walkers(
         VERSION,

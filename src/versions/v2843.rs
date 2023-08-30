@@ -1,4 +1,4 @@
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use rust_dataconverter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
     convert_values_in_map, data_walker, map_data_converter_func, value_data_converter_func,
@@ -8,7 +8,7 @@ use valence_nbt::{Compound, List, Value};
 
 const VERSION: u32 = 2843;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.biome.borrow_mut().add_structure_converter(
         VERSION,
         value_data_converter_func(|data, _from_version, _to_version| {
@@ -67,12 +67,12 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
     );
 
     // DFU is missing schema for UpgradeData block names
-    let entity_type = types.entity;
-    let tile_entity_type = types.tile_entity;
-    let block_name_type = types.block_name;
-    let biome_type = types.biome;
-    let block_state_type = types.block_state;
-    let structure_feature_type = types.structure_feature;
+    let entity_type = &types.entity;
+    let tile_entity_type = &types.tile_entity;
+    let block_name_type = &types.block_name;
+    let biome_type = &types.biome;
+    let block_state_type = &types.block_state;
+    let structure_feature_type = &types.structure_feature;
     types.chunk.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {

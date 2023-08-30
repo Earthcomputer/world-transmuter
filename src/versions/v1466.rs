@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, convert_values_in_map,
     data_walker, map_data_converter_func,
@@ -7,7 +7,7 @@ use valence_nbt::{List, Value};
 
 const VERSION: u32 = 1466;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // There is a rather critical change I've made to this converter: changing the chunk status determination.
     // In Vanilla, this is determined by whether the terrain has been populated and whether the chunk is lit.
     // For reference, here is the full status progression (at the time of 18w06a):
@@ -85,11 +85,11 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         }),
     );
 
-    let block_name_type = types.block_name;
-    let block_state_type = types.block_state;
-    let entity_type = types.entity;
-    let structure_feature_type = types.structure_feature;
-    let tile_entity_type = types.tile_entity;
+    let block_name_type = &types.block_name;
+    let block_state_type = &types.block_state;
+    let entity_type = &types.entity;
+    let structure_feature_type = &types.structure_feature;
+    let tile_entity_type = &types.tile_entity;
     types.chunk.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
@@ -141,7 +141,7 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
             }
         }),
     );
-    let block_state_type = types.block_state;
+    let block_state_type = &types.block_state;
     types.structure_feature.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {

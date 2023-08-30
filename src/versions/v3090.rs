@@ -1,9 +1,9 @@
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 
 const VERSION: u32 = 3090;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.entity.borrow_mut().add_converter_for_id(
         "minecraft:painting",
         VERSION,

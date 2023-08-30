@@ -1,12 +1,12 @@
 use crate::helpers::rename::rename_criteria;
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::value::ValueMut;
 use valence_nbt::{List, Value};
 
 const VERSION: u32 = 3097;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     for item_id in ["minecraft:writable_book", "minecraft:written_book"] {
         types.item_stack.borrow_mut().add_converter_for_id(
             item_id,

@@ -1,5 +1,5 @@
-use crate::types::MinecraftTypesMut;
+use crate::types::MinecraftTypes;
 
-pub(crate) fn register(_types: &MinecraftTypesMut) {
+pub(crate) fn register(_types: &MinecraftTypes) {
     // registers simple entity "minecraft:interaction"
 }

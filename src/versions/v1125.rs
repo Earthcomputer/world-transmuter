@@ -1,13 +1,13 @@
 use crate::helpers::hooks::DataHookValueTypeEnforceNamespaced;
 use crate::helpers::rename::rename_keys_in_map;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::{data_walker, get_mut_multi, map_data_converter_func};
 use valence_nbt::{compound, Compound, List, Value};
 
 const VERSION: u32 = 1125;
 const BED_BLOCK_ID: i8 = 26;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.chunk.borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -67,8 +67,8 @@ pub(crate) fn register(types: &MinecraftTypesMut) {
         }),
     );
 
-    let biome_type = types.biome;
-    let entity_name_type = types.entity_name;
+    let biome_type = &types.biome;
+    let entity_name_type = &types.entity_name;
     types.advancements.borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data: &mut Compound, from_version, to_version| {

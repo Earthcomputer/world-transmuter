@@ -2,7 +2,7 @@ use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::{
     rename_block, rename_entity, rename_item, rename_recipe, rename_stat,
 };
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use std::sync::OnceLock;
 
 const VERSION: u32 = 1510;
@@ -85,7 +85,7 @@ fn recipes_updates() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_block(types, VERSION, |name| {
         renamed_blocks().get(name).map(|&str| str.to_owned())
     });

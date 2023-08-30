@@ -1,12 +1,12 @@
 use crate::helpers::rename::{rename_option, simple_rename};
 use crate::versions::v2550;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 2558;
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_option(
         types,
         VERSION,

@@ -1,5 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
-use crate::MinecraftTypesMut;
+use crate::MinecraftTypes;
 use rust_dataconverter_engine::map_data_converter_func;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -49,7 +49,7 @@ fn defaults() -> &'static McNamespaceMap<'static, StructureFeatureConfiguration>
     })
 }
 
-pub(crate) fn register(types: &MinecraftTypesMut) {
+pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     types.world_gen_settings.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         let seed = data.get("RandomSeed").and_then(|v| v.as_i64()).unwrap_or(0);
         let generator_name = match data.get("generatorName") {
