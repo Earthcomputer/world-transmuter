@@ -22,7 +22,7 @@ macro_rules! define_minecraft_types {
             )*
         }
 
-        pub struct MinecraftTypesInner {
+        struct MinecraftTypesInner {
             // SAFETY: although these types are declared as RefCell<$type<'static>>, their actual
             // type is RefCell<$type<'a>> where 'a is the lifetime of the struct. This is enforced
             // by the fields only being accessed via MinecraftTypesMut::$field_name(), which
