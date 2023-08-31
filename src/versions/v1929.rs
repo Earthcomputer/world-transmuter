@@ -1,12 +1,12 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{convert_map_in_map, convert_map_list_in_map, data_walker};
 use valence_nbt::{List, Value};
 
 const VERSION: u32 = 1929;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    let item_stack_type = &types.item_stack;
-    types.entity.borrow_mut().add_walker_for_id(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    let item_stack_type = types.item_stack();
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:wandering_trader",
         data_walker(move |data, from_version, to_version| {
@@ -50,8 +50,8 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
             convert_map_list_in_map(item_stack_type, data, "HandItems", from_version, to_version);
         }),
     );
-    let item_stack_type = &types.item_stack;
-    types.entity.borrow_mut().add_walker_for_id(
+    let item_stack_type = types.item_stack();
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:trader_llama",
         data_walker(move |data, from_version, to_version| {

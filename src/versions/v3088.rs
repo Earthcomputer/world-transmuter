@@ -1,6 +1,6 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::helpers::resource_location::ResourceLocation;
-use crate::types::MinecraftTypes;
+use crate::types::MinecraftTypesMut;
 use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use std::sync::OnceLock;
 use valence_nbt::{compound, Compound, Value};
@@ -20,9 +20,9 @@ fn statuses_to_skip_blending() -> &'static McNamespaceSet<'static> {
     })
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     types
-        .chunk
+        .chunk()
         .borrow_mut()
         .add_structure_converter(VERSION, ConverterAddBlendingData);
 }

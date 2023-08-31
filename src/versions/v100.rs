@@ -1,24 +1,24 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::*;
 use valence_nbt::{Compound, List, Value};
 
 const VERSION: u32 = 100;
 
-fn register_mob<'a>(types: &'a MinecraftTypes<'a>, id: impl Into<String>) {
-    types.entity.borrow_mut().add_walker_for_id(
+fn register_mob(types: MinecraftTypesMut, id: impl Into<String>) {
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         id,
         DataWalkerMapListPaths::new_multi(
-            &types.item_stack,
+            types.item_stack(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.entity.borrow_mut().add_structure_converter(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.entity().borrow_mut().add_structure_converter(
         VERSION,
-        map_data_converter_func(move |data, _from_version, _to_version| {
+        map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::List(equipment)) = data.remove("Equipment") {
                 let mut equipment = equipment.into_iter();
                 if let Some(hand_item) = equipment.next() {
@@ -81,10 +81,10 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     register_mob(types, "Ghast");
     register_mob(types, "PigZombie");
     register_mob(types, "Enderman");
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "Enderman",
-        DataWalkerObjectTypePaths::new(&types.block_name, "carried"),
+        DataWalkerObjectTypePaths::new(types.block_name(), "carried"),
     );
     register_mob(types, "CaveSpider");
     register_mob(types, "Silverfish");
@@ -106,11 +106,11 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     register_mob(types, "SnowMan");
     register_mob(types, "Ozelot");
     register_mob(types, "VillagerGolem");
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "EntityHorse",
         DataWalkerMapListPaths::new_multi(
-            &types.item_stack,
+            types.item_stack(),
             vec![
                 "Items".to_owned(),
                 "HandItems".to_owned(),
@@ -118,17 +118,17 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
             ],
         ),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "EntityHorse",
         DataWalkerMapTypePaths::new_multi(
-            &types.item_stack,
+            types.item_stack(),
             vec!["ArmorItem".to_owned(), "SaddleItem".to_owned()],
         ),
     );
     register_mob(types, "Rabbit");
-    let item_stack_type = &types.item_stack;
-    types.entity.borrow_mut().add_walker_for_id(
+    let item_stack_type = types.item_stack();
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "Villager",
         data_walker(move |data, from_version, to_version| {
@@ -172,10 +172,10 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
     register_mob(types, "Shulker");
 
-    let block_state_type = &types.block_state;
-    let entity_type = &types.entity;
-    let tile_entity_type = &types.tile_entity;
-    types.structure.borrow_mut().add_structure_walker(
+    let block_state_type = types.block_state();
+    let entity_type = types.entity();
+    let tile_entity_type = types.tile_entity();
+    types.structure().borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             if let Some(Value::List(List::Compound(entities))) = data.get_mut("entities") {

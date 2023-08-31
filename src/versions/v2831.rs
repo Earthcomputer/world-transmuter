@@ -1,12 +1,12 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{convert_map_in_map, data_walker, map_data_converter_func};
 use valence_nbt::{compound, Compound, List, Value};
 
 const VERSION: u32 = 2831;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    let entity_type = &types.entity;
-    types.untagged_spawner.borrow_mut().add_structure_walker(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    let entity_type = types.entity();
+    types.untagged_spawner().borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             if let Some(Value::List(List::Compound(spawn_potentials))) =
@@ -31,41 +31,44 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.untagged_spawner.borrow_mut().add_structure_converter(
-        VERSION,
-        map_data_converter_func(|data, _from_version, _to_version| {
-            if matches!(data.get("SpawnData"), Some(Value::Compound(_))) {
-                let Some(Value::Compound(spawn_data)) = data.remove("SpawnData") else {
-                    unreachable!()
-                };
-                data.insert(
-                    "SpawnData",
-                    compound! {
-                        "entity" => spawn_data,
-                    },
-                );
-            }
-
-            if let Some(Value::List(List::Compound(spawn_potentials))) =
-                data.get_mut("SpawnPotentials")
-            {
-                for spawn_potential in spawn_potentials {
-                    // new format of weighted list (SpawnPotentials):
-                    // root.data -> data
-                    // root.weight -> weight
-
-                    let weight = spawn_potential
-                        .remove("Weight")
-                        .and_then(|o| o.as_i32())
-                        .unwrap_or(1);
-                    spawn_potential.insert("weight", weight);
-                    let mut data = Compound::new();
-                    if let Some(Value::Compound(entity)) = spawn_potential.remove("Entity") {
-                        data.insert("entity", entity);
-                    }
-                    spawn_potential.insert("data", data);
+    types
+        .untagged_spawner()
+        .borrow_mut()
+        .add_structure_converter(
+            VERSION,
+            map_data_converter_func(|data, _from_version, _to_version| {
+                if matches!(data.get("SpawnData"), Some(Value::Compound(_))) {
+                    let Some(Value::Compound(spawn_data)) = data.remove("SpawnData") else {
+                        unreachable!()
+                    };
+                    data.insert(
+                        "SpawnData",
+                        compound! {
+                            "entity" => spawn_data,
+                        },
+                    );
                 }
-            }
-        }),
-    );
+
+                if let Some(Value::List(List::Compound(spawn_potentials))) =
+                    data.get_mut("SpawnPotentials")
+                {
+                    for spawn_potential in spawn_potentials {
+                        // new format of weighted list (SpawnPotentials):
+                        // root.data -> data
+                        // root.weight -> weight
+
+                        let weight = spawn_potential
+                            .remove("Weight")
+                            .and_then(|o| o.as_i32())
+                            .unwrap_or(1);
+                        spawn_potential.insert("weight", weight);
+                        let mut data = Compound::new();
+                        if let Some(Value::Compound(entity)) = spawn_potential.remove("Entity") {
+                            data.insert("entity", entity);
+                        }
+                        spawn_potential.insert("data", data);
+                    }
+                }
+            }),
+        );
 }

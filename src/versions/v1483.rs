@@ -1,9 +1,9 @@
 use crate::helpers::rename::{rename_entity, rename_item, simple_rename};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1483;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     rename_entity(
         types,
         VERSION,
@@ -17,7 +17,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
             "minecraft:pufferfish_spawn_egg",
         ),
     );
-    types.entity.borrow_mut().copy_walkers(
+    types.entity().borrow_mut().copy_walkers(
         VERSION,
         "minecraft:puffer_fish",
         "minecraft:pufferfish",

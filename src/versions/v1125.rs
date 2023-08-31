@@ -1,14 +1,14 @@
 use crate::helpers::hooks::DataHookValueTypeEnforceNamespaced;
 use crate::helpers::rename::rename_keys_in_map;
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{data_walker, get_mut_multi, map_data_converter_func};
 use valence_nbt::{compound, Compound, List, Value};
 
 const VERSION: u32 = 1125;
 const BED_BLOCK_ID: i8 = 26;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.chunk.borrow_mut().add_structure_converter(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.chunk().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {
@@ -57,7 +57,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.item_stack.borrow_mut().add_converter_for_id(
+    types.item_stack().borrow_mut().add_converter_for_id(
         "minecraft:bed",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -67,9 +67,9 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    let biome_type = &types.biome;
-    let entity_name_type = &types.entity_name;
-    types.advancements.borrow_mut().add_structure_walker(
+    let biome_type = types.biome();
+    let entity_name_type = types.entity_name();
+    types.advancements().borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data: &mut Compound, from_version, to_version| {
             if let Some(Value::Compound(adventuring_time)) =
@@ -121,7 +121,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
 
     // Enforce namespacing for ids
     types
-        .biome
+        .biome()
         .borrow_mut()
         .add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced);
 }

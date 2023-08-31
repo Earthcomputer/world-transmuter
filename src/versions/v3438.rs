@@ -1,12 +1,12 @@
 use crate::helpers::rename::{rename_item, rename_tile_entity};
-use crate::types::MinecraftTypes;
+use crate::types::MinecraftTypesMut;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 
 const VERSION: u32 = 3438;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     // brushable block rename
-    types.tile_entity.borrow_mut().copy_walkers(
+    types.tile_entity().borrow_mut().copy_walkers(
         VERSION,
         "minecraft:suspicious_sand",
         "minecraft:brushable_block",
@@ -20,7 +20,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }
     });
 
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:brushable_block",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

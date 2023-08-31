@@ -1,9 +1,9 @@
 use crate::helpers::rename::{rename_stat, simple_rename};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2710;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     rename_stat(
         types,
         VERSION,

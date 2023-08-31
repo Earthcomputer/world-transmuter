@@ -1,11 +1,11 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 
 const VERSION: u32 = 2707;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     types
-        .world_gen_settings
+        .world_gen_settings()
         .borrow_mut()
         .add_structure_converter(
             VERSION,
@@ -16,11 +16,11 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
             }),
         );
 
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:marker",
         DataWalkerMapListPaths::new_multi(
-            &types.item_stack,
+            types.item_stack(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     ); // ?????????????

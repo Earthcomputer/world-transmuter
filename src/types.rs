@@ -1,27 +1,63 @@
 use rust_dataconverter_engine::{IdDataType, MapDataType, ObjectDataType};
 use std::cell::{Ref, RefCell};
+use std::marker::PhantomData;
+
+#[derive(Copy, Clone)]
+pub(crate) struct MinecraftTypesMut<'a>(&'a MinecraftTypes<'a>);
+
+pub struct MinecraftTypes<'a>(MinecraftTypesInner, PhantomData<RefCell<&'a ()>>);
 
 macro_rules! define_minecraft_types {
     ($($field_name:ident : $type:ident ($name:literal)),* $(,)?) => {
-        pub struct MinecraftTypes<'a> {
+
+        impl<'a> MinecraftTypesMut<'a> {
             $(
-                pub(crate) $field_name: RefCell<$type<'a>>,
+                pub(crate) fn $field_name(self) -> &'a RefCell<$type<'a>> {
+                    // SAFETY: the "actual" type of the field is RefCell<$type<'a>>, see the comment
+                    // inside MinecraftTypesInner.
+                    unsafe {
+                        std::mem::transmute::<&'a RefCell<$type<'static>>, &'a RefCell<$type<'a>>>(&self.0.0.$field_name)
+                    }
+                }
+            )*
+        }
+
+        pub struct MinecraftTypesInner {
+            // SAFETY: although these types are declared as RefCell<$type<'static>>, their actual
+            // type is RefCell<$type<'a>> where 'a is the lifetime of the struct. This is enforced
+            // by the fields only being accessed via MinecraftTypesMut::$field_name(), which
+            // transmutes directly to RefCell<$type<'a>>.
+            // So, why do this? It's to bypass the drop check, which essentially checks that the
+            // destructor does not follow any references to the self-referential struct which may
+            // be partially deleted. This is only possible via the dyn traits inside the $type's,
+            // and there is no way to enforce this, so this struct in isolation is technically
+            // unsound. However, this struct can only be accessed mutably from within this crate,
+            // meaning no-one from outside could add a naughty self-referential drop implementation.
+            // All the implementations from inside this crate promise not to add self-referential
+            // drop impls, meaning this struct in the context of this crate as a whole is sound.
+            // This is not ideal, but it's the only way I could get this self-referencing struct to
+            // work, and I'm so fucking done with refactoring it.
+            $(
+                $field_name: RefCell<$type<'static>>,
             )*
         }
 
         impl<'a> MinecraftTypes<'a> {
             $(
                 pub fn $field_name(&'a self) -> Ref<'a, $type<'a>> {
-                    self.$field_name.borrow()
+                    MinecraftTypesMut(self).$field_name().borrow()
                 }
             )*
 
             pub fn create_empty() -> Self {
-                Self {
-                    $(
-                        $field_name: RefCell::new($type::new($name)),
-                    )*
-                }
+                Self(
+                    MinecraftTypesInner {
+                        $(
+                            $field_name: RefCell::new($type::new($name)),
+                        )*
+                    },
+                    PhantomData,
+                )
             }
         }
     }
@@ -65,6 +101,6 @@ impl<'a> MinecraftTypes<'a> {
         // - ID specific converters run after structure converters.
         // - Structure walkers run after id specific converters.
         // - ID specific walkers run after structure walkers.
-        crate::versions::register_versions(self);
+        crate::versions::register_versions(MinecraftTypesMut(self));
     }
 }

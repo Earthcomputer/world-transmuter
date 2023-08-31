@@ -1,11 +1,11 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 2505;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.entity.borrow_mut().add_converter_for_id(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:villager",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -23,11 +23,11 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:piglin",
         DataWalkerMapListPaths::new_multi(
-            &types.item_stack,
+            types.item_stack(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );

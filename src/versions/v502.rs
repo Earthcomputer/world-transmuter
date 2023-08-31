@@ -1,17 +1,17 @@
 use crate::helpers::rename::{rename_item, simple_rename};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 
 const VERSION: u32 = 502;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     rename_item(
         types,
         VERSION,
         simple_rename("minecraft:cooked_fished", "minecraft:cooked_fish"),
     );
 
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "Zombie",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

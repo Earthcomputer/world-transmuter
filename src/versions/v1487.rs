@@ -1,9 +1,9 @@
 use crate::helpers::rename::{rename_block, rename_item};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 1487;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     let renamer = |name: &str| match name {
         "minecraft:prismarine_bricks_slab" => Some("minecraft:prismarine_brick_slab".to_owned()),
         "minecraft:prismarine_bricks_stairs" => {

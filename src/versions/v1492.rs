@@ -1,4 +1,4 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -323,9 +323,9 @@ fn renames() -> &'static BTreeMap<&'static str, StructureRenames> {
     })
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     types
-        .structure_feature
+        .structure_feature()
         .borrow_mut()
         .add_structure_converter(
             VERSION,

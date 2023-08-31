@@ -1,11 +1,11 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::{compound, Value};
 
 const VERSION: u32 = 110;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.entity.borrow_mut().add_converter_for_id(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.entity().borrow_mut().add_converter_for_id(
         "EntityHorse",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

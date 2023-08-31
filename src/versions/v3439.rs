@@ -1,4 +1,4 @@
-use crate::types::MinecraftTypes;
+use crate::types::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::{compound, Compound, List, Value};
 
@@ -14,9 +14,9 @@ fn get_line(root: &Compound, key: &str) -> String {
     }
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     for sign_id in ["minecraft:sign", "minecraft:hanging_sign"] {
-        types.tile_entity.borrow_mut().add_converter_for_id(sign_id, VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+        types.tile_entity().borrow_mut().add_converter_for_id(sign_id, VERSION, map_data_converter_func(|data, _from_version, _to_version| {
             macro_rules! migrate_to_list {
                 ($root:expr, $prefix:literal) => {
                     List::String(vec![

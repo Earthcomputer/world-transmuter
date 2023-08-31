@@ -1,4 +1,4 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 use valence_nbt::{Compound, List, Value};
 
@@ -58,10 +58,10 @@ fn create_uuid_from_longs(least: i64, most: i64) -> Vec<i32> {
     ]
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     // Entity UUID fixes
 
-    types.entity.borrow_mut().add_structure_converter(
+    types.entity().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             replace_uuid_least_most!(data, "UUID", "UUID");
@@ -80,7 +80,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         "minecraft:parrot",
         "minecraft:wolf",
     ] {
-        types.entity.borrow_mut().add_converter_for_id(
+        types.entity().borrow_mut().add_converter_for_id(
             id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {
@@ -104,7 +104,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         "minecraft:turtle",
         "minecraft:hoglin",
     ] {
-        types.entity.borrow_mut().add_converter_for_id(
+        types.entity().borrow_mut().add_converter_for_id(
             id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {
@@ -159,7 +159,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         "minecraft:ravager",
         "minecraft:piglin",
     ] {
-        types.entity.borrow_mut().add_converter_for_id(
+        types.entity().borrow_mut().add_converter_for_id(
             id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {
@@ -168,7 +168,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         );
     }
 
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:armor_stand",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -192,7 +192,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         "minecraft:trident",
         "minecraft:wither_skull",
     ] {
-        types.entity.borrow_mut().add_converter_for_id(
+        types.entity().borrow_mut().add_converter_for_id(
             id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {
@@ -202,7 +202,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     }
 
     for id in ["minecraft:bee", "minecraft:zombified_piglin"] {
-        types.entity.borrow_mut().add_converter_for_id(
+        types.entity().borrow_mut().add_converter_for_id(
             id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {
@@ -211,49 +211,49 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         );
     }
 
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:fox",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_fox(data);
         }),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:item",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_item(data);
         }),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:shulker_bullet",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_shulker_bullet(data);
         }),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:area_effect_cloud",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_area_effect_cloud(data);
         }),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:zombie_villager",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_zombie_villager(data);
         }),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:evoker_fangs",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_evoker_fangs(data);
         }),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:piglin",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -262,14 +262,14 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 
     // Update TE
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:conduit",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             replace_uuid_ml_tag(data, "target_uuid", "Target");
         }),
     );
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:skull",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -281,7 +281,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 
     // Player UUID
-    types.player.borrow_mut().add_structure_converter(
+    types.player().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_living_entity(data);
@@ -294,7 +294,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 
     // Level.dat
-    types.level.borrow_mut().add_structure_converter(
+    types.level().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             replace_uuid_string(data, "WanderingTraderId", "WanderingTraderId");
@@ -345,7 +345,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.saved_data.borrow_mut().add_structure_converter(
+    types.saved_data().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(data)) = data.get_mut("data") else {
@@ -383,7 +383,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.item_stack.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+    types.item_stack().borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         let is_player_head = matches!(data.get("id"), Some(Value::String(str)) if str == "minecraft:player_head");
 
         if let Some(Value::Compound(tag)) = data.get_mut("tag") {

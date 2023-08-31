@@ -1,9 +1,9 @@
 use crate::helpers::rename::{rename_block, rename_item};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2528;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     rename_item(types, VERSION, |name| match name {
         "minecraft:soul_fire_torch" => Some("minecraft:soul_torch".to_owned()),
         "minecraft:soul_fire_lantern" => Some("minecraft:soul_lantern".to_owned()),

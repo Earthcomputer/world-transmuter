@@ -1,9 +1,9 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{DataWalkerMapListPaths, DataWalkerMapTypePaths};
 
 const VERSION: u32 = 1470;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     register_mob(types, "minecraft:turtle");
     register_mob(types, "minecraft:cod_mob");
     register_mob(types, "minecraft:tropical_fish");
@@ -13,19 +13,19 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     register_mob(types, "minecraft:dolphin");
     register_mob(types, "minecraft:drowned");
 
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:trident",
-        DataWalkerMapTypePaths::new(&types.block_state, "inBlockState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "inBlockState"),
     );
 }
 
-fn register_mob<'a>(types: &'a MinecraftTypes<'a>, id: impl Into<String>) {
-    types.entity.borrow_mut().add_walker_for_id(
+fn register_mob(types: MinecraftTypesMut, id: impl Into<String>) {
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         id,
         DataWalkerMapListPaths::new_multi(
-            &types.item_stack,
+            types.item_stack(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );

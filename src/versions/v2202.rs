@@ -1,11 +1,11 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::Value;
 
 const VERSION: u32 = 2202;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.chunk.borrow_mut().add_structure_converter(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.chunk().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {

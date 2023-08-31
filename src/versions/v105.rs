@@ -1,12 +1,12 @@
 use crate::helpers::spawn_egg_name_v105;
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 105;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.item_stack.borrow_mut().add_converter_for_id(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.item_stack().borrow_mut().add_converter_for_id(
         "minecraft:spawn_egg",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

@@ -1,11 +1,11 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::Value;
 
 const VERSION: u32 = 2679;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.block_state.borrow_mut().add_structure_converter(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.block_state().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if matches!(data.get("Name"), Some(Value::String(str)) if str == "minecraft:cauldron") {

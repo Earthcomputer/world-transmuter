@@ -1,4 +1,4 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_list_in_map, data_walker,
 };
@@ -6,11 +6,11 @@ use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 1022;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    let entity_type = &types.entity;
-    let item_stack_type = &types.item_stack;
-    let recipe_type = &types.recipe;
-    types.player.borrow_mut().add_structure_walker(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    let entity_type = types.entity();
+    let item_stack_type = types.item_stack();
+    let recipe_type = types.recipe();
+    types.player().borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data: &mut Compound, from_version, to_version| {
             if let Some(Value::Compound(root_vehicle)) = data.get_mut("RootVehicle") {
@@ -66,8 +66,8 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    let item_stack_type = &types.item_stack;
-    types.hotbar.borrow_mut().add_structure_walker(
+    let item_stack_type = types.item_stack();
+    types.hotbar().borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             let keys = data.keys().cloned().collect::<Vec<_>>();

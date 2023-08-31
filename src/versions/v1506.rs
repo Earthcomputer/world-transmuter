@@ -1,6 +1,6 @@
 use crate::helpers::gson_lenient_fix::{fix_gson_lenient, FixedGsonLenient, JsonType};
 use crate::helpers::json_parser;
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use ahash::AHashMap;
 use log::warn;
 use rust_dataconverter_engine::map_data_converter_func;
@@ -91,8 +91,8 @@ fn biome_map() -> &'static AHashMap<&'static str, &'static str> {
     })
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.level.borrow_mut().add_structure_converter(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.level().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let generator_options = match data.get("generatorOptions") {

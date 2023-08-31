@@ -4,7 +4,7 @@ macro_rules! versions {
             pub(crate) mod $version;
         )*
 
-        pub(crate) fn register_versions<'a>(types: &'a $crate::types::MinecraftTypes<'a>) {
+        pub(crate) fn register_versions(types: $crate::types::MinecraftTypesMut) {
             $(
                 $version::register(types);
             )*

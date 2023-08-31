@@ -1,5 +1,5 @@
 use crate::helpers::rename::rename_criteria;
-use crate::types::MinecraftTypes;
+use crate::types::MinecraftTypesMut;
 use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -44,8 +44,8 @@ fn cat_advancements_conversion() -> &'static BTreeMap<&'static str, &'static str
     })
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.entity.borrow_mut().add_converter_for_id(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:cat",
         VERSION,
         ConverterEntityToVariant::new("CatType", |id: i32| {

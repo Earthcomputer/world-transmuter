@@ -1,5 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
-use crate::types::MinecraftTypes;
+use crate::types::MinecraftTypesMut;
 use log::error;
 use rust_dataconverter_engine::{get_mut_multi, map_data_converter_func};
 use std::collections::BTreeMap;
@@ -136,8 +136,8 @@ fn conversion_map() -> &'static BTreeMap<&'static str, BiomeRemap> {
     })
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.chunk.borrow_mut().add_structure_converter(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.chunk().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let [Some(Value::Compound(structures)), sections] =

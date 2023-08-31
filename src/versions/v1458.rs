@@ -1,25 +1,25 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 1458;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     // From CB
-    types.player.borrow_mut().add_structure_converter(
+    types.player().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             update_custom_name(data);
         }),
     );
 
-    types.entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+    types.entity().borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         if !matches!(data.get("id"), Some(Value::String(str)) if str == "minecraft:commandblock_minecart") {
             update_custom_name(data);
         }
     }));
 
-    types.item_stack.borrow_mut().add_structure_converter(
+    types.item_stack().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::Compound(tag)) = data.get_mut("tag") {
@@ -43,7 +43,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.tile_entity.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+    types.tile_entity().borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         if !matches!(data.get("id"), Some(Value::String(str)) if str == "minecraft:command_block") {
             update_custom_name(data);
         }

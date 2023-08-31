@@ -1,66 +1,66 @@
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{map_data_converter_func, DataVersion, DataWalkerMapTypePaths};
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 2511;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.entity.borrow_mut().add_converter_for_id(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:egg",
         VERSION,
         map_data_converter_func(throwable_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:ender_pearl",
         VERSION,
         map_data_converter_func(throwable_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:experience_bottle",
         VERSION,
         map_data_converter_func(throwable_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:snowball",
         VERSION,
         map_data_converter_func(throwable_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:potion",
         VERSION,
         map_data_converter_func(throwable_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:potion",
         VERSION,
         map_data_converter_func(potion_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:llama_spit",
         VERSION,
         map_data_converter_func(llama_spit_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:arrow",
         VERSION,
         map_data_converter_func(arrow_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:spectral_arrow",
         VERSION,
         map_data_converter_func(arrow_converter),
     );
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:trident",
         VERSION,
         map_data_converter_func(arrow_converter),
     );
 
     // Vanilla migrates the potion item but does not change the schema.
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         VERSION,
         "minecraft:potion",
-        DataWalkerMapTypePaths::new(&types.item_stack, "Item"),
+        DataWalkerMapTypePaths::new(types.item_stack(), "Item"),
     );
 }
 

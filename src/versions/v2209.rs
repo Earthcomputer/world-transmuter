@@ -1,5 +1,5 @@
 use crate::helpers::rename::{rename_block, rename_item, rename_poi};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 
 const VERSION: u32 = 2209;
 
@@ -11,7 +11,7 @@ fn renamer(name: &str) -> Option<String> {
     }
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     rename_block(types, VERSION, renamer);
     rename_item(types, VERSION, renamer);
     rename_poi(types, VERSION, renamer);

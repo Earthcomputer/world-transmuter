@@ -2,7 +2,7 @@ use crate::helpers::bit_storage::{
     ceil_log2, AlignedBitStorage, LocalPos, NullSectionInitializer, Section,
 };
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types::MinecraftTypes;
+use crate::types::MinecraftTypesMut;
 use crate::versions::v2841;
 use ahash::{AHashMap, AHashSet};
 use bitvec::array::BitArray;
@@ -323,9 +323,9 @@ fn fix_lithium_chunks(data: &mut Compound) {
     }
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     // See V2551 for the layout of world gen settings
-    types.world_gen_settings.borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+    types.world_gen_settings().borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         // converters were added to older versions note whether the world has increased height already or not
         let no_height_flag = !data.contains_key("has_increased_height_already");
         let has_increased_height = data.remove("has_increased_height_already").and_then(|v| v.as_bool()).unwrap_or(true);
@@ -377,7 +377,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
 
     // It looks like DFU will only support worlds in the old height format or the new one, any custom one isn't supported
     // and by not supported I mean it will just treat it as the old format... maybe at least throw in that case?
-    types.chunk.borrow_mut().add_structure_converter(
+    types.chunk().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             // The below covers padPaletteEntries - this was written BEFORE that code was added to the datafixer -
@@ -503,142 +503,148 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    let biome_type = &types.biome;
-    let block_name_type = &types.block_name;
+    let biome_type = types.biome();
+    let block_name_type = types.block_name();
     let multi_noise_biome_source_parameter_list_type =
-        &types.multi_noise_biome_source_parameter_list;
-    types.world_gen_settings.borrow_mut().add_structure_walker(
-        VERSION,
-        data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(dimensions)) = data.get_mut("dimensions") else {
-                return;
-            };
-            for dimension_data in dimensions.values_mut() {
-                let Value::Compound(dimension_data) = dimension_data else {
-                    continue;
+        types.multi_noise_biome_source_parameter_list();
+    types
+        .world_gen_settings()
+        .borrow_mut()
+        .add_structure_walker(
+            VERSION,
+            data_walker(move |data, from_version, to_version| {
+                let Some(Value::Compound(dimensions)) = data.get_mut("dimensions") else {
+                    return;
                 };
-                let Some(Value::Compound(generator)) = dimension_data.get_mut("generator") else {
-                    continue;
-                };
-                let Some(Value::String(typ)) = generator.get("type") else {
-                    continue;
-                };
+                for dimension_data in dimensions.values_mut() {
+                    let Value::Compound(dimension_data) = dimension_data else {
+                        continue;
+                    };
+                    let Some(Value::Compound(generator)) = dimension_data.get_mut("generator")
+                    else {
+                        continue;
+                    };
+                    let Some(Value::String(typ)) = generator.get("type") else {
+                        continue;
+                    };
 
-                match &typ[..] {
-                    "minecraft:flat" => {
-                        let Some(Value::Compound(settings)) = generator.get_mut("settings") else {
-                            continue;
-                        };
+                    match &typ[..] {
+                        "minecraft:flat" => {
+                            let Some(Value::Compound(settings)) = generator.get_mut("settings")
+                            else {
+                                continue;
+                            };
 
-                        convert_object_in_map(
-                            biome_type,
-                            settings,
-                            "biome",
-                            from_version,
-                            to_version,
-                        );
+                            convert_object_in_map(
+                                biome_type,
+                                settings,
+                                "biome",
+                                from_version,
+                                to_version,
+                            );
 
-                        if let Some(Value::List(List::Compound(layers))) =
-                            settings.get_mut("layers")
-                        {
-                            for layer in layers {
+                            if let Some(Value::List(List::Compound(layers))) =
+                                settings.get_mut("layers")
+                            {
+                                for layer in layers {
+                                    convert_object_in_map(
+                                        block_name_type,
+                                        layer,
+                                        "block",
+                                        from_version,
+                                        to_version,
+                                    );
+                                }
+                            }
+                        }
+                        "minecraft:noise" => {
+                            if let Some(Value::Compound(settings)) = generator.get_mut("settings") {
                                 convert_object_in_map(
                                     block_name_type,
-                                    layer,
-                                    "block",
+                                    settings,
+                                    "default_block",
+                                    from_version,
+                                    to_version,
+                                );
+                                convert_object_in_map(
+                                    block_name_type,
+                                    settings,
+                                    "default_fluid",
                                     from_version,
                                     to_version,
                                 );
                             }
-                        }
-                    }
-                    "minecraft:noise" => {
-                        if let Some(Value::Compound(settings)) = generator.get_mut("settings") {
-                            convert_object_in_map(
-                                block_name_type,
-                                settings,
-                                "default_block",
-                                from_version,
-                                to_version,
-                            );
-                            convert_object_in_map(
-                                block_name_type,
-                                settings,
-                                "default_fluid",
-                                from_version,
-                                to_version,
-                            );
-                        }
 
-                        if let Some(Value::Compound(biome_source)) =
-                            generator.get_mut("biome_source")
-                        {
-                            if let Some(Value::String(biome_source_type)) = biome_source.get("type")
+                            if let Some(Value::Compound(biome_source)) =
+                                generator.get_mut("biome_source")
                             {
-                                match &biome_source_type[..] {
-                                    "minecraft:fixed" => {
-                                        convert_object_in_map(
-                                            biome_type,
-                                            biome_source,
-                                            "biome",
-                                            from_version,
-                                            to_version,
-                                        );
-                                    }
-                                    "minecraft:multi_noise" => {
-                                        convert_object_in_map(
-                                            multi_noise_biome_source_parameter_list_type,
-                                            biome_source,
-                                            "preset",
-                                            from_version,
-                                            to_version,
-                                        );
+                                if let Some(Value::String(biome_source_type)) =
+                                    biome_source.get("type")
+                                {
+                                    match &biome_source_type[..] {
+                                        "minecraft:fixed" => {
+                                            convert_object_in_map(
+                                                biome_type,
+                                                biome_source,
+                                                "biome",
+                                                from_version,
+                                                to_version,
+                                            );
+                                        }
+                                        "minecraft:multi_noise" => {
+                                            convert_object_in_map(
+                                                multi_noise_biome_source_parameter_list_type,
+                                                biome_source,
+                                                "preset",
+                                                from_version,
+                                                to_version,
+                                            );
 
-                                        // Vanilla's schema is _still_ wrong. It should be DSL.fields("biomes", DSL.list(DSL.fields("biome")))
-                                        // But it just contains the list part. That obviously can never be the case, because
-                                        // the root object is a compound, not a list.
+                                            // Vanilla's schema is _still_ wrong. It should be DSL.fields("biomes", DSL.list(DSL.fields("biome")))
+                                            // But it just contains the list part. That obviously can never be the case, because
+                                            // the root object is a compound, not a list.
 
-                                        if let Some(Value::List(List::Compound(biomes))) =
-                                            biome_source.get_mut("biomes")
-                                        {
-                                            for biome in biomes {
-                                                convert_object_in_map(
-                                                    biome_type,
-                                                    biome,
-                                                    "biome",
-                                                    from_version,
-                                                    to_version,
-                                                );
+                                            if let Some(Value::List(List::Compound(biomes))) =
+                                                biome_source.get_mut("biomes")
+                                            {
+                                                for biome in biomes {
+                                                    convert_object_in_map(
+                                                        biome_type,
+                                                        biome,
+                                                        "biome",
+                                                        from_version,
+                                                        to_version,
+                                                    );
+                                                }
                                             }
                                         }
+                                        "minecraft:checkerboard" => {
+                                            convert_object_list_in_map(
+                                                biome_type,
+                                                biome_source,
+                                                "biomes",
+                                                from_version,
+                                                to_version,
+                                            );
+                                        }
+                                        _ => {}
                                     }
-                                    "minecraft:checkerboard" => {
-                                        convert_object_list_in_map(
-                                            biome_type,
-                                            biome_source,
-                                            "biomes",
-                                            from_version,
-                                            to_version,
-                                        );
-                                    }
-                                    _ => {}
                                 }
                             }
                         }
+                        _ => {}
                     }
-                    _ => {}
                 }
-            }
-        }),
-    );
+            }),
+        );
 
-    let entity_type = &types.entity;
-    let tile_entity_type = &types.tile_entity;
-    let block_name_type = &types.block_name;
-    let biome_type = &types.biome;
-    let block_state_type = &types.block_state;
-    let structure_feature_type = &types.structure_feature;
-    types.chunk.borrow_mut().add_structure_walker(
+    let entity_type = types.entity();
+    let tile_entity_type = types.tile_entity();
+    let block_name_type = types.block_name();
+    let biome_type = types.biome();
+    let block_state_type = types.block_state();
+    let structure_feature_type = types.structure_feature();
+    types.chunk().borrow_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {

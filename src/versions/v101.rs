@@ -1,13 +1,13 @@
 use crate::helpers::gson_lenient_fix::{fix_gson_lenient, FixedGsonLenient, JsonType};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use std::borrow::Cow;
 use valence_nbt::{Compound, Value};
 
 const VERSION: u32 = 101;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
-    types.tile_entity.borrow_mut().add_converter_for_id(
+pub(crate) fn register(types: MinecraftTypesMut) {
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "Sign",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

@@ -1,13 +1,13 @@
 use crate::helpers::rename::{rename_block, rename_item, simple_rename};
 use crate::versions::v1458;
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::value::ValueRef;
 use valence_nbt::Value;
 
 const VERSION: u32 = 1488;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     rename_block(types, VERSION, |name| match name {
         "minecraft:kelp_top" => Some("minecraft:kelp".to_owned()),
         "minecraft:kelp" => Some("minecraft:kelp_plant".to_owned()),
@@ -22,7 +22,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     // Don't ask me why in V1458 they wrote the converter to NOT do command blocks and THEN in THIS version
     // to ONLY do command blocks. I don't know.
 
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:command_block",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -30,7 +30,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:commandblock_minecart",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -39,7 +39,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 
     types
-        .structure_feature
+        .structure_feature()
         .borrow_mut()
         .add_structure_converter(
             VERSION,

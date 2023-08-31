@@ -1,14 +1,14 @@
 use crate::helpers::rename::rename_criteria;
-use crate::types::MinecraftTypes;
+use crate::types::MinecraftTypesMut;
 use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::value::ValueMut;
 use valence_nbt::{List, Value};
 
 const VERSION: u32 = 3097;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     for item_id in ["minecraft:writable_book", "minecraft:written_book"] {
-        types.item_stack.borrow_mut().add_converter_for_id(
+        types.item_stack().borrow_mut().add_converter_for_id(
             item_id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {
@@ -21,7 +21,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         );
     }
 
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:sign",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -32,7 +32,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:cat",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -57,7 +57,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         },
     );
 
-    types.poi_chunk.borrow_mut().add_structure_converter(
+    types.poi_chunk().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(sections)) = data.get_mut("Sections") else {

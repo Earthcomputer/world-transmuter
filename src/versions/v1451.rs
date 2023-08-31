@@ -4,7 +4,7 @@ use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_keys_in_map;
 use crate::helpers::resource_location::ResourceLocation;
 use crate::helpers::{block_flattening_v1450, flatten_item_stack_v1451, item_name_v102};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, data_walker,
     map_data_converter_func, rename_key, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
@@ -495,25 +495,25 @@ fn entity_map() -> &'static BTreeMap<&'static str, &'static str> {
     })
 }
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     // V0
-    types.tile_entity.borrow_mut().add_walker_for_id(
+    types.tile_entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 0),
         "minecraft:trapped_chest",
-        DataWalkerMapListPaths::new(&types.item_stack, "Items"),
+        DataWalkerMapListPaths::new(types.item_stack(), "Items"),
     );
 
     // V1
     types
-        .chunk
+        .chunk()
         .borrow_mut()
         .add_structure_converter(DataVersion::new(VERSION, 1), ConverterFlattenChunk);
 
-    let block_name_type = &types.block_name;
-    let block_state_type = &types.block_state;
-    let entity_type = &types.entity;
-    let tile_entity_type = &types.tile_entity;
-    types.chunk.borrow_mut().add_structure_walker(
+    let block_name_type = types.block_name();
+    let block_state_type = types.block_state();
+    let entity_type = types.entity();
+    let tile_entity_type = types.tile_entity();
+    types.chunk().borrow_mut().add_structure_walker(
         DataVersion::new(VERSION, 1),
         data_walker(move |data: &mut Compound, from_version, to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {
@@ -555,7 +555,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 
     // V2
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:piston",
         DataVersion::new(VERSION, 2),
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -572,15 +572,15 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.tile_entity.borrow_mut().add_walker_for_id(
+    types.tile_entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 2),
         "minecraft:piston",
-        DataWalkerMapTypePaths::new(&types.block_state, "blockState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "blockState"),
     );
 
     // V3
     register_entity_flatteners(types);
-    types.item_stack.borrow_mut().add_converter_for_id(
+    types.item_stack().borrow_mut().add_converter_for_id(
         "minecraft:filled_map",
         DataVersion::new(VERSION, 3),
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -598,107 +598,107 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:potion",
-        DataWalkerMapTypePaths::new(&types.item_stack, "Potion"),
+        DataWalkerMapTypePaths::new(types.item_stack(), "Potion"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:arrow",
-        DataWalkerMapTypePaths::new(&types.block_state, "inBlockState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "inBlockState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:enderman",
         DataWalkerMapListPaths::new_multi(
-            &types.item_stack,
+            types.item_stack(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:enderman",
-        DataWalkerMapTypePaths::new(&types.block_state, "carriedBlockState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "carriedBlockState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:falling_block",
-        DataWalkerMapTypePaths::new(&types.block_state, "BlockState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "BlockState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:falling_block",
-        DataWalkerMapTypePaths::new(&types.tile_entity, "TileEntityData"),
+        DataWalkerMapTypePaths::new(types.tile_entity(), "TileEntityData"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:falling_block",
-        DataWalkerMapTypePaths::new(&types.tile_entity, "TileEntityData"),
+        DataWalkerMapTypePaths::new(types.tile_entity(), "TileEntityData"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:spectral_arrow",
-        DataWalkerMapTypePaths::new(&types.block_state, "inBlockState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "inBlockState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:chest_minecart",
-        DataWalkerMapTypePaths::new(&types.block_state, "DisplayState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "DisplayState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:chest_minecart",
-        DataWalkerMapListPaths::new(&types.item_stack, "Items"),
+        DataWalkerMapListPaths::new(types.item_stack(), "Items"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:commandblock_minecart",
-        DataWalkerMapTypePaths::new(&types.block_state, "DisplayState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "DisplayState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:furnace_minecart",
-        DataWalkerMapTypePaths::new(&types.block_state, "DisplayState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "DisplayState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:hopper_minecart",
-        DataWalkerMapTypePaths::new(&types.block_state, "DisplayState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "DisplayState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:hopper_minecart",
-        DataWalkerMapListPaths::new(&types.item_stack, "Items"),
+        DataWalkerMapListPaths::new(types.item_stack(), "Items"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:minecart",
-        DataWalkerMapTypePaths::new(&types.block_state, "DisplayState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "DisplayState"),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:spawner_minecart",
-        DataWalkerMapTypePaths::new(&types.block_state, "DisplayState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "DisplayState"),
     );
-    let untagged_spawner_type = &types.untagged_spawner;
-    types.entity.borrow_mut().add_walker_for_id(
+    let untagged_spawner_type = types.untagged_spawner();
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:spawner_minecart",
         data_walker(move |data, from_version, to_version| {
             untagged_spawner_type.convert(data, from_version, to_version);
         }),
     );
-    types.entity.borrow_mut().add_walker_for_id(
+    types.entity().borrow_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:tnt_minecart",
-        DataWalkerMapTypePaths::new(&types.block_state, "DisplayState"),
+        DataWalkerMapTypePaths::new(types.block_state(), "DisplayState"),
     );
 
     // V4
     // We cannot use a structure converter for block_name to change types as we don't support that.
     // Instead, we add structure converters to all types containing block_name that we aren't already converting elsewhere.
-    types.item_stack.borrow_mut().add_structure_converter(
+    types.item_stack().borrow_mut().add_structure_converter(
         DataVersion::new(VERSION, 4),
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(tag)) = data.get_mut("tag") else {
@@ -728,7 +728,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
             }
         }),
     );
-    types.chunk.borrow_mut().add_structure_converter(
+    types.chunk().borrow_mut().add_structure_converter(
         DataVersion::new(VERSION, 4),
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {
@@ -752,19 +752,19 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 
     types
-        .item_stack
+        .item_stack()
         .borrow_mut()
         .add_structure_converter(DataVersion::new(VERSION, 4), ConverterFlattenItemStack);
 
     // V5
-    types.item_stack.borrow_mut().add_converter_for_id(
+    types.item_stack().borrow_mut().add_converter_for_id(
         "minecraft:spawn_egg",
         DataVersion::new(VERSION, 5),
         ConverterFlattenSpawnEgg,
     );
     // Skip the wolf collar color converter.
     // See: https://github.com/PaperMC/DataConverter/blob/b8c345c76f7bd6554666ef856ebd2043775ee47a/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V1451.java#L146-L160
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:banner",
         DataVersion::new(VERSION, 5),
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -781,7 +781,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
             }
         }),
     );
-    types.level.borrow_mut().add_structure_converter(
+    types.level().borrow_mut().add_structure_converter(
         DataVersion::new(VERSION, 5),
         map_data_converter_func(|data, _from_version, _to_version| {
             if !matches!(data.get("generatorName"), Some(Value::String(str)) if str == "flat") {
@@ -870,7 +870,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 
     // V6
-    types.stats.borrow_mut().add_structure_converter(
+    types.stats().borrow_mut().add_structure_converter(
         DataVersion::new(VERSION, 6),
         map_data_converter_func(|data, _from_version, _to_version| {
             let mut stats = Compound::new();
@@ -935,7 +935,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
             data.insert("stats", stats);
         }),
     );
-    types.tile_entity.borrow_mut().add_converter_for_id(
+    types.tile_entity().borrow_mut().add_converter_for_id(
         "minecraft:jukebox",
         DataVersion::new(VERSION, 6),
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -957,10 +957,10 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }),
     );
 
-    let block_name_type = &types.block_name;
-    let entity_name_type = &types.entity_name;
-    let item_name_type = &types.item_name;
-    types.stats.borrow_mut().add_structure_walker(
+    let block_name_type = types.block_name();
+    let entity_name_type = types.entity_name();
+    let item_name_type = types.item_name();
+    types.stats().borrow_mut().add_structure_walker(
         DataVersion::new(VERSION, 6),
         data_walker(move |data, from_version, to_version| {
             if let Some(Value::Compound(stats)) = data.get_mut("stats") {
@@ -1090,14 +1090,14 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }
     }
     types
-        .objective
+        .objective()
         .borrow_mut()
         .add_structure_hook(DataVersion::new(VERSION, 6), ObjectiveHook);
 
-    let block_name_type = &types.block_name;
-    let entity_name_type = &types.entity_name;
-    let item_name_type = &types.item_name;
-    types.objective.borrow_mut().add_structure_walker(
+    let block_name_type = types.block_name();
+    let entity_name_type = types.entity_name();
+    let item_name_type = types.item_name();
+    types.objective().borrow_mut().add_structure_walker(
         DataVersion::new(VERSION, 6),
         data_walker(move |data, from_version, to_version| {
             let Some(Value::Compound(criteria_type)) = data.get_mut("CriteriaType") else {
@@ -1145,7 +1145,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
 
     // V7
     types
-        .structure_feature
+        .structure_feature()
         .borrow_mut()
         .add_structure_converter(
             DataVersion::new(VERSION, 7),
@@ -1183,7 +1183,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         );
 
     // convert villagers to trade with pumpkins and not the carved pumpkin
-    types.entity.borrow_mut().add_converter_for_id("minecraft:villager", DataVersion::new(VERSION, 7), map_data_converter_func(|data, _from_version, _to_version| {
+    types.entity().borrow_mut().add_converter_for_id("minecraft:villager", DataVersion::new(VERSION, 7), map_data_converter_func(|data, _from_version, _to_version| {
         fn convert_pumpkin(data: &mut Compound, path: &str) {
             if let Some(Value::Compound(item)) = data.get_mut(path) {
                 if matches!(item.get("id"), Some(Value::String(str)) if str == "minecraft:carved_pumpkin") {
@@ -1203,8 +1203,8 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
         }
     }));
 
-    let block_state_type = &types.block_state;
-    types.structure_feature.borrow_mut().add_structure_walker(
+    let block_state_type = types.block_state();
+    types.structure_feature().borrow_mut().add_structure_walker(
         DataVersion::new(VERSION, 7),
         data_walker(move |data, from_version, to_version| {
             if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
@@ -1219,8 +1219,8 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     );
 }
 
-fn register_entity_flatteners<'a>(types: &'a MinecraftTypes<'a>) {
-    types.entity.borrow_mut().add_converter_for_id(
+fn register_entity_flatteners(types: MinecraftTypesMut) {
+    types.entity().borrow_mut().add_converter_for_id(
         "minecraft:falling_block",
         DataVersion::new(VERSION, 3),
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -1330,8 +1330,8 @@ fn register_entity_flatteners<'a>(types: &'a MinecraftTypes<'a>) {
     );
 }
 
-fn remove_in_tile(types: &MinecraftTypes, entity_id: impl Into<String>) {
-    types.entity.borrow_mut().add_converter_for_id(
+fn remove_in_tile(types: MinecraftTypesMut, entity_id: impl Into<String>) {
+    types.entity().borrow_mut().add_converter_for_id(
         entity_id,
         DataVersion::new(VERSION, 3),
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -1341,13 +1341,13 @@ fn remove_in_tile(types: &MinecraftTypes, entity_id: impl Into<String>) {
 }
 
 fn convert_entity_state<'a>(
-    types: &'a MinecraftTypes<'a>,
+    types: MinecraftTypesMut<'a>,
     entity_id: impl Into<String>,
     id_path: &'a str,
     data_path: &'a str,
     output_path: impl Into<String> + Clone + 'a,
 ) {
-    types.entity.borrow_mut().add_converter_for_id(
+    types.entity().borrow_mut().add_converter_for_id(
         entity_id,
         DataVersion::new(VERSION, 3),
         map_data_converter_func(move |data, _from_version, _to_version| {

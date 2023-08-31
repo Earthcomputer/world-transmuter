@@ -1,11 +1,11 @@
 use crate::helpers::rename::{rename_block, rename_item};
-use crate::MinecraftTypes;
+use crate::MinecraftTypesMut;
 use rust_dataconverter_engine::{map_data_converter_func, rename_key};
 use valence_nbt::Value;
 
 const VERSION: u32 = 1484;
 
-pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
+pub(crate) fn register(types: MinecraftTypesMut) {
     let renamer = |name: &str| match name {
         "minecraft:sea_grass" => Some("minecraft:seagrass".to_owned()),
         "minecraft:tall_sea_grass" => Some("minecraft:tall_seagrass".to_owned()),
@@ -14,7 +14,7 @@ pub(crate) fn register<'a>(types: &'a MinecraftTypes<'a>) {
     rename_item(types, VERSION, renamer);
     rename_block(types, VERSION, renamer);
 
-    types.chunk.borrow_mut().add_structure_converter(
+    types.chunk().borrow_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {
