@@ -19,10 +19,10 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             let Some(Value::String(name)) = display.get_mut("Name") else {
                 return;
             };
-            if let Ok(mut json) = json_parser::parse_map(name) {
+            if let Ok(mut json) = json_parser::parse_compound(name) {
                 if let Some(Value::String(translate)) = json.get_mut("translate") {
                     *translate = "block.minecraft.ominous_banner".to_owned();
-                    *name = json_parser::stringify_map(json);
+                    *name = json_parser::stringify_compound(json, false);
                 }
             }
         }),

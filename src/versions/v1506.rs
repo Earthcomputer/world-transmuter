@@ -113,7 +113,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                         fixed_str: fixed_gson,
                     }) = fix_gson_lenient(generator_options)
                     {
-                        if let Ok(result) = json_parser::parse_map(&fixed_gson) {
+                        if let Ok(result) = json_parser::parse_compound(&fixed_gson) {
                             data.insert("generatorOptions", result);
                             return;
                         }

@@ -7,18 +7,61 @@ use nom::multi::{many0, separated_list0};
 use nom::number::complete::recognize_float;
 use nom::sequence::{delimited, pair, preceded, separated_pair, terminated, tuple};
 use nom::{AsChar, Finish, IResult};
-use std::fmt::Write;
+use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 use valence_nbt::value::ValueRef;
 use valence_nbt::{Compound, List, Value};
 
-pub(crate) fn stringify_map(map: Compound) -> String {
+#[derive(Debug, PartialEq)]
+pub struct ParseError(Error<String>);
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl std::error::Error for ParseError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+struct Indent(u32);
+
+impl Indent {
+    fn indent(&mut self) {
+        self.0 += 1;
+    }
+
+    fn dedent(&mut self) {
+        self.0 -= 1;
+    }
+}
+
+impl Display for Indent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for _ in 0..self.0 {
+            f.write_str("  ")?;
+        }
+        Ok(())
+    }
+}
+
+pub fn stringify_compound(map: Compound, pretty: bool) -> String {
     let mut str = String::new();
-    stringify(ValueRef::Compound(&map), &mut str).expect("Should not get Err writing to String");
+    stringify(ValueRef::Compound(&map), &mut str, pretty, Indent(0))
+        .expect("Should not get Err writing to String");
     str
 }
 
-fn stringify(obj: ValueRef, str: &mut String) -> std::fmt::Result {
+fn stringify(
+    obj: ValueRef,
+    str: &mut String,
+    pretty: bool,
+    mut indent: Indent,
+) -> std::fmt::Result {
     match obj {
         ValueRef::Byte(b) => write!(str, "{}", b)?,
         ValueRef::Short(s) => write!(str, "{}", s)?,
@@ -28,53 +71,108 @@ fn stringify(obj: ValueRef, str: &mut String) -> std::fmt::Result {
         ValueRef::Double(d) => write!(str, "{}", d)?,
         ValueRef::ByteArray(arr) => {
             str.push('[');
+            if pretty {
+                indent.indent();
+                write!(str, "\n{indent}")?;
+            }
             for (i, &b) in <&[i8]>::into_iter(arr).enumerate() {
                 if i != 0 {
                     str.push(',');
+                    if pretty {
+                        write!(str, "\n{indent}")?;
+                    }
                 }
                 write!(str, "{}", b)?;
+            }
+            if pretty {
+                indent.dedent();
+                write!(str, "\n{indent}")?;
             }
             str.push(']');
         }
         ValueRef::IntArray(arr) => {
             str.push('[');
+            if pretty {
+                indent.indent();
+                write!(str, "\n{indent}")?;
+            }
             for (i, &int) in <&[i32]>::into_iter(arr).enumerate() {
                 if i != 0 {
                     str.push(',');
+                    if pretty {
+                        write!(str, "\n{indent}")?;
+                    }
                 }
                 write!(str, "{}", int)?;
+            }
+            if pretty {
+                indent.dedent();
+                write!(str, "\n{indent}")?;
             }
             str.push(']');
         }
         ValueRef::LongArray(arr) => {
             str.push('[');
+            if pretty {
+                indent.indent();
+                write!(str, "\n{indent}")?;
+            }
             for (i, &l) in <&[i64]>::into_iter(arr).enumerate() {
                 if i != 0 {
                     str.push(',');
+                    if pretty {
+                        write!(str, "\n{indent}")?;
+                    }
                 }
                 write!(str, "{}", l)?;
+            }
+            if pretty {
+                indent.dedent();
+                write!(str, "\n{indent}")?;
             }
             str.push(']');
         }
         ValueRef::List(list) => {
             str.push('[');
+            if pretty {
+                indent.indent();
+                write!(str, "\n{indent}")?;
+            }
             for (i, obj) in list.iter().enumerate() {
                 if i != 0 {
                     str.push(',');
+                    if pretty {
+                        write!(str, "\n{indent}")?;
+                    }
                 }
-                stringify(obj, str)?;
+                stringify(obj, str, pretty, indent)?;
+            }
+            if pretty {
+                indent.dedent();
+                write!(str, "\n{indent}")?;
             }
             str.push(']');
         }
         ValueRef::Compound(map) => {
             str.push('{');
+            if pretty {
+                indent.indent();
+                write!(str, "\n{indent}")?;
+            }
             for (i, (key, value)) in map.iter().enumerate() {
                 if i != 0 {
                     str.push(',');
+                    if pretty {
+                        write!(str, "\n{indent}")?;
+                    }
                 }
                 stringify_string(key, str);
                 str.push(':');
-                stringify(value.as_value_ref(), str)?;
+                stringify(value.as_value_ref(), str, pretty, indent)?;
+            }
+            if pretty {
+                indent.dedent();
+                write!(str, "\n{indent}")?;
             }
             str.push('}');
         }
@@ -98,8 +196,16 @@ fn stringify_string(input: &str, output: &mut String) {
     output.push('"');
 }
 
-pub(crate) fn parse_map(json: &str) -> Result<Compound, Error<&str>> {
-    preceded(space, object)(json).finish().map(|(_, o)| o)
+pub fn parse_compound(json: &str) -> Result<Compound, ParseError> {
+    preceded(space, object)(json)
+        .finish()
+        .map(|(_, o)| o)
+        .map_err(|err| {
+            ParseError(Error {
+                input: err.input.to_owned(),
+                code: err.code,
+            })
+        })
 }
 
 fn space(i: &str) -> IResult<&str, ()> {
@@ -194,14 +300,14 @@ fn hex_digit(i: &str) -> IResult<&str, ()> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_map;
+    use super::parse_compound;
     use valence_nbt::snbt::from_snbt_str;
     use valence_nbt::Value;
 
     #[test]
     fn test_parse_object() {
         assert_eq!(
-            Value::Compound(parse_map(r#"{"foo": "bar", "baz": "quux"}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": "bar", "baz": "quux"}"#).unwrap()),
             from_snbt_str(r#"{"foo": "bar", "baz": "quux"}"#).unwrap()
         );
     }
@@ -209,7 +315,7 @@ mod tests {
     #[test]
     fn test_parse_array() {
         assert_eq!(
-            Value::Compound(parse_map(r#"{"foo": ["bar", "baz", "quux"]}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": ["bar", "baz", "quux"]}"#).unwrap()),
             from_snbt_str(r#"{"foo": ["bar", "baz", "quux"]}"#).unwrap()
         )
     }
@@ -217,7 +323,7 @@ mod tests {
     #[test]
     fn test_parse_int() {
         assert_eq!(
-            Value::Compound(parse_map(r#"{"foo": 123}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": 123}"#).unwrap()),
             from_snbt_str(r#"{"foo": 123L}"#).unwrap()
         )
     }
@@ -225,7 +331,7 @@ mod tests {
     #[test]
     fn test_parse_double() {
         assert_eq!(
-            Value::Compound(parse_map(r#"{"foo": 123.45}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": 123.45}"#).unwrap()),
             from_snbt_str(r#"{"foo": 123.45}"#).unwrap()
         )
     }
@@ -234,7 +340,7 @@ mod tests {
     fn test_whitespace() {
         assert_eq!(
             Value::Compound(
-                parse_map(
+                parse_compound(
                     r#" { "foo" : "bar" , "list" : [ "a" , "b" ] , "long" : 1 , "double" : 1.2 } "#
                 )
                 .unwrap()
@@ -247,7 +353,7 @@ mod tests {
     #[test]
     fn test_string_escapes() {
         assert_eq!(
-            Value::Compound(parse_map(r#"{"foo": "\\\n\r\t\"\u0020"}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": "\\\n\r\t\"\u0020"}"#).unwrap()),
             from_snbt_str(r#"{"foo": "\\\n\r\t\" "}"#).unwrap()
         )
     }
