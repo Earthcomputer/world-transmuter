@@ -1,6 +1,6 @@
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use valence_nbt::{Compound, Value};
+use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
 
 const VERSION: u32 = 806;
 

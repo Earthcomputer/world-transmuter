@@ -1,9 +1,9 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::helpers::resource_location::ResourceLocation;
 use crate::types::MinecraftTypesMut;
-use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use std::sync::OnceLock;
 use valence_nbt::{compound, Compound, Value};
+use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
 
 const VERSION: u32 = 3088;
 

@@ -1,8 +1,8 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_item;
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::DataWalkerMapListPaths;
 use std::sync::OnceLock;
+use world_transmuter_engine::DataWalkerMapListPaths;
 
 const VERSION: u32 = 1800;
 

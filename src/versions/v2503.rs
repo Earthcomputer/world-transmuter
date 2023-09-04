@@ -1,9 +1,9 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
 use crate::helpers::rename::{rename_advancement, simple_rename};
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::map_data_converter_func;
 use std::sync::OnceLock;
 use valence_nbt::Value;
+use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 2503;
 

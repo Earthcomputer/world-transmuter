@@ -8,13 +8,13 @@ use ahash::{AHashMap, AHashSet};
 use bitvec::array::BitArray;
 use bitvec::order::Lsb0;
 use log::error;
-use rust_dataconverter_engine::{
-    convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
-    convert_values_in_map, data_walker, get_mut_multi, map_data_converter_func,
-};
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
 use valence_nbt::{compound, Compound, List, Value};
+use world_transmuter_engine::{
+    convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
+    convert_values_in_map, data_walker, get_mut_multi, map_data_converter_func,
+};
 
 const VERSION: u32 = 2832;
 
@@ -755,7 +755,7 @@ fn shift_upgrade_data(upgrade_data: Option<&mut Value>, shift: i32) {
         return;
     };
 
-    rust_dataconverter_engine::rename_keys(indices, |input| {
+    world_transmuter_engine::rename_keys(indices, |input| {
         input.parse::<i32>().ok().map(|i| (i + shift).to_string())
     });
 }

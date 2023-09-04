@@ -1,9 +1,9 @@
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::{
-    map_data_converter_func, value_data_converter_func, AbstractValueDataType, DataVersion,
-};
 use valence_nbt::value::ValueMut;
 use valence_nbt::{Compound, List, Value};
+use world_transmuter_engine::{
+    map_data_converter_func, value_data_converter_func, AbstractValueDataType, DataVersion,
+};
 
 pub(crate) fn rename_entity<'a>(
     types: MinecraftTypesMut<'a>,
@@ -135,7 +135,7 @@ pub(crate) fn rename_advancement<'a>(
     types.advancements().borrow_mut().add_structure_converter(
         version,
         map_data_converter_func(move |data, _from_version, _to_version| {
-            rust_dataconverter_engine::rename_keys(data, renamer);
+            world_transmuter_engine::rename_keys(data, renamer);
         }),
     );
 }
@@ -155,7 +155,7 @@ pub(crate) fn rename_criteria<'a>(
             let Some(Value::Compound(criteria)) = advancement.get_mut("criteria") else {
                 return;
             };
-            rust_dataconverter_engine::rename_keys(criteria, renamer);
+            world_transmuter_engine::rename_keys(criteria, renamer);
         }),
     );
 }
@@ -200,7 +200,7 @@ pub(crate) fn rename_stat<'a>(
             let Some(Value::Compound(custom)) = stats.get_mut("minecraft:custom") else {
                 return;
             };
-            rust_dataconverter_engine::rename_keys(custom, renamer);
+            world_transmuter_engine::rename_keys(custom, renamer);
         }),
     );
 }
@@ -213,7 +213,7 @@ pub(crate) fn rename_option<'a>(
     types.options().borrow_mut().add_structure_converter(
         version,
         map_data_converter_func(move |data, _from_version, _to_version| {
-            rust_dataconverter_engine::rename_keys(data, renamer);
+            world_transmuter_engine::rename_keys(data, renamer);
         }),
     );
 }
@@ -281,7 +281,7 @@ pub(crate) fn rename_keys(
     from_version: DataVersion,
     to_version: DataVersion,
 ) {
-    rust_dataconverter_engine::rename_keys(map, move |key| {
+    world_transmuter_engine::rename_keys(map, move |key| {
         let mut new_key = key.to_owned();
         typ.convert(
             &mut ValueMut::String(&mut new_key),

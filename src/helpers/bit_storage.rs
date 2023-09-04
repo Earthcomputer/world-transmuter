@@ -1,8 +1,8 @@
 use crate::helpers::block_state::{BlockState, BlockStateOwned};
 use log::{error, warn};
-use rust_dataconverter_engine::get_mut_multi;
 use strength_reduce::StrengthReducedUsize;
 use valence_nbt::{Compound, List, Value};
+use world_transmuter_engine::get_mut_multi;
 
 pub(crate) const fn bitset_size(size: usize) -> usize {
     const USIZE_BITS: usize = std::mem::size_of::<usize>() * 8;

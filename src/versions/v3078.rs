@@ -1,6 +1,6 @@
 use crate::helpers::walkers::GameEventListenerWalker;
 use crate::types::MinecraftTypesMut;
-use rust_dataconverter_engine::DataWalkerMapListPaths;
+use world_transmuter_engine::DataWalkerMapListPaths;
 
 const VERSION: u32 = 3078;
 

@@ -1,7 +1,7 @@
 use crate::helpers::resource_location::ResourceLocation;
-use rust_dataconverter_engine::{DataVersion, MapDataHook, ValueDataHook};
 use valence_nbt::value::ValueMut;
 use valence_nbt::{Compound, Value};
+use world_transmuter_engine::{DataVersion, MapDataHook, ValueDataHook};
 
 pub(crate) struct DataHookValueTypeEnforceNamespaced;
 

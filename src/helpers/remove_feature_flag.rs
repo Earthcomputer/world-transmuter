@@ -1,6 +1,6 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use valence_nbt::{Compound, List, Value};
+use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
 
 pub(crate) struct ConverterRemoveFeatureFlags<'a>(McNamespaceSet<'a>);
 

@@ -2,14 +2,14 @@ use crate::helpers::hooks::DataHookEnforceNamespacedId;
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::MinecraftTypesMut;
 use log::warn;
-use rust_dataconverter_engine::{
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use valence_nbt::Value;
+use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_walker,
     get_mut_multi, map_data_converter_func, AbstractMapDataType, DataWalkerMapListPaths,
     DataWalkerMapTypePaths, DataWalkerObjectTypePaths,
 };
-use std::collections::BTreeMap;
-use std::sync::OnceLock;
-use valence_nbt::Value;
 
 const VERSION: u32 = 704;
 

@@ -1,5 +1,5 @@
 use crate::types::MinecraftTypesMut;
-use rust_dataconverter_engine::DataWalkerMapTypePaths;
+use world_transmuter_engine::DataWalkerMapTypePaths;
 
 const VERSION: u32 = 3325;
 

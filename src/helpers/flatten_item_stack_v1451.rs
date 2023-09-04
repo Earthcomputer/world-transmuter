@@ -1,8 +1,8 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use valence_nbt::{Compound, Value};
+use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
 
 #[derive(Default)]
 struct ItemStackFlattenData {

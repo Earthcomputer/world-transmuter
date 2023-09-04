@@ -1,13 +1,13 @@
 use crate::helpers::hooks::{DataHookEnforceNamespacedId, DataHookValueTypeEnforceNamespaced};
 use crate::helpers::rename::rename_entity;
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::{
-    convert_map_in_map, data_walker, AbstractMapDataType, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, DataWalkerObjectTypePaths,
-};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use valence_nbt::{List, Value};
+use world_transmuter_engine::{
+    convert_map_in_map, data_walker, AbstractMapDataType, DataWalkerMapListPaths,
+    DataWalkerMapTypePaths, DataWalkerObjectTypePaths,
+};
 
 const VERSION: u32 = 705;
 

@@ -1,5 +1,5 @@
 [package]
-name = "rust_dataconverter_minecraft"
+name = "world-transmuter"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,16 +9,16 @@ ahash = "0.8.3"
 bitvec = { version = "1.0.0", default-features = false }
 log = "0.4.16"
 nom = "7.1.1"
-rust_dataconverter_engine = { path = "../RustDataConverterEngine" } # TODO: stabilize this library then push to crates.io
 strength_reduce = "0.2.3"
 uuid = "1"
-valence_nbt = { git = "https://github.com/valence-rs/valence", rev = "d741fbe" }
+valence_nbt = "0.7"
+world-transmuter-engine = "0.1.0"
 
 [dev-dependencies]
 
 attohttpc = "0.26.0"
 regex = "1.5.5"
-valence_nbt = { git = "https://github.com/valence-rs/valence", rev = "d741fbe", features = ["snbt"] }
+valence_nbt = { version = "0.7", features = ["snbt"] }
 
 [features]
 

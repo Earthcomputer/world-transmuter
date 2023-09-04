@@ -1,6 +1,6 @@
 use crate::helpers::rename::{rename_entity, rename_item, simple_rename};
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::DataWalkerMapListPaths;
+use world_transmuter_engine::DataWalkerMapListPaths;
 
 const VERSION: u32 = 1928;
 

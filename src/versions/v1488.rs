@@ -1,9 +1,9 @@
 use crate::helpers::rename::{rename_block, rename_item, simple_rename};
 use crate::versions::v1458;
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::map_data_converter_func;
 use valence_nbt::value::ValueRef;
 use valence_nbt::Value;
+use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 1488;
 

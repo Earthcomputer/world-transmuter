@@ -5,14 +5,14 @@ use crate::helpers::rename::rename_keys_in_map;
 use crate::helpers::resource_location::ResourceLocation;
 use crate::helpers::{block_flattening_v1450, flatten_item_stack_v1451, item_name_v102};
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::{
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::OnceLock;
+use valence_nbt::{compound, Compound, List, Value};
+use world_transmuter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, data_walker,
     map_data_converter_func, rename_key, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
     DataWalkerMapTypePaths, MapDataConverterFunc, MapDataHook,
 };
-use std::collections::{BTreeMap, BTreeSet};
-use std::sync::OnceLock;
-use valence_nbt::{compound, Compound, List, Value};
 
 const VERSION: u32 = 1451;
 

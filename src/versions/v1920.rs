@@ -1,7 +1,7 @@
 use crate::helpers::resource_location::ResourceLocation;
 use crate::MinecraftTypesMut;
-use rust_dataconverter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 use valence_nbt::Value;
+use world_transmuter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 
 const VERSION: u32 = 1920;
 

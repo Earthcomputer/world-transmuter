@@ -8,10 +8,10 @@ use crate::{block_state, block_state_owned, make_bit_arr};
 use ahash::{AHashMap, AHashSet};
 use bitvec::prelude::*;
 use log::{error, warn};
-use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use valence_nbt::{Compound, List, Value};
+use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
 
 const VIRTUAL_SET: BitArray<[usize; bitset_size(256)]> = make_bit_arr![256;
     54, 146, 25, 26, 51,

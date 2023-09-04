@@ -6,9 +6,9 @@ use crate::helpers::flatten_chunk_v1451;
 use crate::helpers::mc_namespace_map::{McNamespaceMap, McNamespaceSet};
 use crate::{block_state_owned, MinecraftTypesMut};
 use ahash::AHashSet;
-use rust_dataconverter_engine::map_data_converter_func;
 use std::sync::OnceLock;
 use valence_nbt::{Compound, List, Value};
+use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 1496;
 

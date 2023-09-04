@@ -1,9 +1,9 @@
 use crate::helpers::rename::rename_criteria;
 use crate::types::MinecraftTypesMut;
-use rust_dataconverter_engine::{DataVersion, MapDataConverterFunc};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use valence_nbt::Compound;
+use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
 
 const VERSION: u32 = 3086;
 
