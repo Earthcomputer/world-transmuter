@@ -1,4 +1,4 @@
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::value::ValueMut;
 use valence_nbt::{Compound, List, Value};
 use world_transmuter_engine::{
@@ -8,8 +8,8 @@ use world_transmuter_engine::{
 
 const VERSION: u32 = 2843;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.biome().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::biome_mut().add_structure_converter(
         VERSION,
         value_data_converter_func(|data, _from_version, _to_version| {
             if let ValueMut::String(data) = data {
@@ -20,7 +20,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.chunk().borrow_mut().add_structure_converter(
+    types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             fn move_out_of_bound_ticks(
@@ -67,18 +67,18 @@ pub(crate) fn register(types: MinecraftTypesMut) {
     );
 
     // DFU is missing schema for UpgradeData block names
-    let entity_type = types.entity();
-    let tile_entity_type = types.tile_entity();
-    let block_name_type = types.block_name();
-    let biome_type = types.biome();
-    let block_state_type = types.block_state();
-    let structure_feature_type = types.structure_feature();
-    types.chunk().borrow_mut().add_structure_walker(
+    types::chunk_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            convert_map_list_in_map(entity_type, data, "entities", from_version, to_version);
             convert_map_list_in_map(
-                tile_entity_type,
+                types::entity_ref(),
+                data,
+                "entities",
+                from_version,
+                to_version,
+            );
+            convert_map_list_in_map(
+                types::tile_entity_ref(),
                 data,
                 "block_entities",
                 from_version,
@@ -88,7 +88,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             if let Some(Value::List(List::Compound(block_ticks))) = data.get_mut("block_ticks") {
                 for block_tick in block_ticks {
                     convert_object_in_map(
-                        block_name_type,
+                        types::block_name_ref(),
                         block_tick,
                         "i",
                         from_version,
@@ -106,7 +106,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                 {
                     for block_tick in neighbor_block_ticks {
                         convert_object_in_map(
-                            block_name_type,
+                            types::block_name_ref(),
                             block_tick,
                             "i",
                             from_version,
@@ -120,7 +120,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                 for section in sections {
                     if let Some(Value::Compound(biomes)) = section.get_mut("biomes") {
                         convert_object_list_in_map(
-                            biome_type,
+                            types::biome_ref(),
                             biomes,
                             "palette",
                             from_version,
@@ -129,7 +129,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                     }
                     if let Some(Value::Compound(block_states)) = section.get_mut("block_states") {
                         convert_map_list_in_map(
-                            block_state_type,
+                            types::block_state_ref(),
                             block_states,
                             "palette",
                             from_version,
@@ -141,7 +141,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
 
             if let Some(Value::Compound(structures)) = data.get_mut("structures") {
                 convert_values_in_map(
-                    structure_feature_type,
+                    types::structure_feature_ref(),
                     structures,
                     "starts",
                     from_version,

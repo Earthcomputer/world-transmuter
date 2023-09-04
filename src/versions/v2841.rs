@@ -1,7 +1,7 @@
 use crate::helpers::bit_storage::{AlignedBitStorage, LocalPos, NullSectionInitializer, Section};
 use crate::helpers::block_state::BlockStateOwned;
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use ahash::AHashMap;
 use std::sync::OnceLock;
 use valence_nbt::{compound, Compound, List, Value};
@@ -23,8 +23,8 @@ fn always_waterlogged() -> &'static McNamespaceSet<'static> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.chunk().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {

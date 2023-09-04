@@ -1,12 +1,12 @@
 use crate::helpers::item_name_v102;
-use crate::MinecraftTypesMut;
+use crate::types;
 use log::warn;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 102;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     // V102 schema only modifies ITEM_STACK to have only a string ID, but our ITEM_NAME is generic (int or String) so we don't
     // actually need to update the walker
 
@@ -15,7 +15,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
     // version.
 
     // Note: Vanilla does not properly handle this case, it will not convert int ids!
-    types.tile_entity().borrow_mut().add_converter_for_id(
+    types::tile_entity_mut().add_converter_for_id(
         "FlowerPot",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -29,7 +29,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.item_stack().borrow_mut().add_structure_converter(
+    types::item_stack_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(id) = data.get("id").and_then(|v| v.as_i32()) {
@@ -42,7 +42,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.item_stack().borrow_mut().add_converter_for_id(
+    types::item_stack_mut().add_converter_for_id(
         "minecraft:potion",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

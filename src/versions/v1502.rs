@@ -1,6 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_recipe;
-use crate::MinecraftTypesMut;
 use std::sync::OnceLock;
 
 const VERSION: u32 = 1502;
@@ -95,9 +94,9 @@ fn recipes_updates() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     let recipes_updates = recipes_updates();
-    rename_recipe(types, VERSION, move |name| {
+    rename_recipe(VERSION, move |name| {
         recipes_updates.get(name).copied().map(|str| str.to_owned())
     });
 }

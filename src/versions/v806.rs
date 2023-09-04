@@ -1,10 +1,10 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
 
 const VERSION: u32 = 806;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     struct PotionWaterUpdater;
     impl MapDataConverterFunc for PotionWaterUpdater {
         fn convert(
@@ -23,22 +23,18 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }
     }
 
-    types.item_stack().borrow_mut().add_converter_for_id(
-        "minecraft:potion",
-        VERSION,
-        PotionWaterUpdater,
-    );
-    types.item_stack().borrow_mut().add_converter_for_id(
+    types::item_stack_mut().add_converter_for_id("minecraft:potion", VERSION, PotionWaterUpdater);
+    types::item_stack_mut().add_converter_for_id(
         "minecraft:splash_potion",
         VERSION,
         PotionWaterUpdater,
     );
-    types.item_stack().borrow_mut().add_converter_for_id(
+    types::item_stack_mut().add_converter_for_id(
         "minecraft:lingering_potion",
         VERSION,
         PotionWaterUpdater,
     );
-    types.item_stack().borrow_mut().add_converter_for_id(
+    types::item_stack_mut().add_converter_for_id(
         "minecraft:tipped_arrow",
         VERSION,
         PotionWaterUpdater,

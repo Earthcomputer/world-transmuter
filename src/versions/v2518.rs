@@ -1,11 +1,11 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::Value;
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 2518;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.tile_entity().borrow_mut().add_converter_for_id(
+pub(crate) fn register() {
+    types::tile_entity_mut().add_converter_for_id(
         "minecraft:jigsaw",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -21,7 +21,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.block_state().borrow_mut().add_structure_converter(
+    types::block_state_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if matches!(data.get("Name"), Some(Value::String(str)) if str == "minecraft:jigsaw") {

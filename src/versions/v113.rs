@@ -1,12 +1,12 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 113;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     // Removes "HandDropChances" and "ArmorDropChances" if they're empty.
-    types.entity().borrow_mut().add_structure_converter(
+    types::entity_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             check_list(data, "HandDropChances", 2);

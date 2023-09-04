@@ -1,11 +1,11 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 2531;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.block_state().borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+pub(crate) fn register() {
+    types::block_state_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         if !matches!(data.get("Name"), Some(Value::String(str)) if str == "minecraft:redstone_wire") {
             return;
         }

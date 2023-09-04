@@ -4,7 +4,7 @@ use crate::helpers::bit_storage::{
 use crate::helpers::block_state::{BlockState, BlockStateOwned};
 use crate::helpers::flatten_chunk_v1451;
 use crate::helpers::mc_namespace_map::{McNamespaceMap, McNamespaceSet};
-use crate::{block_state_owned, MinecraftTypesMut};
+use crate::{block_state_owned, types};
 use ahash::AHashSet;
 use std::sync::OnceLock;
 use valence_nbt::{Compound, List, Value};
@@ -54,8 +54,8 @@ fn logs() -> &'static McNamespaceSet<'static> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.chunk().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {

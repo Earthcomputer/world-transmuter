@@ -1,10 +1,10 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use world_transmuter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 
 const VERSION: u32 = 701;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.entity().borrow_mut().add_converter_for_id(
+pub(crate) fn register() {
+    types::entity_mut().add_converter_for_id(
         "Skeleton",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -20,16 +20,16 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    register_mob(types, "WitherSkeleton");
-    register_mob(types, "Stray");
+    register_mob("WitherSkeleton");
+    register_mob("Stray");
 }
 
-fn register_mob(types: MinecraftTypesMut, id: impl Into<String>) {
-    types.entity().borrow_mut().add_walker_for_id(
+fn register_mob(id: impl Into<String>) {
+    types::entity_mut().add_walker_for_id(
         VERSION,
         id,
         DataWalkerMapListPaths::new_multi(
-            types.item_stack(),
+            types::item_stack_ref(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );

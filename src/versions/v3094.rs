@@ -1,4 +1,4 @@
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::Value;
 use world_transmuter_engine::map_data_converter_func;
 
@@ -15,8 +15,8 @@ const SOUND_VARIANT_TO_INSTRUMENT: [&str; 8] = [
     "minecraft:dream_goat_horn",
 ];
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.item_stack().borrow_mut().add_converter_for_id(
+pub(crate) fn register() {
+    types::item_stack_mut().add_converter_for_id(
         "minecraft:goat_horn",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

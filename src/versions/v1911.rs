@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use valence_nbt::Value;
@@ -25,8 +25,8 @@ fn chunk_status_remap() -> &'static BTreeMap<&'static str, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.chunk().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::Compound(level)) = data.get_mut("Level") {

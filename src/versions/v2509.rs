@@ -1,12 +1,11 @@
 use crate::helpers::rename::{rename_entity, rename_item, simple_rename};
-use crate::MinecraftTypesMut;
+use crate::types;
 use world_transmuter_engine::DataWalkerMapListPaths;
 
 const VERSION: u32 = 2509;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     rename_item(
-        types,
         VERSION,
         simple_rename(
             "minecraft:zombie_pigman_spawn_egg",
@@ -14,15 +13,14 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         ),
     );
     rename_entity(
-        types,
         VERSION,
         simple_rename("minecraft:zombie_pigman", "minecraft:zombified_piglin"),
     );
-    types.entity().borrow_mut().add_walker_for_id(
+    types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:zombified_piglin",
         DataWalkerMapListPaths::new_multi(
-            types.item_stack(),
+            types::item_stack_ref(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );

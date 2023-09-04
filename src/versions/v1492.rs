@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use valence_nbt::{List, Value};
@@ -323,38 +323,34 @@ fn renames() -> &'static BTreeMap<&'static str, StructureRenames> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types
-        .structure_feature()
-        .borrow_mut()
-        .add_structure_converter(
-            VERSION,
-            map_data_converter_func(|data, _from_version, _to_version| {
-                let Some(Value::String(id)) = data.get("id") else {
-                    return;
-                };
+pub(crate) fn register() {
+    types::structure_feature_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            let Some(Value::String(id)) = data.get("id") else {
+                return;
+            };
 
-                let Some(StructureRenames {
-                    child_id,
-                    template_renames,
-                }) = renames().get(&id[..])
-                else {
-                    return;
-                };
+            let Some(StructureRenames {
+                child_id,
+                template_renames,
+            }) = renames().get(&id[..])
+            else {
+                return;
+            };
 
-                if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
-                    for child in children {
-                        if matches!(child.get("id"), Some(Value::String(str)) if str == *child_id) {
-                            let Some(Value::String(template)) = child.get_mut("Template") else {
-                                continue;
-                            };
-                            if let Some(new_template) = template_renames.get(&template[..]).copied()
-                            {
-                                *template = new_template.to_owned();
-                            }
+            if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
+                for child in children {
+                    if matches!(child.get("id"), Some(Value::String(str)) if str == *child_id) {
+                        let Some(Value::String(template)) = child.get_mut("Template") else {
+                            continue;
+                        };
+                        if let Some(new_template) = template_renames.get(&template[..]).copied() {
+                            *template = new_template.to_owned();
                         }
                     }
                 }
-            }),
-        );
+            }
+        }),
+    );
 }

@@ -1,6 +1,6 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::resource_location::ResourceLocation;
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use std::sync::OnceLock;
 use valence_nbt::value::ValueMut;
 use world_transmuter_engine::value_data_converter_func;
@@ -31,21 +31,18 @@ fn game_event_renames() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types
-        .game_event_name()
-        .borrow_mut()
-        .add_structure_converter(
-            VERSION,
-            value_data_converter_func(|data, _from_version, _to_version| {
-                if let ValueMut::String(data) = data {
-                    let corrected_data = data
-                        .parse::<ResourceLocation>()
-                        .map_or_else(|_| (*data).clone(), |rl| rl.to_string());
-                    if let Some(new_name) = game_event_renames().get(&corrected_data[..]).copied() {
-                        **data = new_name.to_owned();
-                    }
+pub(crate) fn register() {
+    types::game_event_name_mut().add_structure_converter(
+        VERSION,
+        value_data_converter_func(|data, _from_version, _to_version| {
+            if let ValueMut::String(data) = data {
+                let corrected_data = data
+                    .parse::<ResourceLocation>()
+                    .map_or_else(|_| (*data).clone(), |rl| rl.to_string());
+                if let Some(new_name) = game_event_renames().get(&corrected_data[..]).copied() {
+                    **data = new_name.to_owned();
                 }
-            }),
-        );
+            }
+        }),
+    );
 }

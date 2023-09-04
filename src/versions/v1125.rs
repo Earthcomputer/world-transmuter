@@ -1,14 +1,14 @@
 use crate::helpers::hooks::DataHookValueTypeEnforceNamespaced;
 use crate::helpers::rename::rename_keys_in_map;
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{compound, Compound, List, Value};
 use world_transmuter_engine::{data_walker, get_mut_multi, map_data_converter_func};
 
 const VERSION: u32 = 1125;
 const BED_BLOCK_ID: i8 = 26;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.chunk().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {
@@ -57,7 +57,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.item_stack().borrow_mut().add_converter_for_id(
+    types::item_stack_mut().add_converter_for_id(
         "minecraft:bed",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -67,16 +67,14 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    let biome_type = types.biome();
-    let entity_name_type = types.entity_name();
-    types.advancements().borrow_mut().add_structure_walker(
+    types::advancements_mut().add_structure_walker(
         VERSION,
         data_walker(move |data: &mut Compound, from_version, to_version| {
             if let Some(Value::Compound(adventuring_time)) =
                 data.get_mut("minecraft:adventure/adventuring_time")
             {
                 rename_keys_in_map(
-                    biome_type,
+                    types::biome_ref(),
                     adventuring_time,
                     "criteria",
                     from_version,
@@ -87,7 +85,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                 data.get_mut("minecraft:adventure/kill_a_mob")
             {
                 rename_keys_in_map(
-                    entity_name_type,
+                    types::entity_name_ref(),
                     kill_a_mob,
                     "criteria",
                     from_version,
@@ -98,7 +96,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                 data.get_mut("minecraft:adventure/kill_all_mobs")
             {
                 rename_keys_in_map(
-                    entity_name_type,
+                    types::entity_name_ref(),
                     kill_all_mobs,
                     "criteria",
                     from_version,
@@ -109,7 +107,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                 data.get_mut("minecraft:adventure/bred_all_animals")
             {
                 rename_keys_in_map(
-                    entity_name_type,
+                    types::entity_name_ref(),
                     bred_all_animals,
                     "criteria",
                     from_version,
@@ -120,8 +118,5 @@ pub(crate) fn register(types: MinecraftTypesMut) {
     );
 
     // Enforce namespacing for ids
-    types
-        .biome()
-        .borrow_mut()
-        .add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced);
+    types::biome_mut().add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced);
 }

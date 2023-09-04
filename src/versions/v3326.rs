@@ -1,19 +1,19 @@
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use world_transmuter_engine::DataWalkerMapListPaths;
 
 const VERSION: u32 = 3326;
 
-fn register_mob(types: MinecraftTypesMut, id: impl Into<String>) {
-    types.entity().borrow_mut().add_walker_for_id(
+fn register_mob(id: impl Into<String>) {
+    types::entity_mut().add_walker_for_id(
         VERSION,
         id,
         DataWalkerMapListPaths::new_multi(
-            types.item_stack(),
+            types::item_stack_ref(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    register_mob(types, "minecraft:sniffer");
+pub(crate) fn register() {
+    register_mob("minecraft:sniffer");
 }

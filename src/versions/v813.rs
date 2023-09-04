@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::Value;
 use world_transmuter_engine::map_data_converter_func;
 
@@ -23,8 +23,8 @@ const SHULKER_ID_BY_COLOR: [&str; 16] = [
     "minecraft:black_shulker_box",
 ];
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.item_stack().borrow_mut().add_converter_for_id(
+pub(crate) fn register() {
+    types::item_stack_mut().add_converter_for_id(
         "minecraft:shulker_box",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -45,7 +45,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.tile_entity().borrow_mut().add_converter_for_id(
+    types::tile_entity_mut().add_converter_for_id(
         "minecraft:shulker_box",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {

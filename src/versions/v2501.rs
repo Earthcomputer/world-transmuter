@@ -1,18 +1,18 @@
 use crate::helpers::rename::rename_keys_in_map;
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::{convert_map_list_in_map, data_walker, map_data_converter_func};
 
 const VERSION: u32 = 2501;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    register_furnace(types, "minecraft:furnace");
-    register_furnace(types, "minecraft:blast_furnace");
-    register_furnace(types, "minecraft:smoker");
+pub(crate) fn register() {
+    register_furnace("minecraft:furnace");
+    register_furnace("minecraft:blast_furnace");
+    register_furnace("minecraft:smoker");
 }
 
-fn register_furnace(types: MinecraftTypesMut, id: &str) {
-    types.tile_entity().borrow_mut().add_converter_for_id(
+fn register_furnace(id: &str) {
+    types::tile_entity_mut().add_converter_for_id(
         id,
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -40,14 +40,24 @@ fn register_furnace(types: MinecraftTypesMut, id: &str) {
         }),
     );
 
-    let item_stack_type = types.item_stack();
-    let recipe_type = types.recipe();
-    types.tile_entity().borrow_mut().add_walker_for_id(
+    types::tile_entity_mut().add_walker_for_id(
         VERSION,
         id,
         data_walker(move |data, from_version, to_version| {
-            convert_map_list_in_map(item_stack_type, data, "Items", from_version, to_version);
-            rename_keys_in_map(recipe_type, data, "RecipesUsed", from_version, to_version);
+            convert_map_list_in_map(
+                types::item_stack_ref(),
+                data,
+                "Items",
+                from_version,
+                to_version,
+            );
+            rename_keys_in_map(
+                types::recipe_ref(),
+                data,
+                "RecipesUsed",
+                from_version,
+                to_version,
+            );
         }),
     );
 }

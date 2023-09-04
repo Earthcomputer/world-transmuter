@@ -1,6 +1,6 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_item;
-use crate::MinecraftTypesMut;
+use crate::types;
 use std::sync::OnceLock;
 use world_transmuter_engine::DataWalkerMapListPaths;
 
@@ -18,24 +18,24 @@ fn renamed_item_ids() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    rename_item(types, VERSION, |name| {
+pub(crate) fn register() {
+    rename_item(VERSION, |name| {
         renamed_item_ids().get(name).map(|&str| str.to_owned())
     });
 
-    types.entity().borrow_mut().add_walker_for_id(
+    types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:panda",
         DataWalkerMapListPaths::new_multi(
-            types.item_stack(),
+            types::item_stack_ref(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );
-    types.entity().borrow_mut().add_walker_for_id(
+    types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:pillager",
         DataWalkerMapListPaths::new_multi(
-            types.item_stack(),
+            types::item_stack_ref(),
             vec![
                 "Inventory".to_owned(),
                 "ArmorItems".to_owned(),

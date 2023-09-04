@@ -1,5 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use std::sync::OnceLock;
 use valence_nbt::{Compound, List, Value};
 use world_transmuter_engine::{map_data_converter_func, DataVersion, MapDataConverterFunc};
@@ -39,7 +39,7 @@ fn update_effect_list(root: &mut Compound, path: &str) {
     }
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     struct EntityEffectFix;
     impl MapDataConverterFunc for EntityEffectFix {
         fn convert(
@@ -54,16 +54,10 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }
     }
 
-    types
-        .player()
-        .borrow_mut()
-        .add_structure_converter(VERSION, EntityEffectFix);
-    types
-        .entity()
-        .borrow_mut()
-        .add_structure_converter(VERSION, EntityEffectFix);
+    types::player_mut().add_structure_converter(VERSION, EntityEffectFix);
+    types::entity_mut().add_structure_converter(VERSION, EntityEffectFix);
 
-    types.item_stack().borrow_mut().add_structure_converter(
+    types::item_stack_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::String(id)) = data.get("id") else {

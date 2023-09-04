@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use valence_nbt::{Compound, List, Value};
@@ -36,17 +36,11 @@ fn renames() -> &'static BTreeMap<&'static str, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types
-        .entity()
-        .borrow_mut()
-        .add_structure_converter(VERSION, map_data_converter_func(entity_converter));
-    types
-        .player()
-        .borrow_mut()
-        .add_structure_converter(VERSION, map_data_converter_func(entity_converter));
+pub(crate) fn register() {
+    types::entity_mut().add_structure_converter(VERSION, map_data_converter_func(entity_converter));
+    types::player_mut().add_structure_converter(VERSION, map_data_converter_func(entity_converter));
 
-    types.item_stack().borrow_mut().add_structure_converter(
+    types::item_stack_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::List(List::Compound(attributes))) =

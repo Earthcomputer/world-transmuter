@@ -1,14 +1,14 @@
 use crate::helpers::rename::rename_criteria;
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::value::ValueMut;
 use valence_nbt::{List, Value};
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 3097;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     for item_id in ["minecraft:writable_book", "minecraft:written_book"] {
-        types.item_stack().borrow_mut().add_converter_for_id(
+        types::item_stack_mut().add_converter_for_id(
             item_id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {
@@ -21,7 +21,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         );
     }
 
-    types.tile_entity().borrow_mut().add_converter_for_id(
+    types::tile_entity_mut().add_converter_for_id(
         "minecraft:sign",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -32,7 +32,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.entity().borrow_mut().add_converter_for_id(
+    types::entity_mut().add_converter_for_id(
         "minecraft:cat",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
@@ -44,20 +44,15 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             }
         }),
     );
-    rename_criteria(
-        types,
-        VERSION,
-        "minecraft:husbandry/complete_catalogue",
-        |name| {
-            if name == "minecraft:british" {
-                Some("minecraft:british_shorthair".to_owned())
-            } else {
-                None
-            }
-        },
-    );
+    rename_criteria(VERSION, "minecraft:husbandry/complete_catalogue", |name| {
+        if name == "minecraft:british" {
+            Some("minecraft:british_shorthair".to_owned())
+        } else {
+            None
+        }
+    });
 
-    types.poi_chunk().borrow_mut().add_structure_converter(
+    types::poi_chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(sections)) = data.get_mut("Sections") else {

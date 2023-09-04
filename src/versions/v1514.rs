@@ -1,11 +1,11 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::Value;
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 1514;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.objective().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::objective_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::String(display_name)) = data.get_mut("DisplayName") {
@@ -26,7 +26,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types.team().borrow_mut().add_structure_converter(
+    types::team_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::String(display_name)) = data.get_mut("DisplayName") {

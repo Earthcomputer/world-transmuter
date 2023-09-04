@@ -1,6 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_item;
-use crate::types::MinecraftTypesMut;
 use std::sync::OnceLock;
 
 const VERSION: u32 = 3447;
@@ -37,8 +36,8 @@ fn renames() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    rename_item(types, VERSION, |name| {
+pub(crate) fn register() {
+    rename_item(VERSION, |name| {
         renames()
             .get(name)
             .copied()

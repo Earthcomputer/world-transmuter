@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use ahash::AHashMap;
 use std::sync::OnceLock;
 use valence_nbt::Value;
@@ -127,8 +127,8 @@ fn button_id_to_name() -> &'static AHashMap<u8, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.options().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::options_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let mut replacements = Vec::new();

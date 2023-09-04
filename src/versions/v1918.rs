@@ -1,12 +1,12 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::compound;
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 1918;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     for entity_id in ["minecraft:villager", "minecraft:zombie_villager"] {
-        types.entity().borrow_mut().add_converter_for_id(
+        types::entity_mut().add_converter_for_id(
             entity_id,
             VERSION,
             map_data_converter_func(|data, _from_version, _to_version| {

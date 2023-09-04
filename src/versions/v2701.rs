@@ -1,5 +1,5 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::MinecraftTypesMut;
+use crate::types;
 use std::sync::OnceLock;
 use valence_nbt::value::ValueRef;
 use valence_nbt::{Compound, List, Value};
@@ -71,8 +71,8 @@ macro_rules! get_nested_string {
     }
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.structure_feature().borrow_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
+pub(crate) fn register() {
+    types::structure_feature_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
         if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
             for child in children {
                 if !matches!(child.get("id"), Some(Value::String(id)) if piece_type().contains(id)) {

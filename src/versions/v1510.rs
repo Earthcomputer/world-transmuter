@@ -2,7 +2,7 @@ use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::{
     rename_block, rename_entity, rename_item, rename_recipe, rename_stat,
 };
-use crate::MinecraftTypesMut;
+use crate::types;
 use std::sync::OnceLock;
 
 const VERSION: u32 = 1510;
@@ -85,17 +85,17 @@ fn recipes_updates() -> &'static McNamespaceMap<'static, &'static str> {
     })
 }
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    rename_block(types, VERSION, |name| {
+pub(crate) fn register() {
+    rename_block(VERSION, |name| {
         renamed_blocks().get(name).map(|&str| str.to_owned())
     });
-    rename_item(types, VERSION, |name| {
+    rename_item(VERSION, |name| {
         renamed_items().get(name).map(|&str| str.to_owned())
     });
-    rename_recipe(types, VERSION, |name| {
+    rename_recipe(VERSION, |name| {
         recipes_updates().get(name).map(|&str| str.to_owned())
     });
-    rename_entity(types, VERSION, |name| {
+    rename_entity(VERSION, |name| {
         if let Some(path) = name.strip_prefix("minecraft:bred_") {
             renamed_entity_ids()
                 .get(&format!("minecraft:{}", path)[..])
@@ -104,67 +104,48 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             renamed_entity_ids().get(name).map(|&str| str.to_owned())
         }
     });
-    rename_stat(types, VERSION, |name| match name {
+    rename_stat(VERSION, |name| match name {
         "minecraft:swim_one_cm" => Some("minecraft:walk_on_water_one_cm".to_owned()),
         "minecraft:dive_one_cm" => Some("minecraft:walk_under_water_one_cm".to_owned()),
         _ => None,
     });
 
-    types.entity().borrow_mut().copy_walkers(
+    types::entity_mut().copy_walkers(
         VERSION,
         "minecraft:commandblock_minecart",
         "minecraft:command_block_minecart",
     );
-    types.entity().borrow_mut().copy_walkers(
-        VERSION,
-        "minecraft:ender_crystal",
-        "minecraft:end_crystal",
-    );
-    types
-        .entity()
-        .borrow_mut()
-        .copy_walkers(VERSION, "minecraft:snowman", "minecraft:snow_golem");
-    types.entity().borrow_mut().copy_walkers(
-        VERSION,
-        "minecraft:evocation_illager",
-        "minecraft:evoker",
-    );
-    types.entity().borrow_mut().copy_walkers(
+    types::entity_mut().copy_walkers(VERSION, "minecraft:ender_crystal", "minecraft:end_crystal");
+    types::entity_mut().copy_walkers(VERSION, "minecraft:snowman", "minecraft:snow_golem");
+    types::entity_mut().copy_walkers(VERSION, "minecraft:evocation_illager", "minecraft:evoker");
+    types::entity_mut().copy_walkers(
         VERSION,
         "minecraft:evocation_fangs",
         "minecraft:evoker_fangs",
     );
-    types.entity().borrow_mut().copy_walkers(
+    types::entity_mut().copy_walkers(
         VERSION,
         "minecraft:illusion_illager",
         "minecraft:illusioner",
     );
-    types.entity().borrow_mut().copy_walkers(
+    types::entity_mut().copy_walkers(
         VERSION,
         "minecraft:vindication_illager",
         "minecraft:vindicator",
     );
-    types.entity().borrow_mut().copy_walkers(
-        VERSION,
-        "minecraft:villager_golem",
-        "minecraft:iron_golem",
-    );
-    types.entity().borrow_mut().copy_walkers(
-        VERSION,
-        "minecraft:xp_orb",
-        "minecraft:experience_orb",
-    );
-    types.entity().borrow_mut().copy_walkers(
+    types::entity_mut().copy_walkers(VERSION, "minecraft:villager_golem", "minecraft:iron_golem");
+    types::entity_mut().copy_walkers(VERSION, "minecraft:xp_orb", "minecraft:experience_orb");
+    types::entity_mut().copy_walkers(
         VERSION,
         "minecraft:xp_bottle",
         "minecraft:experience_bottle",
     );
-    types.entity().borrow_mut().copy_walkers(
+    types::entity_mut().copy_walkers(
         VERSION,
         "minecraft:eye_of_ender_signal",
         "minecraft:eye_of_ender",
     );
-    types.entity().borrow_mut().copy_walkers(
+    types::entity_mut().copy_walkers(
         VERSION,
         "minecraft:fireworks_rocket",
         "minecraft:firework_rocket",

@@ -1,106 +1,105 @@
-use std::cell::{Ref, RefCell};
-use std::marker::PhantomData;
+use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::mem::MaybeUninit;
+use std::sync::Once;
 use world_transmuter_engine::{IdDataType, MapDataType, ObjectDataType};
 
-#[derive(Copy, Clone)]
-pub(crate) struct MinecraftTypesMut<'a>(&'a MinecraftTypes<'a>);
+static mut TYPES: MaybeUninit<MinecraftTypes> = MaybeUninit::uninit();
+thread_local! {
+    static IS_INITIALIZING_ON_THIS_THREAD: Cell<bool> = Cell::new(false);
+}
+static TYPES_INITIALIZER: Once = Once::new();
 
-pub struct MinecraftTypes<'a>(MinecraftTypesInner, PhantomData<RefCell<&'a ()>>);
+fn types() -> &'static MinecraftTypes {
+    if !IS_INITIALIZING_ON_THIS_THREAD.with(|v| v.get()) {
+        TYPES_INITIALIZER.call_once(|| {
+            IS_INITIALIZING_ON_THIS_THREAD.with(|v| v.set(true));
+
+            unsafe {
+                // SAFETY: we are inside a call_once, so not possible for this line to be reached
+                // multiple times concurrently. Also, since call_once is blocking, this line
+                // must be reached before the only read of this value, which is below.
+                TYPES = MaybeUninit::new(MinecraftTypes::create_empty());
+            }
+
+            // General notes:
+            // - Structure converters run before everything.
+            // - ID specific converters run after structure converters.
+            // - Structure walkers run after id specific converters.
+            // - ID specific walkers run after structure walkers.
+            crate::versions::register_versions();
+
+            IS_INITIALIZING_ON_THIS_THREAD.with(|v| v.set(false));
+        });
+    }
+    unsafe {
+        // SAFETY: this line cannot be reached without the initialization above. See the safety comment there for details.
+        TYPES.assume_init_ref()
+    }
+}
 
 macro_rules! define_minecraft_types {
-    ($($field_name:ident : $type:ident ($name:literal)),* $(,)?) => {
+    ($($field_name:ident $field_name_mut:ident $field_name_ref:ident : $type:ident ($name:literal)),* $(,)?) => {
 
-        impl<'a> MinecraftTypesMut<'a> {
-            $(
-                pub(crate) fn $field_name(self) -> &'a RefCell<$type<'a>> {
-                    // SAFETY: the "actual" type of the field is RefCell<$type<'a>>, see the comment
-                    // inside MinecraftTypesInner.
-                    unsafe {
-                        std::mem::transmute::<&'a RefCell<$type<'static>>, &'a RefCell<$type<'a>>>(&self.0.0.$field_name)
-                    }
-                }
-            )*
-        }
-
-        struct MinecraftTypesInner {
-            // SAFETY: although these types are declared as RefCell<$type<'static>>, their actual
-            // type is RefCell<$type<'a>> where 'a is the lifetime of the struct. This is enforced
-            // by the fields only being accessed via MinecraftTypesMut::$field_name(), which
-            // transmutes directly to RefCell<$type<'a>>.
-            // So, why do this? It's to bypass the drop check, which essentially checks that the
-            // destructor does not follow any references to the self-referential struct which may
-            // be partially deleted. This is only possible via the dyn traits inside the $type's,
-            // and there is no way to enforce this, so this struct in isolation is technically
-            // unsound. However, this struct can only be accessed mutably from within this crate,
-            // meaning no-one from outside could add a naughty self-referential drop implementation.
-            // All the implementations from inside this crate promise not to add self-referential
-            // drop impls, meaning this struct in the context of this crate as a whole is sound.
-            // This is not ideal, but it's the only way I could get this self-referencing struct to
-            // work, and I'm so fucking done with refactoring it.
+        struct MinecraftTypes {
             $(
                 $field_name: RefCell<$type<'static>>,
             )*
         }
 
-        impl<'a> MinecraftTypes<'a> {
-            $(
-                pub fn $field_name(&'a self) -> Ref<'a, $type<'a>> {
-                    MinecraftTypesMut(self).$field_name().borrow()
+        impl MinecraftTypes {
+            fn create_empty() -> Self {
+                Self {
+                    $(
+                        $field_name: RefCell::new($type::new($name)),
+                    )*
                 }
-            )*
-
-            pub fn create_empty() -> Self {
-                Self(
-                    MinecraftTypesInner {
-                        $(
-                            $field_name: RefCell::new($type::new($name)),
-                        )*
-                    },
-                    PhantomData,
-                )
             }
         }
+
+        $(
+        pub fn $field_name() -> Ref<'static, $type<'static>> {
+            types().$field_name.borrow()
+        }
+
+        pub(crate) fn $field_name_mut() -> RefMut<'static, $type<'static>> {
+            types().$field_name.borrow_mut()
+        }
+
+        #[allow(unused)]
+        pub(crate) fn $field_name_ref() -> &'static RefCell<$type<'static>> {
+            &types().$field_name
+        }
+        )*
     }
 }
 
 define_minecraft_types! {
-    level: MapDataType("Level"),
-    player: MapDataType("Player"),
-    chunk: MapDataType("Chunk"),
-    hotbar: MapDataType("Hotbar"),
-    options: MapDataType("Options"),
-    structure: MapDataType("Structure"),
-    stats: MapDataType("Stats"),
-    saved_data: MapDataType("SavedData"),
-    advancements: MapDataType("Advancements"),
-    poi_chunk: MapDataType("PoiChunk"),
-    entity_chunk: MapDataType("EntityChunk"),
-    tile_entity: IdDataType("TileEntity"),
-    item_stack: IdDataType("ItemStack"),
-    block_state: MapDataType("BlockName"),
-    entity_name: ObjectDataType("EntityName"),
-    entity: IdDataType("Entity"),
-    block_name: ObjectDataType("BlockName"),
-    item_name: ObjectDataType("ItemName"),
-    untagged_spawner: MapDataType("Spawner"),
-    structure_feature: MapDataType("StructureFeature"),
-    objective: MapDataType("Objective"),
-    team: MapDataType("Team"),
-    recipe: ObjectDataType("RecipeName"),
-    biome: ObjectDataType("Biome"),
-    world_gen_settings: MapDataType("WorldGenSettings"),
-    game_event_name: ObjectDataType("GameEventName"),
+    level level_mut level_ref: MapDataType("Level"),
+    player player_mut player_ref: MapDataType("Player"),
+    chunk chunk_mut chunk_ref: MapDataType("Chunk"),
+    hotbar hotbar_mut hotbar_ref: MapDataType("Hotbar"),
+    options options_mut options_ref: MapDataType("Options"),
+    structure structure_mut structure_ref: MapDataType("Structure"),
+    stats stats_mut stats_ref: MapDataType("Stats"),
+    saved_data saved_data_mut saved_data_ref: MapDataType("SavedData"),
+    advancements advancements_mut advancements_ref: MapDataType("Advancements"),
+    poi_chunk poi_chunk_mut poi_chunk_ref: MapDataType("PoiChunk"),
+    entity_chunk entity_chunk_mut entity_chunk_ref: MapDataType("EntityChunk"),
+    tile_entity tile_entity_mut tile_entity_ref: IdDataType("TileEntity"),
+    item_stack item_stack_mut item_stack_ref: IdDataType("ItemStack"),
+    block_state block_state_mut block_state_ref: MapDataType("BlockName"),
+    entity_name entity_name_mut entity_name_ref: ObjectDataType("EntityName"),
+    entity entity_mut entity_ref: IdDataType("Entity"),
+    block_name block_name_mut block_name_ref: ObjectDataType("BlockName"),
+    item_name item_name_mut item_name_ref: ObjectDataType("ItemName"),
+    untagged_spawner untagged_spawner_mut untagged_spawner_ref: MapDataType("Spawner"),
+    structure_feature structure_feature_mut structure_feature_ref: MapDataType("StructureFeature"),
+    objective objective_mut objective_ref: MapDataType("Objective"),
+    team team_mut team_ref: MapDataType("Team"),
+    recipe recipe_mut recipe_ref: ObjectDataType("RecipeName"),
+    biome biome_mut biome_ref: ObjectDataType("Biome"),
+    world_gen_settings world_gen_settings_mut world_gen_settings_ref: MapDataType("WorldGenSettings"),
+    game_event_name game_event_name_mut game_event_name_ref: ObjectDataType("GameEventName"),
 
-    multi_noise_biome_source_parameter_list: ObjectDataType("MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST"),
-}
-
-impl<'a> MinecraftTypes<'a> {
-    pub fn register_versions(&'a self) {
-        // General notes:
-        // - Structure converters run before everything.
-        // - ID specific converters run after structure converters.
-        // - Structure walkers run after id specific converters.
-        // - ID specific walkers run after structure walkers.
-        crate::versions::register_versions(MinecraftTypesMut(self));
-    }
+    multi_noise_biome_source_parameter_list multi_noise_biome_source_parameter_list_mut multi_noise_biome_source_parameter_list_ref: ObjectDataType("MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST"),
 }

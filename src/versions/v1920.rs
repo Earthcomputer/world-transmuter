@@ -1,12 +1,12 @@
 use crate::helpers::resource_location::ResourceLocation;
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::Value;
 use world_transmuter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 
 const VERSION: u32 = 1920;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.chunk().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::Compound(level)) = data.get_mut("Level") {
@@ -31,29 +31,26 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    types
-        .structure_feature()
-        .borrow_mut()
-        .add_structure_converter(
-            VERSION,
-            map_data_converter_func(|data, _from_version, _to_version| {
-                let Some(Value::String(id)) = data.get_mut("id") else {
-                    return;
-                };
-                if id
-                    .parse::<ResourceLocation>()
-                    .map(|rl| rl.to_string())
-                    .as_deref()
-                    == Ok("minecraft:new_village")
-                {
-                    *id = "minecraft:village".to_owned();
-                }
-            }),
-        );
+    types::structure_feature_mut().add_structure_converter(
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            let Some(Value::String(id)) = data.get_mut("id") else {
+                return;
+            };
+            if id
+                .parse::<ResourceLocation>()
+                .map(|rl| rl.to_string())
+                .as_deref()
+                == Ok("minecraft:new_village")
+            {
+                *id = "minecraft:village".to_owned();
+            }
+        }),
+    );
 
-    types.tile_entity().borrow_mut().add_walker_for_id(
+    types::tile_entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:campfire",
-        DataWalkerMapListPaths::new(types.item_stack(), "Items"),
+        DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
     );
 }

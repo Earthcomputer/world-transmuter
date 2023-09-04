@@ -1,11 +1,11 @@
-use crate::types::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 3201;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    types.options().borrow_mut().add_structure_converter(
+pub(crate) fn register() {
+    types::options_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             fix_list(data, "resourcePacks");

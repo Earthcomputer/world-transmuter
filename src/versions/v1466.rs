@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{List, Value};
 use world_transmuter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, convert_values_in_map,
@@ -7,7 +7,7 @@ use world_transmuter_engine::{
 
 const VERSION: u32 = 1466;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
+pub(crate) fn register() {
     // There is a rather critical change I've made to this converter: changing the chunk status determination.
     // In Vanilla, this is determined by whether the terrain has been populated and whether the chunk is lit.
     // For reference, here is the full status progression (at the time of 18w06a):
@@ -28,7 +28,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
     // This change also fixes the random light check "bug" (really this is Mojang's fault for fucking up the status conversion here)
     // caused by spigot, which would not set the lit value for some chunks. Now those chunks will not be regenerated.
 
-    types.chunk().borrow_mut().add_structure_converter(
+    types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {
@@ -85,21 +85,22 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    let block_name_type = types.block_name();
-    let block_state_type = types.block_state();
-    let entity_type = types.entity();
-    let structure_feature_type = types.structure_feature();
-    let tile_entity_type = types.tile_entity();
-    types.chunk().borrow_mut().add_structure_walker(
+    types::chunk_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             let Some(Value::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
 
-            convert_map_list_in_map(entity_type, level, "Entities", from_version, to_version);
             convert_map_list_in_map(
-                tile_entity_type,
+                types::entity_ref(),
+                level,
+                "Entities",
+                from_version,
+                to_version,
+            );
+            convert_map_list_in_map(
+                types::tile_entity_ref(),
                 level,
                 "TileEntities",
                 from_version,
@@ -109,7 +110,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             if let Some(Value::List(List::Compound(tile_ticks))) = level.get_mut("TileTicks") {
                 for tile_tick in tile_ticks {
                     convert_object_in_map(
-                        block_name_type,
+                        types::block_name_ref(),
                         tile_tick,
                         "i",
                         from_version,
@@ -121,7 +122,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             if let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") {
                 for section in sections.iter_mut() {
                     convert_map_list_in_map(
-                        block_state_type,
+                        types::block_state_ref(),
                         section,
                         "Palette",
                         from_version,
@@ -132,7 +133,7 @@ pub(crate) fn register(types: MinecraftTypesMut) {
 
             if let Some(Value::Compound(structures)) = level.get_mut("Structures") {
                 convert_values_in_map(
-                    structure_feature_type,
+                    types::structure_feature_ref(),
                     structures,
                     "Starts",
                     from_version,
@@ -141,16 +142,39 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             }
         }),
     );
-    let block_state_type = types.block_state();
-    types.structure_feature().borrow_mut().add_structure_walker(
+    types::structure_feature_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
                 for child in children {
-                    convert_map_in_map(block_state_type, child, "CA", from_version, to_version);
-                    convert_map_in_map(block_state_type, child, "CB", from_version, to_version);
-                    convert_map_in_map(block_state_type, child, "CC", from_version, to_version);
-                    convert_map_in_map(block_state_type, child, "CD", from_version, to_version);
+                    convert_map_in_map(
+                        types::block_state_ref(),
+                        child,
+                        "CA",
+                        from_version,
+                        to_version,
+                    );
+                    convert_map_in_map(
+                        types::block_state_ref(),
+                        child,
+                        "CB",
+                        from_version,
+                        to_version,
+                    );
+                    convert_map_in_map(
+                        types::block_state_ref(),
+                        child,
+                        "CC",
+                        from_version,
+                        to_version,
+                    );
+                    convert_map_in_map(
+                        types::block_state_ref(),
+                        child,
+                        "CD",
+                        from_version,
+                        to_version,
+                    );
                 }
             }
         }),

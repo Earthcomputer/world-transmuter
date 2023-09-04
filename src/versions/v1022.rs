@@ -1,4 +1,4 @@
-use crate::MinecraftTypesMut;
+use crate::types;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_list_in_map, data_walker,
@@ -6,16 +6,13 @@ use world_transmuter_engine::{
 
 const VERSION: u32 = 1022;
 
-pub(crate) fn register(types: MinecraftTypesMut) {
-    let entity_type = types.entity();
-    let item_stack_type = types.item_stack();
-    let recipe_type = types.recipe();
-    types.player().borrow_mut().add_structure_walker(
+pub(crate) fn register() {
+    types::player_mut().add_structure_walker(
         VERSION,
         data_walker(move |data: &mut Compound, from_version, to_version| {
             if let Some(Value::Compound(root_vehicle)) = data.get_mut("RootVehicle") {
                 convert_map_in_map(
-                    entity_type,
+                    types::entity_ref(),
                     root_vehicle,
                     "Entity",
                     from_version,
@@ -23,9 +20,15 @@ pub(crate) fn register(types: MinecraftTypesMut) {
                 );
             }
 
-            convert_map_list_in_map(item_stack_type, data, "Inventory", from_version, to_version);
             convert_map_list_in_map(
-                item_stack_type,
+                types::item_stack_ref(),
+                data,
+                "Inventory",
+                from_version,
+                to_version,
+            );
+            convert_map_list_in_map(
+                types::item_stack_ref(),
                 data,
                 "EnderItems",
                 from_version,
@@ -33,14 +36,14 @@ pub(crate) fn register(types: MinecraftTypesMut) {
             );
 
             convert_map_in_map(
-                entity_type,
+                types::entity_ref(),
                 data,
                 "ShoulderEntityLeft",
                 from_version,
                 to_version,
             );
             convert_map_in_map(
-                entity_type,
+                types::entity_ref(),
                 data,
                 "ShoulderEntityRight",
                 from_version,
@@ -49,14 +52,14 @@ pub(crate) fn register(types: MinecraftTypesMut) {
 
             if let Some(Value::Compound(recipe_book)) = data.get_mut("recipeBook") {
                 convert_object_list_in_map(
-                    recipe_type,
+                    types::recipe_ref(),
                     recipe_book,
                     "recipes",
                     from_version,
                     to_version,
                 );
                 convert_object_list_in_map(
-                    recipe_type,
+                    types::recipe_ref(),
                     recipe_book,
                     "toBeDisplayed",
                     from_version,
@@ -66,14 +69,13 @@ pub(crate) fn register(types: MinecraftTypesMut) {
         }),
     );
 
-    let item_stack_type = types.item_stack();
-    types.hotbar().borrow_mut().add_structure_walker(
+    types::hotbar_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             let keys = data.keys().cloned().collect::<Vec<_>>();
             for key in keys {
                 convert_map_list_in_map(
-                    item_stack_type,
+                    types::item_stack_ref(),
                     data,
                     key.as_str(),
                     from_version,
