@@ -383,8 +383,9 @@ mod test {
         let mut missing_from_ours = Vec::new();
         let mut missing_from_paper = Vec::new();
         let mut different = Vec::new();
-        for (our_key, our_val) in our_map {
-            match paper_map.get(our_key) {
+        for (our_key, our_val) in our_map.iter_mc_to_value() {
+            let our_key = format!("minecraft:{our_key}");
+            match paper_map.get(&our_key) {
                 Some(paper_val) => {
                     if paper_val != our_val {
                         different.push(our_key);
@@ -439,8 +440,8 @@ mod test {
                         format!(
                             "- {}: {} (ours) vs {} (paper)\n",
                             elem,
-                            our_map.get(elem).unwrap(),
-                            paper_map.get(elem).unwrap()
+                            our_map.get(&elem).unwrap(),
+                            paper_map.get(&elem).unwrap()
                         )
                         .as_str(),
                     );

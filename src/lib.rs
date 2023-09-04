@@ -2,6 +2,7 @@
 
 mod helpers;
 mod types;
+pub mod version_names;
 mod versions;
 
 pub use types::*;

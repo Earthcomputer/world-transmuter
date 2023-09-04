@@ -16,9 +16,13 @@ world-transmuter-engine = "0.1.0"
 
 [dev-dependencies]
 
-attohttpc = "0.26.0"
+attohttpc = { version = "0.26.0", features = ["json"] }
 regex = "1.5.5"
+serde = { version = "1.0.183", features = ["derive"] }
+serde_json = "1.0.104"
+time = { version = "0.3.25", features = ["macros", "parsing", "serde"] }
 valence_nbt = { version = "0.7", features = ["snbt"] }
+zip = "0.6.6"
 
 [features]
 
