@@ -1,6 +1,6 @@
-use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cell::Cell;
 use std::mem::MaybeUninit;
-use std::sync::Once;
+use std::sync::{Once, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError};
 use world_transmuter_engine::{IdDataType, MapDataType, ObjectDataType};
 
 static mut TYPES: MaybeUninit<MinecraftTypes> = MaybeUninit::uninit();
@@ -42,7 +42,7 @@ macro_rules! define_minecraft_types {
 
         struct MinecraftTypes {
             $(
-                $field_name: RefCell<$type<'static>>,
+                $field_name: RwLock<$type<'static>>,
             )*
         }
 
@@ -50,23 +50,31 @@ macro_rules! define_minecraft_types {
             fn create_empty() -> Self {
                 Self {
                     $(
-                        $field_name: RefCell::new($type::new($name)),
+                        $field_name: RwLock::new($type::new($name)),
                     )*
                 }
             }
         }
 
         $(
-        pub fn $field_name() -> Ref<'static, $type<'static>> {
-            types().$field_name.borrow()
+        pub fn $field_name() -> RwLockReadGuard<'static, $type<'static>> {
+            match types().$field_name.try_read() {
+                Ok(guard) => guard,
+                Err(TryLockError::WouldBlock) => panic!(concat!("Tried to get an immutable reference to ", stringify!($field_name), " while there is a mutable reference")),
+                Err(TryLockError::Poisoned(err)) => panic!("{}", err),
+            }
         }
 
-        pub(crate) fn $field_name_mut() -> RefMut<'static, $type<'static>> {
-            types().$field_name.borrow_mut()
+        pub(crate) fn $field_name_mut() -> RwLockWriteGuard<'static, $type<'static>> {
+            match types().$field_name.try_write() {
+                Ok(guard) => guard,
+                Err(TryLockError::WouldBlock) => panic!(concat!("Tried to get an mutable reference to ", stringify!($field_name), " while there are immutable references")),
+                Err(TryLockError::Poisoned(err)) => panic!("{}", err),
+            }
         }
 
         #[allow(unused)]
-        pub(crate) fn $field_name_ref() -> &'static RefCell<$type<'static>> {
+        pub(crate) fn $field_name_ref() -> &'static RwLock<$type<'static>> {
             &types().$field_name
         }
         )*

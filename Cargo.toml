@@ -12,7 +12,7 @@ nom = "7.1.1"
 strength_reduce = "0.2.3"
 uuid = "1"
 valence_nbt = "0.7"
-world-transmuter-engine = "0.1.0"
+world-transmuter-engine = "0.2.0"
 
 [dev-dependencies]
 

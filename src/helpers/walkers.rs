@@ -1,13 +1,13 @@
-use std::cell::RefCell;
+use std::sync::RwLock;
 use valence_nbt::{Compound, Value};
 use world_transmuter_engine::{convert_object_in_map, DataVersion, DataWalker, ObjectDataType};
 
 pub(crate) struct GameEventListenerWalker<'a> {
-    game_event_type: &'a RefCell<ObjectDataType<'a>>,
+    game_event_type: &'a RwLock<ObjectDataType<'a>>,
 }
 
 impl<'a> GameEventListenerWalker<'a> {
-    pub(crate) fn new(game_event_type: &'a RefCell<ObjectDataType<'a>>) -> Self {
+    pub(crate) fn new(game_event_type: &'a RwLock<ObjectDataType<'a>>) -> Self {
         Self { game_event_type }
     }
 }
