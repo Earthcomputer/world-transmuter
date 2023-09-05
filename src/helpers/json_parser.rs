@@ -168,6 +168,9 @@ fn stringify(
                 }
                 stringify_string(key, str);
                 str.push(':');
+                if pretty {
+                    str.push(' ');
+                }
                 stringify(value.as_value_ref(), str, pretty, indent)?;
             }
             if pretty {
