@@ -11,11 +11,11 @@ pub(crate) fn register() {
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(Value::String(custom_name)) = data.get_mut("CustomName") {
-                if let Ok(mut json) = json_parser::parse_compound(custom_name) {
+                if let Ok(mut json) = json_parser::parse_compound(custom_name, true) {
                     if let Some(Value::String(translate)) = json.get_mut("translate") {
                         if translate == "block.minecraft.illager_banner" {
                             *translate = "block.minecraft.ominous_banner".to_owned();
-                            *custom_name = json_parser::stringify_compound(json, false);
+                            *custom_name = json_parser::stringify_compound(json, true, false);
                         }
                     }
                 }

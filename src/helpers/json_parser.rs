@@ -49,16 +49,24 @@ impl Display for Indent {
     }
 }
 
-pub fn stringify_compound(map: Compound, pretty: bool) -> String {
+/// `round_trip` corresponds to the same argument from [parse_compound].
+pub fn stringify_compound(map: Compound, round_trip: bool, pretty: bool) -> String {
     let mut str = String::new();
-    stringify(ValueRef::Compound(&map), &mut str, pretty, Indent(0))
-        .expect("Should not get Err writing to String");
+    stringify(
+        ValueRef::Compound(&map),
+        &mut str,
+        round_trip,
+        pretty,
+        Indent(0),
+    )
+    .expect("Should not get Err writing to String");
     str
 }
 
 fn stringify(
     obj: ValueRef,
     str: &mut String,
+    round_trip: bool,
     pretty: bool,
     mut indent: Indent,
 ) -> std::fmt::Result {
@@ -70,25 +78,34 @@ fn stringify(
         ValueRef::Float(f) => write!(str, "{}", f)?,
         ValueRef::Double(d) => write!(str, "{}", d)?,
         ValueRef::ByteArray(arr) => {
-            str.push('[');
-            if pretty {
-                indent.indent();
-                write!(str, "\n{indent}")?;
-            }
-            for (i, &b) in <&[i8]>::into_iter(arr).enumerate() {
-                if i != 0 {
-                    str.push(',');
-                    if pretty {
-                        write!(str, "\n{indent}")?;
-                    }
+            if round_trip && arr.len() == 1 && arr[0] <= 2 {
+                match arr[0] {
+                    0 => str.push_str("false"),
+                    1 => str.push_str("true"),
+                    2 => str.push_str("null"),
+                    _ => unreachable!(),
                 }
-                write!(str, "{}", b)?;
+            } else {
+                str.push('[');
+                if pretty {
+                    indent.indent();
+                    write!(str, "\n{indent}")?;
+                }
+                for (i, &b) in <&[i8]>::into_iter(arr).enumerate() {
+                    if i != 0 {
+                        str.push(',');
+                        if pretty {
+                            write!(str, "\n{indent}")?;
+                        }
+                    }
+                    write!(str, "{}", b)?;
+                }
+                if pretty {
+                    indent.dedent();
+                    write!(str, "\n{indent}")?;
+                }
+                str.push(']');
             }
-            if pretty {
-                indent.dedent();
-                write!(str, "\n{indent}")?;
-            }
-            str.push(']');
         }
         ValueRef::IntArray(arr) => {
             str.push('[');
@@ -145,7 +162,7 @@ fn stringify(
                         write!(str, "\n{indent}")?;
                     }
                 }
-                stringify(obj, str, pretty, indent)?;
+                stringify(obj, str, round_trip, pretty, indent)?;
             }
             if pretty {
                 indent.dedent();
@@ -171,7 +188,7 @@ fn stringify(
                 if pretty {
                     str.push(' ');
                 }
-                stringify(value.as_value_ref(), str, pretty, indent)?;
+                stringify(value.as_value_ref(), str, round_trip, pretty, indent)?;
             }
             if pretty {
                 indent.dedent();
@@ -199,8 +216,9 @@ fn stringify_string(input: &str, output: &mut String) {
     output.push('"');
 }
 
-pub fn parse_compound(json: &str) -> Result<Compound, ParseError> {
-    preceded(space, object)(json)
+/// If `round_trip` is true, encodes `false`, `true` and `null` as `[0]`, `[1]` and `[2]` byte arrays respectively.
+pub fn parse_compound(json: &str, round_trip: bool) -> Result<Compound, ParseError> {
+    preceded(space, |i| object(i, round_trip))(json)
         .finish()
         .map(|(_, o)| o)
         .map_err(|err| {
@@ -215,10 +233,10 @@ fn space(i: &str) -> IResult<&str, ()> {
     value((), many0(alt((space1, is_a("\r\n")))))(i)
 }
 
-fn any(i: &str) -> IResult<&str, Value> {
+fn any(i: &str, round_trip: bool) -> IResult<&str, Value> {
     alt((
-        map(object, Value::Compound),
-        map(array, Value::List),
+        map(|i| object(i, round_trip), Value::Compound),
+        map(|i| array(i, round_trip), Value::List),
         map(string, Value::String),
         map_res(terminated(recognize_float, space), |str| {
             Result::<_, <f64 as FromStr>::Err>::Ok(match str::parse::<i64>(str) {
@@ -226,19 +244,37 @@ fn any(i: &str) -> IResult<&str, Value> {
                 Err(_) => Value::Double(str::parse::<f64>(str)?),
             })
         }),
-        map(pair(tag("false"), space), |_| Value::Byte(0)),
-        map(pair(tag("true"), space), |_| Value::Byte(1)),
-        map(pair(tag("null"), space), |_| Value::Byte(0)),
+        map(pair(tag("false"), space), |_| {
+            if round_trip {
+                Value::ByteArray(vec![0])
+            } else {
+                Value::Byte(0)
+            }
+        }),
+        map(pair(tag("true"), space), |_| {
+            if round_trip {
+                Value::ByteArray(vec![1])
+            } else {
+                Value::Byte(1)
+            }
+        }),
+        map(pair(tag("null"), space), |_| {
+            if round_trip {
+                Value::ByteArray(vec![2])
+            } else {
+                Value::Byte(0)
+            }
+        }),
     ))(i)
 }
 
-fn object(i: &str) -> IResult<&str, Compound> {
+fn object(i: &str, round_trip: bool) -> IResult<&str, Compound> {
     map(
         delimited(
             pair(char('{'), space),
             separated_list0(
                 pair(char(','), space),
-                separated_pair(string, pair(char(':'), space), any),
+                separated_pair(string, pair(char(':'), space), |i| any(i, round_trip)),
             ),
             pair(char('}'), space),
         ),
@@ -252,11 +288,11 @@ fn object(i: &str) -> IResult<&str, Compound> {
     )(i)
 }
 
-fn array(i: &str) -> IResult<&str, List> {
+fn array(i: &str, round_trip: bool) -> IResult<&str, List> {
     map_res(
         delimited(
             pair(char('['), space),
-            separated_list0(pair(char(','), space), any),
+            separated_list0(pair(char(','), space), |i| any(i, round_trip)),
             pair(char(']'), space),
         ),
         |vec| {
@@ -310,7 +346,7 @@ mod tests {
     #[test]
     fn test_parse_object() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": "bar", "baz": "quux"}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": "bar", "baz": "quux"}"#, false).unwrap()),
             from_snbt_str(r#"{"foo": "bar", "baz": "quux"}"#).unwrap()
         );
     }
@@ -318,7 +354,7 @@ mod tests {
     #[test]
     fn test_parse_array() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": ["bar", "baz", "quux"]}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": ["bar", "baz", "quux"]}"#, false).unwrap()),
             from_snbt_str(r#"{"foo": ["bar", "baz", "quux"]}"#).unwrap()
         )
     }
@@ -326,7 +362,7 @@ mod tests {
     #[test]
     fn test_parse_int() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": 123}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": 123}"#, false).unwrap()),
             from_snbt_str(r#"{"foo": 123L}"#).unwrap()
         )
     }
@@ -334,7 +370,7 @@ mod tests {
     #[test]
     fn test_parse_double() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": 123.45}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": 123.45}"#, false).unwrap()),
             from_snbt_str(r#"{"foo": 123.45}"#).unwrap()
         )
     }
@@ -344,7 +380,8 @@ mod tests {
         assert_eq!(
             Value::Compound(
                 parse_compound(
-                    r#" { "foo" : "bar" , "list" : [ "a" , "b" ] , "long" : 1 , "double" : 1.2 } "#
+                    r#" { "foo" : "bar" , "list" : [ "a" , "b" ] , "long" : 1 , "double" : 1.2 } "#,
+                    false,
                 )
                 .unwrap()
             ),
@@ -356,7 +393,7 @@ mod tests {
     #[test]
     fn test_string_escapes() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": "\\\n\r\t\"\u0020"}"#).unwrap()),
+            Value::Compound(parse_compound(r#"{"foo": "\\\n\r\t\"\u0020"}"#, false).unwrap()),
             from_snbt_str(r#"{"foo": "\\\n\r\t\" "}"#).unwrap()
         )
     }

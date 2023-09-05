@@ -19,10 +19,10 @@ pub(crate) fn register() {
             let Some(Value::String(name)) = display.get_mut("Name") else {
                 return;
             };
-            if let Ok(mut json) = json_parser::parse_compound(name) {
+            if let Ok(mut json) = json_parser::parse_compound(name, true) {
                 if let Some(Value::String(translate)) = json.get_mut("translate") {
                     *translate = "block.minecraft.ominous_banner".to_owned();
-                    *name = json_parser::stringify_compound(json, false);
+                    *name = json_parser::stringify_compound(json, true, false);
                 }
             }
         }),
