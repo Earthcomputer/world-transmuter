@@ -192,4 +192,5 @@ versions! {
     mod v3459;
     mod v3564;
     mod v3565;
+    mod v3566;
 }
