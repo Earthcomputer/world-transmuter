@@ -129,6 +129,7 @@ fn item_id_to_tile_entity_id() -> &'static McNamespaceMap<'static, &'static str>
         map.insert_mc("bee_nest", "minecraft:beehive");
         map.insert_mc("beehive", "minecraft:beehive");
         map.insert_mc("sculk_sensor", "minecraft:sculk_sensor");
+        map.insert_mc("decorated_pot", "minecraft:decorated_pot");
 
         // These are missing from Vanilla (TODO check on update)
         // Can also use the test below to make sure we're synced with Paper's Java version
@@ -137,6 +138,30 @@ fn item_id_to_tile_entity_id() -> &'static McNamespaceMap<'static, &'static str>
         map.insert_mc("light_gray_bed", "minecraft:bed");
         map.insert_mc("light_gray_banner", "minecraft:banner");
         map.insert_mc("soul_campfire", "minecraft:campfire");
+        map.insert_mc("sculk_catalyst", "minecraft:sculk_catalyst");
+        map.insert_mc("mangrove_sign", "minecraft:sign");
+        map.insert_mc("sculk_shrieker", "minecraft:sculk_shrieker");
+        map.insert_mc("chiseled_bookshelf", "minecraft:chiseled_bookshelf");
+        map.insert_mc("bamboo_sign", "minecraft:sign");
+        map.insert_mc("oak_hanging_sign", "minecraft:sign");
+        map.insert_mc("spruce_hanging_sign", "minecraft:sign");
+        map.insert_mc("birch_hanging_sign", "minecraft:sign");
+        map.insert_mc("jungle_hanging_sign", "minecraft:sign");
+        map.insert_mc("acacia_hanging_sign", "minecraft:sign");
+        map.insert_mc("dark_oak_hanging_sign", "minecraft:sign");
+        map.insert_mc("mangrove_hanging_sign", "minecraft:sign");
+        map.insert_mc("bamboo_hanging_sign", "minecraft:sign");
+        map.insert_mc("crimson_hanging_sign", "minecraft:sign");
+        map.insert_mc("warped_hanging_sign", "minecraft:sign");
+        map.insert_mc("piglin_head", "minecraft:skull");
+        map.insert_mc("suspicious_sand", "minecraft:brushable_block"); // note: this was renamed in the past, see special case in the itemstack walker
+        map.insert_mc("cherry_sign", "minecraft:sign");
+        map.insert_mc("cherry_hanging_sign", "minecraft:sign");
+        map.insert_mc("suspicious_gravel", "minecraft:brushable_block");
+        map.insert_mc(
+            "calibrated_sculk_sensor",
+            "minecraft:calibrated_sculk_sensor",
+        );
         map
     })
 }

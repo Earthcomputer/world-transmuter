@@ -89,7 +89,6 @@ define_minecraft_types! {
     options options_mut options_ref: MapDataType("Options"),
     structure structure_mut structure_ref: MapDataType("Structure"),
     stats stats_mut stats_ref: MapDataType("Stats"),
-    saved_data saved_data_mut saved_data_ref: MapDataType("SavedData"),
     advancements advancements_mut advancements_ref: MapDataType("Advancements"),
     poi_chunk poi_chunk_mut poi_chunk_ref: MapDataType("PoiChunk"),
     entity_chunk entity_chunk_mut entity_chunk_ref: MapDataType("EntityChunk"),
@@ -109,5 +108,11 @@ define_minecraft_types! {
     world_gen_settings world_gen_settings_mut world_gen_settings_ref: MapDataType("WorldGenSettings"),
     game_event_name game_event_name_mut game_event_name_ref: ObjectDataType("GameEventName"),
 
-    multi_noise_biome_source_parameter_list multi_noise_biome_source_parameter_list_mut multi_noise_biome_source_parameter_list_ref: ObjectDataType("MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST"),
+    multi_noise_biome_source_parameter_list multi_noise_biome_source_parameter_list_mut multi_noise_biome_source_parameter_list_ref: ObjectDataType("MultiNoiseBiomeSourceParameterList"),
+
+    saved_data_random_sequences saved_data_random_sequences_mut saved_data_random_sequences_ref: MapDataType("SavedData/RandomSequences"),
+    saved_data_scoreboard saved_data_scoreboard_mut saved_data_scoreboard_ref: MapDataType("SavedData/Scoreboard"),
+    saved_data_structure_feature_indices saved_data_structure_feature_indices_mut saved_data_structure_feature_indices_ref: MapDataType("SavedData/StructureFeatureIndices"),
+    saved_data_map_data saved_data_map_data_mut saved_data_map_data_ref: MapDataType("SavedData/MapData"),
+    saved_data_raids saved_data_raids_mut saved_data_raids_ref: MapDataType("SavedData/Raids"),
 }

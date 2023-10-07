@@ -494,6 +494,17 @@ fn version_data() -> &'static VersionData {
         v("1.20", 3463, VersionType::Release);
         v("1.20.1-rc1", 3464, VersionType::Snapshot);
         v("1.20.1", 3465, VersionType::Release);
+        v("23w31a", 3567, VersionType::Snapshot);
+        v("23w32a", 3569, VersionType::Snapshot);
+        v("23w33a", 3570, VersionType::Snapshot);
+        v("23w35a", 3571, VersionType::Snapshot);
+        v("1.20.2-pre1", 3572, VersionType::Snapshot);
+        v("1.20.2-pre2", 3573, VersionType::Snapshot);
+        v("1.20.2-pre3", 3574, VersionType::Snapshot);
+        v("1.20.2-pre4", 3575, VersionType::Snapshot);
+        v("1.20.2-rc1", 3576, VersionType::Snapshot);
+        v("1.20.2-rc2", 3577, VersionType::Snapshot);
+        v("1.20.2", 3578, VersionType::Release);
 
         data
     })
@@ -584,10 +595,10 @@ mod tests {
                 .json()
                 .expect("json error in manifest");
 
-        let time_18w47b = datetime!(2018-11-23 0:00 UTC);
+        let time_1_20_1 = datetime!(2023-06-12 0:00 UTC);
         manifest
             .versions
-            .retain(|version| version.release_time >= time_18w47b);
+            .retain(|version| version.release_time >= time_1_20_1);
 
         let mut missing_versions = Vec::new();
 

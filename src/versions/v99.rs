@@ -416,20 +416,13 @@ pub(crate) fn register() {
         DataWalkerMapListPaths::new(types::entity_ref(), "Entities"),
     );
 
-    types::saved_data_mut().add_structure_walker(
+    types::saved_data_scoreboard_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
             let Some(Value::Compound(data)) = data.get_mut("data") else {
                 return;
             };
 
-            convert_values_in_map(
-                types::structure_feature_ref(),
-                data,
-                "Features",
-                from_version,
-                to_version,
-            );
             convert_map_list_in_map(
                 types::objective_ref(),
                 data,
@@ -438,6 +431,21 @@ pub(crate) fn register() {
                 to_version,
             );
             convert_map_list_in_map(types::team_ref(), data, "Teams", from_version, to_version);
+        }),
+    );
+    types::saved_data_structure_feature_indices_mut().add_structure_walker(
+        VERSION,
+        data_walker(move |data, from_version, to_version| {
+            let Some(Value::Compound(data)) = data.get_mut("data") else {
+                return;
+            };
+            convert_values_in_map(
+                types::structure_feature_ref(),
+                data,
+                "Features",
+                from_version,
+                to_version,
+            );
         }),
     );
 

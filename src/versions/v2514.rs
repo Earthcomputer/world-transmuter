@@ -345,7 +345,7 @@ pub(crate) fn register() {
         }),
     );
 
-    types::saved_data_mut().add_structure_converter(
+    types::saved_data_raids_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(Value::Compound(data)) = data.get_mut("data") else {

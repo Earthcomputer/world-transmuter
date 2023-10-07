@@ -369,39 +369,6 @@ fn item_names() -> &'static AHashMap<i32, &'static str> {
         map.insert(453, "minecraft:knowledge_book");
         // EMC end
 
-        // Add block ids into conversion as well
-        // Very old versions of the game handled them, but it seems 1.8.8 did not parse them at all, so no conversion
-        // was written.
-        // block ids are only skipped (set to AIR) if there is no 1-1 replacement item.
-        map.insert(26, "minecraft:bed"); // bed block
-        map.insert(34, map.get(&0).unwrap()); // skip (piston head block)
-        map.insert(55, "minecraft:redstone"); // redstone wire block
-        map.insert(59, map.get(&0).unwrap()); // skip (wheat crop block)
-        map.insert(63, "minecraft:sign"); // standing sign
-        map.insert(64, "minecraft:wooden_door"); // wooden door block
-        map.insert(68, "minecraft:sign"); // wall sign
-        map.insert(71, "minecraft:iron_door"); // iron door block
-        map.insert(74, "minecraft:redstone_ore"); // lit redstone ore block
-        map.insert(75, "minecraft:redstone_torch"); // unlit redstone torch
-        map.insert(83, "minecraft:reeds"); // sugar cane block
-        map.insert(92, "minecraft:cake"); // cake block
-        map.insert(93, "minecraft:repeater"); // unpowered repeater block
-        map.insert(94, "minecraft:repeater"); // powered repeater block
-        map.insert(104, map.get(&0).unwrap()); // skip (pumpkin stem)
-        map.insert(105, map.get(&0).unwrap()); // skip (melon stem)
-        map.insert(115, "minecraft:nether_wart"); // nether wart block
-        map.insert(117, "minecraft:brewing_stand"); // brewing stand block
-        map.insert(118, "minecraft:cauldron"); // cauldron block
-        map.insert(124, "minecraft:redstone_lamp"); // lit redstone lamp block
-        map.insert(132, map.get(&0).unwrap()); // skip (tripwire wire block)
-        map.insert(140, "minecraft:flower_pot"); // flower pot block
-        map.insert(144, "minecraft:skull"); // skull block
-        map.insert(149, "minecraft:comparator"); // unpowered comparator block
-        map.insert(150, "minecraft:comparator"); // powered comparator block
-                                                 // there are technically more, but at some point even older versions pre id -> name conversion didn't even load them.
-                                                 // (all I know is 1.7.10 does not load them)
-                                                 // and so given even the vanilla game wouldn't load them, there's no conversion path for them - they were never valid.
-
         map
     })
 }
