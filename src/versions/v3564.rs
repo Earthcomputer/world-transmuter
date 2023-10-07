@@ -57,6 +57,10 @@ fn update_text(text: Option<&mut Value>) {
         return;
     };
 
+    if new_filtered_messages.is_empty() {
+        return;
+    }
+
     let messages = match messages {
         Some(Value::List(List::String(messages))) => Some(&*messages),
         _ => None,
