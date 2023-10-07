@@ -3,6 +3,7 @@ pub(crate) mod block_flattening_v1450;
 pub(crate) mod block_state;
 pub(crate) mod flatten_chunk_v1451;
 pub(crate) mod flatten_item_stack_v1451;
+pub(crate) mod flatten_stats_v1451;
 pub(crate) mod gson_lenient_fix;
 pub(crate) mod hooks;
 pub(crate) mod item_name_v102;

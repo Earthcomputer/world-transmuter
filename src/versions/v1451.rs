@@ -1,11 +1,11 @@
 use crate::helpers::flatten_chunk_v1451::ConverterFlattenChunk;
 use crate::helpers::flatten_item_stack_v1451::ConverterFlattenItemStack;
+use crate::helpers::flatten_stats_v1451::{ObjectiveConverter, StatsConverter};
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_keys_in_map;
 use crate::helpers::resource_location::ResourceLocation;
 use crate::helpers::{block_flattening_v1450, flatten_item_stack_v1451, item_name_v102};
 use crate::types;
-use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 use valence_nbt::{compound, Compound, List, Value};
 use world_transmuter_engine::{
@@ -332,165 +332,6 @@ fn entity_id_to_new_egg_id() -> &'static McNamespaceMap<'static, &'static str> {
         map.insert_mc("zombie_horse", "minecraft:zombie_horse_spawn_egg");
         map.insert_mc("zombie_pigman", "minecraft:zombie_pigman_spawn_egg");
         map.insert_mc("zombie_villager", "minecraft:zombie_villager_spawn_egg");
-        map
-    })
-}
-
-static SKIP_STATS: OnceLock<BTreeSet<&'static str>> = OnceLock::new();
-
-fn skip_stats() -> &'static BTreeSet<&'static str> {
-    SKIP_STATS.get_or_init(|| {
-        let mut set = BTreeSet::new();
-        set.insert("stat.craftItem.minecraft.spawn_egg");
-        set.insert("stat.useItem.minecraft.spawn_egg");
-        set.insert("stat.breakItem.minecraft.spawn_egg");
-        set.insert("stat.pickup.minecraft.spawn_egg");
-        set.insert("stat.drop.minecraft.spawn_egg");
-        set
-    })
-}
-
-static CUSTOM_STATS: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
-
-fn custom_stats() -> &'static BTreeMap<&'static str, &'static str> {
-    CUSTOM_STATS.get_or_init(|| {
-        let mut map = BTreeMap::new();
-        map.insert("stat.leaveGame", "minecraft:leave_game");
-        map.insert("stat.playOneMinute", "minecraft:play_one_minute");
-        map.insert("stat.timeSinceDeath", "minecraft:time_since_death");
-        map.insert("stat.sneakTime", "minecraft:sneak_time");
-        map.insert("stat.walkOneCm", "minecraft:walk_one_cm");
-        map.insert("stat.crouchOneCm", "minecraft:crouch_one_cm");
-        map.insert("stat.sprintOneCm", "minecraft:sprint_one_cm");
-        map.insert("stat.swimOneCm", "minecraft:swim_one_cm");
-        map.insert("stat.fallOneCm", "minecraft:fall_one_cm");
-        map.insert("stat.climbOneCm", "minecraft:climb_one_cm");
-        map.insert("stat.flyOneCm", "minecraft:fly_one_cm");
-        map.insert("stat.diveOneCm", "minecraft:dive_one_cm");
-        map.insert("stat.minecartOneCm", "minecraft:minecart_one_cm");
-        map.insert("stat.boatOneCm", "minecraft:boat_one_cm");
-        map.insert("stat.pigOneCm", "minecraft:pig_one_cm");
-        map.insert("stat.horseOneCm", "minecraft:horse_one_cm");
-        map.insert("stat.aviateOneCm", "minecraft:aviate_one_cm");
-        map.insert("stat.jump", "minecraft:jump");
-        map.insert("stat.drop", "minecraft:drop");
-        map.insert("stat.damageDealt", "minecraft:damage_dealt");
-        map.insert("stat.damageTaken", "minecraft:damage_taken");
-        map.insert("stat.deaths", "minecraft:deaths");
-        map.insert("stat.mobKills", "minecraft:mob_kills");
-        map.insert("stat.animalsBred", "minecraft:animals_bred");
-        map.insert("stat.playerKills", "minecraft:player_kills");
-        map.insert("stat.fishCaught", "minecraft:fish_caught");
-        map.insert("stat.talkedToVillager", "minecraft:talked_to_villager");
-        map.insert("stat.tradedWithVillager", "minecraft:traded_with_villager");
-        map.insert("stat.cakeSlicesEaten", "minecraft:eat_cake_slice");
-        map.insert("stat.cauldronFilled", "minecraft:fill_cauldron");
-        map.insert("stat.cauldronUsed", "minecraft:use_cauldron");
-        map.insert("stat.armorCleaned", "minecraft:clean_armor");
-        map.insert("stat.bannerCleaned", "minecraft:clean_banner");
-        map.insert(
-            "stat.brewingstandInteraction",
-            "minecraft:interact_with_brewingstand",
-        );
-        map.insert("stat.beaconInteraction", "minecraft:interact_with_beacon");
-        map.insert("stat.dropperInspected", "minecraft:inspect_dropper");
-        map.insert("stat.hopperInspected", "minecraft:inspect_hopper");
-        map.insert("stat.dispenserInspected", "minecraft:inspect_dispenser");
-        map.insert("stat.noteblockPlayed", "minecraft:play_noteblock");
-        map.insert("stat.noteblockTuned", "minecraft:tune_noteblock");
-        map.insert("stat.flowerPotted", "minecraft:pot_flower");
-        map.insert(
-            "stat.trappedChestTriggered",
-            "minecraft:trigger_trapped_chest",
-        );
-        map.insert("stat.enderchestOpened", "minecraft:open_enderchest");
-        map.insert("stat.itemEnchanted", "minecraft:enchant_item");
-        map.insert("stat.recordPlayed", "minecraft:play_record");
-        map.insert("stat.furnaceInteraction", "minecraft:interact_with_furnace");
-        map.insert(
-            "stat.craftingTableInteraction",
-            "minecraft:interact_with_crafting_table",
-        );
-        map.insert("stat.chestOpened", "minecraft:open_chest");
-        map.insert("stat.sleepInBed", "minecraft:sleep_in_bed");
-        map.insert("stat.shulkerBoxOpened", "minecraft:open_shulker_box");
-        map
-    })
-}
-
-static ITEM_STATS: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
-
-fn item_stats() -> &'static BTreeMap<&'static str, &'static str> {
-    ITEM_STATS.get_or_init(|| {
-        let mut map = BTreeMap::new();
-        map.insert("stat.craftItem", "minecraft:crafted");
-        map.insert("stat.useItem", "minecraft:used");
-        map.insert("stat.breakItem", "minecraft:broken");
-        map.insert("stat.pickup", "minecraft:picked_up");
-        map.insert("stat.drop", "minecraft:dropped");
-        map
-    })
-}
-
-static ENTITY_STATS: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
-
-fn entity_stats() -> &'static BTreeMap<&'static str, &'static str> {
-    ENTITY_STATS.get_or_init(|| {
-        let mut map = BTreeMap::new();
-        map.insert("stat.entityKilledBy", "minecraft:killed_by");
-        map.insert("stat.killEntity", "minecraft:killed");
-        map
-    })
-}
-
-static ENTITY_MAP: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
-
-fn entity_map() -> &'static BTreeMap<&'static str, &'static str> {
-    ENTITY_MAP.get_or_init(|| {
-        let mut map = BTreeMap::new();
-        map.insert("Bat", "minecraft:bat");
-        map.insert("Blaze", "minecraft:blaze");
-        map.insert("CaveSpider", "minecraft:cave_spider");
-        map.insert("Chicken", "minecraft:chicken");
-        map.insert("Cow", "minecraft:cow");
-        map.insert("Creeper", "minecraft:creeper");
-        map.insert("Donkey", "minecraft:donkey");
-        map.insert("ElderGuardian", "minecraft:elder_guardian");
-        map.insert("Enderman", "minecraft:enderman");
-        map.insert("Endermite", "minecraft:endermite");
-        map.insert("EvocationIllager", "minecraft:evocation_illager");
-        map.insert("Ghast", "minecraft:ghast");
-        map.insert("Guardian", "minecraft:guardian");
-        map.insert("Horse", "minecraft:horse");
-        map.insert("Husk", "minecraft:husk");
-        map.insert("Llama", "minecraft:llama");
-        map.insert("LavaSlime", "minecraft:magma_cube");
-        map.insert("MushroomCow", "minecraft:mooshroom");
-        map.insert("Mule", "minecraft:mule");
-        map.insert("Ozelot", "minecraft:ocelot");
-        map.insert("Parrot", "minecraft:parrot");
-        map.insert("Pig", "minecraft:pig");
-        map.insert("PolarBear", "minecraft:polar_bear");
-        map.insert("Rabbit", "minecraft:rabbit");
-        map.insert("Sheep", "minecraft:sheep");
-        map.insert("Shulker", "minecraft:shulker");
-        map.insert("Silverfish", "minecraft:silverfish");
-        map.insert("SkeletonHorse", "minecraft:skeleton_horse");
-        map.insert("Skeleton", "minecraft:skeleton");
-        map.insert("Slime", "minecraft:slime");
-        map.insert("Spider", "minecraft:spider");
-        map.insert("Squid", "minecraft:squid");
-        map.insert("Stray", "minecraft:stray");
-        map.insert("Vex", "minecraft:vex");
-        map.insert("Villager", "minecraft:villager");
-        map.insert("VindicationIllager", "minecraft:vindication_illager");
-        map.insert("Witch", "minecraft:witch");
-        map.insert("WitherSkeleton", "minecraft:wither_skeleton");
-        map.insert("Wolf", "minecraft:wolf");
-        map.insert("ZombieHorse", "minecraft:zombie_horse");
-        map.insert("PigZombie", "minecraft:zombie_pigman");
-        map.insert("ZombieVillager", "minecraft:zombie_villager");
-        map.insert("Zombie", "minecraft:zombie");
         map
     })
 }
@@ -866,71 +707,9 @@ pub(crate) fn register() {
     );
 
     // V6
-    types::stats_mut().add_structure_converter(
-        DataVersion::new(VERSION, 6),
-        map_data_converter_func(|data, _from_version, _to_version| {
-            let mut stats = Compound::new();
-
-            for (stat_key, value) in data.iter_mut() {
-                let Some(value) = value.as_i32() else {
-                    continue;
-                };
-
-                if skip_stats().contains(&stat_key[..]) {
-                    continue;
-                }
-
-                let (stat_type, new_stat_key) =
-                    if let Some(stat_key) = custom_stats().get(&stat_key[..]).copied() {
-                        ("minecraft:custom", stat_key.to_owned())
-                    } else {
-                        let split_index = match stat_key.match_indices('.').nth(1) {
-                            Some((index, _)) => index,
-                            None => continue,
-                        };
-
-                        let (key, item) = stat_key.split_at(split_index);
-                        let item = item.strip_prefix('.').unwrap().replace('.', ":");
-
-                        if key == "stat.mineBlock" {
-                            (
-                                "minecraft:mined",
-                                block_flattening_v1450::get_new_block_name(&item).to_owned(),
-                            )
-                        } else if let Some(stat_key) = item_stats().get(&stat_key[..]).copied() {
-                            (
-                                stat_key,
-                                flatten_item_stack_v1451::flatten_item(&item, 0)
-                                    .map(|str| str.to_owned())
-                                    .unwrap_or(item),
-                            )
-                        } else if let Some(stat_key) = entity_stats().get(&stat_key[..]).copied() {
-                            (
-                                stat_key,
-                                entity_map()
-                                    .get(&item[..])
-                                    .copied()
-                                    .map(|str| str.to_owned())
-                                    .unwrap_or(item),
-                            )
-                        } else {
-                            continue;
-                        }
-                    };
-
-                if !stats.contains_key(stat_type) {
-                    stats.insert(stat_type, Compound::new());
-                }
-                let Some(Value::Compound(stat_type_map)) = stats.get_mut(stat_type) else {
-                    unreachable!()
-                };
-                stat_type_map.insert(new_stat_key, value);
-            }
-
-            data.clear();
-            data.insert("stats", stats);
-        }),
-    );
+    types::stats_mut().add_structure_converter(DataVersion::new(VERSION, 6), StatsConverter);
+    types::objective_mut()
+        .add_structure_converter(DataVersion::new(VERSION, 6), ObjectiveConverter);
     types::tile_entity_mut().add_converter_for_id(
         "minecraft:jukebox",
         DataVersion::new(VERSION, 6),
@@ -1065,15 +844,7 @@ pub(crate) fn register() {
                     let new_name = if typ == "_special" {
                         id.to_owned()
                     } else {
-                        let type_part = typ.parse::<ResourceLocation>().map_or_else(
-                            |_| typ.to_owned(),
-                            |loc| format!("{}.{}", loc.namespace, loc.path),
-                        );
-                        let id_part = id.parse::<ResourceLocation>().map_or_else(
-                            |_| id.to_owned(),
-                            |loc| format!("{}.{}", loc.namespace, loc.path),
-                        );
-                        format!("{}:{}", type_part, id_part)
+                        format!("{}:{}", pack_with_dot(typ), pack_with_dot(id))
                     };
 
                     data.remove("CriteriaType");
@@ -1366,6 +1137,13 @@ fn convert_entity_state(
             );
         }),
     );
+}
+
+pub(crate) fn pack_with_dot(id: &str) -> String {
+    id.parse::<ResourceLocation>().map_or_else(
+        |_| id.to_owned(),
+        |loc| format!("{}.{}", loc.namespace, loc.path),
+    )
 }
 
 pub(crate) struct ConverterFlattenSpawnEgg;
