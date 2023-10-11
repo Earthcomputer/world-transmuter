@@ -1,7 +1,6 @@
 use crate::types;
-use valence_nbt::{Compound, Value};
 use world_transmuter_engine::{
-    convert_map_in_map, convert_map_list_in_map, convert_object_list_in_map, data_walker,
+    convert_map_in_map, convert_map_list_in_map, convert_object_list_in_map, data_walker, JValue,
 };
 
 const VERSION: u32 = 1022;
@@ -9,8 +8,8 @@ const VERSION: u32 = 1022;
 pub(crate) fn register() {
     types::player_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data: &mut Compound, from_version, to_version| {
-            if let Some(Value::Compound(root_vehicle)) = data.get_mut("RootVehicle") {
+        data_walker(move |data, from_version, to_version| {
+            if let Some(JValue::Compound(root_vehicle)) = data.get_mut("RootVehicle") {
                 convert_map_in_map(
                     types::entity_ref(),
                     root_vehicle,
@@ -50,7 +49,7 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::Compound(recipe_book)) = data.get_mut("recipeBook") {
+            if let Some(JValue::Compound(recipe_book)) = data.get_mut("recipeBook") {
                 convert_object_list_in_map(
                     types::recipe_ref(),
                     recipe_book,
@@ -77,7 +76,7 @@ pub(crate) fn register() {
                 convert_map_list_in_map(
                     types::item_stack_ref(),
                     data,
-                    key.as_str(),
+                    &key[..],
                     from_version,
                     to_version,
                 );

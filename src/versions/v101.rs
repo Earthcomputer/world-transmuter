@@ -1,8 +1,8 @@
 use crate::helpers::gson_lenient_fix::{fix_gson_lenient, FixedGsonLenient, JsonType};
 use crate::types;
-use std::borrow::Cow;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::map_data_converter_func;
+use java_string::{format_java, JavaStr, JavaString};
+use std::borrow::{Borrow, Cow};
+use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 101;
 
@@ -19,8 +19,8 @@ pub(crate) fn register() {
     );
 }
 
-fn update_line(data: &mut Compound, key: &str) {
-    let Some(Value::String(str)) = data.get(key) else {
+fn update_line(data: &mut JCompound, key: &str) {
+    let Some(JValue::String(str)) = data.get(key) else {
         return;
     };
 
@@ -32,24 +32,24 @@ fn update_line(data: &mut Compound, key: &str) {
             fixed_str,
         } = fix_gson_lenient(str).unwrap_or(FixedGsonLenient {
             value_type: JsonType::String,
-            fixed_str: Cow::Owned(format!(
+            fixed_str: Cow::Owned(format_java!(
                 "\"{}\"",
                 str.replace('\\', "\\\\").replace('"', "\\\"")
             )),
         });
         match value_type {
             JsonType::Object | JsonType::Array => fixed_str.into_owned(),
-            JsonType::String | JsonType::Number => format!("{{\"text\":{}}}", fixed_str),
+            JsonType::String | JsonType::Number => format_java!("{{\"text\":{}}}", fixed_str),
             JsonType::Keyword => {
-                if fixed_str == "null" {
-                    "{\"text\":\"\"}".to_owned()
+                if Borrow::<JavaStr>::borrow(&fixed_str) == "null" {
+                    JavaString::from("{\"text\":\"\"}")
                 } else {
-                    format!("{{\"text\":\"{}\"}}", fixed_str)
+                    format_java!("{{\"text\":\"{}\"}}", fixed_str)
                 }
             }
         }
     } else {
-        format!(
+        format_java!(
             "{{\"text\":\"{}\"}}",
             str.replace('\\', "\\\\").replace('"', "\\\"")
         )

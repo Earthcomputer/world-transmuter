@@ -1,4 +1,5 @@
 use ahash::AHashMap;
+use java_string::JavaStr;
 use std::sync::OnceLock;
 
 static ITEM_NAMES: OnceLock<AHashMap<i32, &'static str>> = OnceLock::new();
@@ -492,10 +493,12 @@ fn potion_names() -> &'static [Option<&'static str>; 128] {
     })
 }
 
-pub fn get_name_from_id(id: i32) -> Option<&'static str> {
-    item_names().get(&id).copied()
+pub fn get_name_from_id(id: i32) -> Option<&'static JavaStr> {
+    item_names().get(&id).map(|str| JavaStr::from_str(str))
 }
 
-pub fn get_potion_name_from_id(id: i32) -> Option<&'static str> {
-    potion_names()[(id & 127) as usize].as_ref().copied()
+pub fn get_potion_name_from_id(id: i32) -> Option<&'static JavaStr> {
+    potion_names()[(id & 127) as usize]
+        .as_ref()
+        .map(|str| JavaStr::from_str(str))
 }

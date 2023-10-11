@@ -1,9 +1,9 @@
 use crate::types;
-use valence_nbt::value::ValueMut;
-use valence_nbt::{Compound, List, Value};
+use java_string::JavaString;
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
     convert_values_in_map, data_walker, map_data_converter_func, value_data_converter_func,
+    JCompound, JList, JValue, JValueMut,
 };
 
 const VERSION: u32 = 2843;
@@ -12,9 +12,9 @@ pub(crate) fn register() {
     types::biome_mut().add_structure_converter(
         VERSION,
         value_data_converter_func(|data, _from_version, _to_version| {
-            if let ValueMut::String(data) = data {
+            if let JValueMut::String(data) = data {
                 if *data == "minecraft:deep_warm_ocean" {
-                    **data = "minecraft:warm_ocean".to_owned();
+                    **data = JavaString::from("minecraft:warm_ocean");
                 }
             }
         }),
@@ -25,12 +25,13 @@ pub(crate) fn register() {
         map_data_converter_func(|data, _from_version, _to_version| {
             fn move_out_of_bound_ticks(
                 ticks_key: &str,
-                chunk_root: &mut Compound,
+                chunk_root: &mut JCompound,
                 chunk_x: i32,
                 chunk_z: i32,
                 into_key: &str,
             ) {
-                let Some(Value::List(List::Compound(ticks))) = chunk_root.get_mut(ticks_key) else {
+                let Some(JValue::List(JList::Compound(ticks))) = chunk_root.get_mut(ticks_key)
+                else {
                     return;
                 };
 
@@ -46,14 +47,14 @@ pub(crate) fn register() {
                 }
 
                 if !out_of_bounds.is_empty() {
-                    if !matches!(chunk_root.get("UpgradeData"), Some(Value::Compound(_))) {
-                        chunk_root.insert("UpgradeData", Compound::new());
+                    if !matches!(chunk_root.get("UpgradeData"), Some(JValue::Compound(_))) {
+                        chunk_root.insert("UpgradeData", JCompound::new());
                     }
-                    let Some(Value::Compound(upgrade_data)) = chunk_root.get_mut("UpgradeData")
+                    let Some(JValue::Compound(upgrade_data)) = chunk_root.get_mut("UpgradeData")
                     else {
                         unreachable!()
                     };
-                    upgrade_data.insert(into_key, List::Compound(out_of_bounds));
+                    upgrade_data.insert(into_key, JList::Compound(out_of_bounds));
                 }
             }
 
@@ -85,7 +86,7 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::List(List::Compound(block_ticks))) = data.get_mut("block_ticks") {
+            if let Some(JValue::List(JList::Compound(block_ticks))) = data.get_mut("block_ticks") {
                 for block_tick in block_ticks {
                     convert_object_in_map(
                         types::block_name_ref(),
@@ -97,11 +98,11 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::Compound(upgrade_data)) = data.get_mut("UpgradeData") {
+            if let Some(JValue::Compound(upgrade_data)) = data.get_mut("UpgradeData") {
                 // Even though UpgradeData will retrieve the block from the World when the type no longer exists,
                 // the type from the world may not match what was actually queued. So, even though it may look like we
                 // can skip the walker here, we actually don't if we want to be thorough.
-                if let Some(Value::List(List::Compound(neighbor_block_ticks))) =
+                if let Some(JValue::List(JList::Compound(neighbor_block_ticks))) =
                     upgrade_data.get_mut("neighbor_block_ticks")
                 {
                     for block_tick in neighbor_block_ticks {
@@ -116,9 +117,9 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::List(List::Compound(sections))) = data.get_mut("sections") {
+            if let Some(JValue::List(JList::Compound(sections))) = data.get_mut("sections") {
                 for section in sections {
-                    if let Some(Value::Compound(biomes)) = section.get_mut("biomes") {
+                    if let Some(JValue::Compound(biomes)) = section.get_mut("biomes") {
                         convert_object_list_in_map(
                             types::biome_ref(),
                             biomes,
@@ -127,7 +128,7 @@ pub(crate) fn register() {
                             to_version,
                         );
                     }
-                    if let Some(Value::Compound(block_states)) = section.get_mut("block_states") {
+                    if let Some(JValue::Compound(block_states)) = section.get_mut("block_states") {
                         convert_map_list_in_map(
                             types::block_state_ref(),
                             block_states,
@@ -139,7 +140,7 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::Compound(structures)) = data.get_mut("structures") {
+            if let Some(JValue::Compound(structures)) = data.get_mut("structures") {
                 convert_values_in_map(
                     types::structure_feature_ref(),
                     structures,

@@ -1,21 +1,15 @@
-use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_item;
-use crate::types;
-use std::sync::OnceLock;
+use crate::{static_string_mc_map, types};
 use world_transmuter_engine::DataWalkerMapListPaths;
 
 const VERSION: u32 = 1800;
 
-static RENAMED_ITEM_IDS: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn renamed_item_ids() -> &'static McNamespaceMap<'static, &'static str> {
-    RENAMED_ITEM_IDS.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("cactus_green", "minecraft:green_dye");
-        map.insert_mc("rose_red", "minecraft:red_dye");
-        map.insert_mc("dandelion_yellow", "minecraft:yellow_dye");
-        map
-    })
+static_string_mc_map! {
+    RENAMED_ITEM_IDS, renamed_item_ids, {
+        "cactus_green" => "minecraft:green_dye",
+        "rose_red" => "minecraft:red_dye",
+        "dandelion_yellow" => "minecraft:yellow_dye",
+    }
 }
 
 pub(crate) fn register() {

@@ -1,6 +1,7 @@
 use crate::types;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::{map_data_converter_func, DataVersion, DataWalkerMapTypePaths};
+use world_transmuter_engine::{
+    map_data_converter_func, DataVersion, DataWalkerMapTypePaths, JCompound, JValue,
+};
 
 const VERSION: u32 = 2511;
 
@@ -64,7 +65,7 @@ pub(crate) fn register() {
     );
 }
 
-fn set_uuid(data: &mut Compound, most: i64, least: i64) {
+fn set_uuid(data: &mut JCompound, most: i64, least: i64) {
     // if either most or least is 0, that's an invalid uuid so don't convert
     // this checks for cases where there wasn't a uuid to start with
     if most != 0 && least != 0 {
@@ -80,8 +81,8 @@ fn set_uuid(data: &mut Compound, most: i64, least: i64) {
     }
 }
 
-fn throwable_converter(data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
-    if let Some(Value::Compound(owner)) = data.remove("owner") {
+fn throwable_converter(data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
+    if let Some(JValue::Compound(owner)) = data.remove("owner") {
         set_uuid(
             data,
             owner.get("M").and_then(|v| v.as_i64()).unwrap_or(0),
@@ -90,16 +91,20 @@ fn throwable_converter(data: &mut Compound, _from_version: DataVersion, _to_vers
     }
 }
 
-fn potion_converter(data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
-    if let Some(Value::Compound(potion)) = data.remove("Potion") {
+fn potion_converter(data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
+    if let Some(JValue::Compound(potion)) = data.remove("Potion") {
         data.insert("Item", potion);
     } else {
-        data.insert("Item", Compound::new());
+        data.insert("Item", JCompound::new());
     }
 }
 
-fn llama_spit_converter(data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
-    if let Some(Value::Compound(owner)) = data.remove("Owner") {
+fn llama_spit_converter(
+    data: &mut JCompound,
+    _from_version: DataVersion,
+    _to_version: DataVersion,
+) {
+    if let Some(JValue::Compound(owner)) = data.remove("Owner") {
         set_uuid(
             data,
             owner
@@ -114,7 +119,7 @@ fn llama_spit_converter(data: &mut Compound, _from_version: DataVersion, _to_ver
     }
 }
 
-fn arrow_converter(data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+fn arrow_converter(data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
     let most = data
         .remove("OwnerUUIDMost")
         .and_then(|o| o.as_i64())

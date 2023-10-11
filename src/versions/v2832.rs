@@ -1,122 +1,124 @@
 use crate::helpers::bit_storage::{
     ceil_log2, AlignedBitStorage, LocalPos, NullSectionInitializer, Section,
 };
-use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types;
 use crate::versions::v2841;
+use crate::{static_string_mc_set, static_string_set, types};
 use ahash::{AHashMap, AHashSet};
 use bitvec::array::BitArray;
 use bitvec::order::Lsb0;
+use java_string::{JavaStr, JavaString};
 use log::error;
 use std::collections::BTreeSet;
-use std::sync::OnceLock;
-use valence_nbt::{compound, Compound, List, Value};
+use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
-    convert_values_in_map, data_walker, get_mut_multi, map_data_converter_func,
+    convert_values_in_map, data_walker, get_mut_multi, map_data_converter_func, JCompound, JList,
+    JValue,
 };
 
 const VERSION: u32 = 2832;
 
-const BIOMES_BY_ID: [Option<&str>; 183] = {
+const BIOMES_BY_ID: [Option<&JavaStr>; 183] = {
     let mut biomes_by_id = [None; 183];
-    biomes_by_id[0] = Some("minecraft:ocean");
-    biomes_by_id[1] = Some("minecraft:plains");
-    biomes_by_id[2] = Some("minecraft:desert");
-    biomes_by_id[3] = Some("minecraft:mountains");
-    biomes_by_id[4] = Some("minecraft:forest");
-    biomes_by_id[5] = Some("minecraft:taiga");
-    biomes_by_id[6] = Some("minecraft:swamp");
-    biomes_by_id[7] = Some("minecraft:river");
-    biomes_by_id[8] = Some("minecraft:nether_wastes");
-    biomes_by_id[9] = Some("minecraft:the_end");
-    biomes_by_id[10] = Some("minecraft:frozen_ocean");
-    biomes_by_id[11] = Some("minecraft:frozen_river");
-    biomes_by_id[12] = Some("minecraft:snowy_tundra");
-    biomes_by_id[13] = Some("minecraft:snowy_mountains");
-    biomes_by_id[14] = Some("minecraft:mushroom_fields");
-    biomes_by_id[15] = Some("minecraft:mushroom_field_shore");
-    biomes_by_id[16] = Some("minecraft:beach");
-    biomes_by_id[17] = Some("minecraft:desert_hills");
-    biomes_by_id[18] = Some("minecraft:wooded_hills");
-    biomes_by_id[19] = Some("minecraft:taiga_hills");
-    biomes_by_id[20] = Some("minecraft:mountain_edge");
-    biomes_by_id[21] = Some("minecraft:jungle");
-    biomes_by_id[22] = Some("minecraft:jungle_hills");
-    biomes_by_id[23] = Some("minecraft:jungle_edge");
-    biomes_by_id[24] = Some("minecraft:deep_ocean");
-    biomes_by_id[25] = Some("minecraft:stone_shore");
-    biomes_by_id[26] = Some("minecraft:snowy_beach");
-    biomes_by_id[27] = Some("minecraft:birch_forest");
-    biomes_by_id[28] = Some("minecraft:birch_forest_hills");
-    biomes_by_id[29] = Some("minecraft:dark_forest");
-    biomes_by_id[30] = Some("minecraft:snowy_taiga");
-    biomes_by_id[31] = Some("minecraft:snowy_taiga_hills");
-    biomes_by_id[32] = Some("minecraft:giant_tree_taiga");
-    biomes_by_id[33] = Some("minecraft:giant_tree_taiga_hills");
-    biomes_by_id[34] = Some("minecraft:wooded_mountains");
-    biomes_by_id[35] = Some("minecraft:savanna");
-    biomes_by_id[36] = Some("minecraft:savanna_plateau");
-    biomes_by_id[37] = Some("minecraft:badlands");
-    biomes_by_id[38] = Some("minecraft:wooded_badlands_plateau");
-    biomes_by_id[39] = Some("minecraft:badlands_plateau");
-    biomes_by_id[40] = Some("minecraft:small_end_islands");
-    biomes_by_id[41] = Some("minecraft:end_midlands");
-    biomes_by_id[42] = Some("minecraft:end_highlands");
-    biomes_by_id[43] = Some("minecraft:end_barrens");
-    biomes_by_id[44] = Some("minecraft:warm_ocean");
-    biomes_by_id[45] = Some("minecraft:lukewarm_ocean");
-    biomes_by_id[46] = Some("minecraft:cold_ocean");
-    biomes_by_id[47] = Some("minecraft:deep_warm_ocean");
-    biomes_by_id[48] = Some("minecraft:deep_lukewarm_ocean");
-    biomes_by_id[49] = Some("minecraft:deep_cold_ocean");
-    biomes_by_id[50] = Some("minecraft:deep_frozen_ocean");
-    biomes_by_id[127] = Some("minecraft:the_void");
-    biomes_by_id[129] = Some("minecraft:sunflower_plains");
-    biomes_by_id[130] = Some("minecraft:desert_lakes");
-    biomes_by_id[131] = Some("minecraft:gravelly_mountains");
-    biomes_by_id[132] = Some("minecraft:flower_forest");
-    biomes_by_id[133] = Some("minecraft:taiga_mountains");
-    biomes_by_id[134] = Some("minecraft:swamp_hills");
-    biomes_by_id[140] = Some("minecraft:ice_spikes");
-    biomes_by_id[149] = Some("minecraft:modified_jungle");
-    biomes_by_id[151] = Some("minecraft:modified_jungle_edge");
-    biomes_by_id[155] = Some("minecraft:tall_birch_forest");
-    biomes_by_id[156] = Some("minecraft:tall_birch_hills");
-    biomes_by_id[157] = Some("minecraft:dark_forest_hills");
-    biomes_by_id[158] = Some("minecraft:snowy_taiga_mountains");
-    biomes_by_id[160] = Some("minecraft:giant_spruce_taiga");
-    biomes_by_id[161] = Some("minecraft:giant_spruce_taiga_hills");
-    biomes_by_id[162] = Some("minecraft:modified_gravelly_mountains");
-    biomes_by_id[163] = Some("minecraft:shattered_savanna");
-    biomes_by_id[164] = Some("minecraft:shattered_savanna_plateau");
-    biomes_by_id[165] = Some("minecraft:eroded_badlands");
-    biomes_by_id[166] = Some("minecraft:modified_wooded_badlands_plateau");
-    biomes_by_id[167] = Some("minecraft:modified_badlands_plateau");
-    biomes_by_id[168] = Some("minecraft:bamboo_jungle");
-    biomes_by_id[169] = Some("minecraft:bamboo_jungle_hills");
-    biomes_by_id[170] = Some("minecraft:soul_sand_valley");
-    biomes_by_id[171] = Some("minecraft:crimson_forest");
-    biomes_by_id[172] = Some("minecraft:warped_forest");
-    biomes_by_id[173] = Some("minecraft:basalt_deltas");
-    biomes_by_id[174] = Some("minecraft:dripstone_caves");
-    biomes_by_id[175] = Some("minecraft:lush_caves");
-    biomes_by_id[177] = Some("minecraft:meadow");
-    biomes_by_id[178] = Some("minecraft:grove");
-    biomes_by_id[179] = Some("minecraft:snowy_slopes");
-    biomes_by_id[180] = Some("minecraft:snowcapped_peaks");
-    biomes_by_id[181] = Some("minecraft:lofty_peaks");
-    biomes_by_id[182] = Some("minecraft:stony_peaks");
+    biomes_by_id[0] = Some(JavaStr::from_str("minecraft:ocean"));
+    biomes_by_id[1] = Some(JavaStr::from_str("minecraft:plains"));
+    biomes_by_id[2] = Some(JavaStr::from_str("minecraft:desert"));
+    biomes_by_id[3] = Some(JavaStr::from_str("minecraft:mountains"));
+    biomes_by_id[4] = Some(JavaStr::from_str("minecraft:forest"));
+    biomes_by_id[5] = Some(JavaStr::from_str("minecraft:taiga"));
+    biomes_by_id[6] = Some(JavaStr::from_str("minecraft:swamp"));
+    biomes_by_id[7] = Some(JavaStr::from_str("minecraft:river"));
+    biomes_by_id[8] = Some(JavaStr::from_str("minecraft:nether_wastes"));
+    biomes_by_id[9] = Some(JavaStr::from_str("minecraft:the_end"));
+    biomes_by_id[10] = Some(JavaStr::from_str("minecraft:frozen_ocean"));
+    biomes_by_id[11] = Some(JavaStr::from_str("minecraft:frozen_river"));
+    biomes_by_id[12] = Some(JavaStr::from_str("minecraft:snowy_tundra"));
+    biomes_by_id[13] = Some(JavaStr::from_str("minecraft:snowy_mountains"));
+    biomes_by_id[14] = Some(JavaStr::from_str("minecraft:mushroom_fields"));
+    biomes_by_id[15] = Some(JavaStr::from_str("minecraft:mushroom_field_shore"));
+    biomes_by_id[16] = Some(JavaStr::from_str("minecraft:beach"));
+    biomes_by_id[17] = Some(JavaStr::from_str("minecraft:desert_hills"));
+    biomes_by_id[18] = Some(JavaStr::from_str("minecraft:wooded_hills"));
+    biomes_by_id[19] = Some(JavaStr::from_str("minecraft:taiga_hills"));
+    biomes_by_id[20] = Some(JavaStr::from_str("minecraft:mountain_edge"));
+    biomes_by_id[21] = Some(JavaStr::from_str("minecraft:jungle"));
+    biomes_by_id[22] = Some(JavaStr::from_str("minecraft:jungle_hills"));
+    biomes_by_id[23] = Some(JavaStr::from_str("minecraft:jungle_edge"));
+    biomes_by_id[24] = Some(JavaStr::from_str("minecraft:deep_ocean"));
+    biomes_by_id[25] = Some(JavaStr::from_str("minecraft:stone_shore"));
+    biomes_by_id[26] = Some(JavaStr::from_str("minecraft:snowy_beach"));
+    biomes_by_id[27] = Some(JavaStr::from_str("minecraft:birch_forest"));
+    biomes_by_id[28] = Some(JavaStr::from_str("minecraft:birch_forest_hills"));
+    biomes_by_id[29] = Some(JavaStr::from_str("minecraft:dark_forest"));
+    biomes_by_id[30] = Some(JavaStr::from_str("minecraft:snowy_taiga"));
+    biomes_by_id[31] = Some(JavaStr::from_str("minecraft:snowy_taiga_hills"));
+    biomes_by_id[32] = Some(JavaStr::from_str("minecraft:giant_tree_taiga"));
+    biomes_by_id[33] = Some(JavaStr::from_str("minecraft:giant_tree_taiga_hills"));
+    biomes_by_id[34] = Some(JavaStr::from_str("minecraft:wooded_mountains"));
+    biomes_by_id[35] = Some(JavaStr::from_str("minecraft:savanna"));
+    biomes_by_id[36] = Some(JavaStr::from_str("minecraft:savanna_plateau"));
+    biomes_by_id[37] = Some(JavaStr::from_str("minecraft:badlands"));
+    biomes_by_id[38] = Some(JavaStr::from_str("minecraft:wooded_badlands_plateau"));
+    biomes_by_id[39] = Some(JavaStr::from_str("minecraft:badlands_plateau"));
+    biomes_by_id[40] = Some(JavaStr::from_str("minecraft:small_end_islands"));
+    biomes_by_id[41] = Some(JavaStr::from_str("minecraft:end_midlands"));
+    biomes_by_id[42] = Some(JavaStr::from_str("minecraft:end_highlands"));
+    biomes_by_id[43] = Some(JavaStr::from_str("minecraft:end_barrens"));
+    biomes_by_id[44] = Some(JavaStr::from_str("minecraft:warm_ocean"));
+    biomes_by_id[45] = Some(JavaStr::from_str("minecraft:lukewarm_ocean"));
+    biomes_by_id[46] = Some(JavaStr::from_str("minecraft:cold_ocean"));
+    biomes_by_id[47] = Some(JavaStr::from_str("minecraft:deep_warm_ocean"));
+    biomes_by_id[48] = Some(JavaStr::from_str("minecraft:deep_lukewarm_ocean"));
+    biomes_by_id[49] = Some(JavaStr::from_str("minecraft:deep_cold_ocean"));
+    biomes_by_id[50] = Some(JavaStr::from_str("minecraft:deep_frozen_ocean"));
+    biomes_by_id[127] = Some(JavaStr::from_str("minecraft:the_void"));
+    biomes_by_id[129] = Some(JavaStr::from_str("minecraft:sunflower_plains"));
+    biomes_by_id[130] = Some(JavaStr::from_str("minecraft:desert_lakes"));
+    biomes_by_id[131] = Some(JavaStr::from_str("minecraft:gravelly_mountains"));
+    biomes_by_id[132] = Some(JavaStr::from_str("minecraft:flower_forest"));
+    biomes_by_id[133] = Some(JavaStr::from_str("minecraft:taiga_mountains"));
+    biomes_by_id[134] = Some(JavaStr::from_str("minecraft:swamp_hills"));
+    biomes_by_id[140] = Some(JavaStr::from_str("minecraft:ice_spikes"));
+    biomes_by_id[149] = Some(JavaStr::from_str("minecraft:modified_jungle"));
+    biomes_by_id[151] = Some(JavaStr::from_str("minecraft:modified_jungle_edge"));
+    biomes_by_id[155] = Some(JavaStr::from_str("minecraft:tall_birch_forest"));
+    biomes_by_id[156] = Some(JavaStr::from_str("minecraft:tall_birch_hills"));
+    biomes_by_id[157] = Some(JavaStr::from_str("minecraft:dark_forest_hills"));
+    biomes_by_id[158] = Some(JavaStr::from_str("minecraft:snowy_taiga_mountains"));
+    biomes_by_id[160] = Some(JavaStr::from_str("minecraft:giant_spruce_taiga"));
+    biomes_by_id[161] = Some(JavaStr::from_str("minecraft:giant_spruce_taiga_hills"));
+    biomes_by_id[162] = Some(JavaStr::from_str("minecraft:modified_gravelly_mountains"));
+    biomes_by_id[163] = Some(JavaStr::from_str("minecraft:shattered_savanna"));
+    biomes_by_id[164] = Some(JavaStr::from_str("minecraft:shattered_savanna_plateau"));
+    biomes_by_id[165] = Some(JavaStr::from_str("minecraft:eroded_badlands"));
+    biomes_by_id[166] = Some(JavaStr::from_str(
+        "minecraft:modified_wooded_badlands_plateau",
+    ));
+    biomes_by_id[167] = Some(JavaStr::from_str("minecraft:modified_badlands_plateau"));
+    biomes_by_id[168] = Some(JavaStr::from_str("minecraft:bamboo_jungle"));
+    biomes_by_id[169] = Some(JavaStr::from_str("minecraft:bamboo_jungle_hills"));
+    biomes_by_id[170] = Some(JavaStr::from_str("minecraft:soul_sand_valley"));
+    biomes_by_id[171] = Some(JavaStr::from_str("minecraft:crimson_forest"));
+    biomes_by_id[172] = Some(JavaStr::from_str("minecraft:warped_forest"));
+    biomes_by_id[173] = Some(JavaStr::from_str("minecraft:basalt_deltas"));
+    biomes_by_id[174] = Some(JavaStr::from_str("minecraft:dripstone_caves"));
+    biomes_by_id[175] = Some(JavaStr::from_str("minecraft:lush_caves"));
+    biomes_by_id[177] = Some(JavaStr::from_str("minecraft:meadow"));
+    biomes_by_id[178] = Some(JavaStr::from_str("minecraft:grove"));
+    biomes_by_id[179] = Some(JavaStr::from_str("minecraft:snowy_slopes"));
+    biomes_by_id[180] = Some(JavaStr::from_str("minecraft:snowcapped_peaks"));
+    biomes_by_id[181] = Some(JavaStr::from_str("minecraft:lofty_peaks"));
+    biomes_by_id[182] = Some(JavaStr::from_str("minecraft:stony_peaks"));
     biomes_by_id
 };
 
-fn get_biome_by_id(id: i32) -> &'static str {
+fn get_biome_by_id(id: i32) -> &'static JavaStr {
     if (0..BIOMES_BY_ID.len() as i32).contains(&id) {
         if let Some(biome) = BIOMES_BY_ID[id as usize] {
             return biome;
         }
     }
-    "minecraft:plains"
+    JavaStr::from_str("minecraft:plains")
 }
 
 const HEIGHTMAP_TYPES: [&str; 7] = [
@@ -129,86 +131,74 @@ const HEIGHTMAP_TYPES: [&str; 7] = [
     "MOTION_BLOCKING_NO_LEAVES",
 ];
 
-static STATUS_IS_OR_AFTER_SURFACE: OnceLock<BTreeSet<&str>> = OnceLock::new();
-
-fn status_is_or_after_surface() -> &'static BTreeSet<&'static str> {
-    STATUS_IS_OR_AFTER_SURFACE.get_or_init(|| {
-        let mut set = BTreeSet::new();
-        set.insert("surface");
-        set.insert("carvers");
-        set.insert("liquid_carvers");
-        set.insert("features");
-        set.insert("light");
-        set.insert("spawn");
-        set.insert("heightmaps");
-        set.insert("full");
-        set
-    })
+static_string_set! {
+    STATUS_IS_OR_AFTER_SURFACE, status_is_or_after_surface, {
+        "surface",
+        "carvers",
+        "liquid_carvers",
+        "features",
+        "light",
+        "spawn",
+        "heightmaps",
+        "full",
+    }
 }
 
-static STATUS_IS_OR_AFTER_NOISE: OnceLock<BTreeSet<&str>> = OnceLock::new();
-
-fn status_is_or_after_noise() -> &'static BTreeSet<&'static str> {
-    STATUS_IS_OR_AFTER_NOISE.get_or_init(|| {
-        let mut set = BTreeSet::new();
-        set.insert("noise");
-        set.insert("surface");
-        set.insert("carvers");
-        set.insert("liquid_carvers");
-        set.insert("features");
-        set.insert("light");
-        set.insert("spawn");
-        set.insert("heightmaps");
-        set.insert("full");
-        set
-    })
+static_string_set! {
+    STATUS_IS_OR_AFTER_NOISE, status_is_or_after_noise, {
+        "noise",
+        "surface",
+        "carvers",
+        "liquid_carvers",
+        "features",
+        "light",
+        "spawn",
+        "heightmaps",
+        "full",
+    }
 }
 
-static BLOCKS_BEFORE_FEATURE_STATUS: OnceLock<McNamespaceSet> = OnceLock::new();
-
-fn blocks_before_feature_status() -> &'static McNamespaceSet<'static> {
-    BLOCKS_BEFORE_FEATURE_STATUS.get_or_init(|| {
-        let mut set = McNamespaceSet::new();
-        set.insert_mc("air");
-        set.insert_mc("basalt");
-        set.insert_mc("bedrock");
-        set.insert_mc("blackstone");
-        set.insert_mc("calcite");
-        set.insert_mc("cave_air");
-        set.insert_mc("coarse_dirt");
-        set.insert_mc("crimson_nylium");
-        set.insert_mc("dirt");
-        set.insert_mc("end_stone");
-        set.insert_mc("grass_block");
-        set.insert_mc("gravel");
-        set.insert_mc("ice");
-        set.insert_mc("lava");
-        set.insert_mc("mycelium");
-        set.insert_mc("nether_wart_block");
-        set.insert_mc("netherrack");
-        set.insert_mc("orange_terracotta");
-        set.insert_mc("packed_ice");
-        set.insert_mc("podzol");
-        set.insert_mc("powder_snow");
-        set.insert_mc("red_sand");
-        set.insert_mc("red_sandstone");
-        set.insert_mc("sand");
-        set.insert_mc("sandstone");
-        set.insert_mc("snow_block");
-        set.insert_mc("soul_sand");
-        set.insert_mc("soul_soil");
-        set.insert_mc("stone");
-        set.insert_mc("terracotta");
-        set.insert_mc("warped_nylium");
-        set.insert_mc("warped_wart_block");
-        set.insert_mc("water");
-        set.insert_mc("white_terracotta");
-        set
-    })
+static_string_mc_set! {
+    BLOCKS_BEFORE_FEATURE_STATUS, blocks_before_feature_status, {
+        "air",
+        "basalt",
+        "bedrock",
+        "blackstone",
+        "calcite",
+        "cave_air",
+        "coarse_dirt",
+        "crimson_nylium",
+        "dirt",
+        "end_stone",
+        "grass_block",
+        "gravel",
+        "ice",
+        "lava",
+        "mycelium",
+        "nether_wart_block",
+        "netherrack",
+        "orange_terracotta",
+        "packed_ice",
+        "podzol",
+        "powder_snow",
+        "red_sand",
+        "red_sandstone",
+        "sand",
+        "sandstone",
+        "snow_block",
+        "soul_sand",
+        "soul_soil",
+        "stone",
+        "terracotta",
+        "warped_nylium",
+        "warped_wart_block",
+        "water",
+        "white_terracotta",
+    }
 }
 
 fn get_objects_per_value(val: &[i64]) -> u8 {
-    ((4096 + val.len() - 1) / val.len()) as u8
+    4096usize.div_ceil(val.len()) as u8
 }
 
 fn resize(
@@ -278,22 +268,22 @@ fn resize(
     Ok(ret)
 }
 
-fn fix_lithium_chunks(data: &mut Compound) {
+fn fix_lithium_chunks(data: &mut JCompound) {
     // See https://github.com/CaffeineMC/lithium-fabric/issues/279
-    let Some(Value::Compound(level)) = data.get_mut("Level") else {
+    let Some(JValue::Compound(level)) = data.get_mut("Level") else {
         return;
     };
 
     let chunk_x = level.get("xPos").and_then(|v| v.as_i32()).unwrap_or(0);
     let chunk_z = level.get("zPos").and_then(|v| v.as_i32()).unwrap_or(0);
 
-    let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") else {
+    let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") else {
         return;
     };
     for section in sections {
         let section_y = section.get("Y").and_then(|v| v.as_i32()).unwrap_or(0);
 
-        let [Some(Value::List(List::Compound(palette))), Some(Value::LongArray(block_states))] =
+        let [Some(JValue::List(JList::Compound(palette))), Some(JValue::LongArray(block_states))] =
             get_mut_multi(section, ["Palette", "BlockStates"])
         else {
             continue;
@@ -330,24 +320,24 @@ pub(crate) fn register() {
         let no_height_flag = !data.contains_key("has_increased_height_already");
         let has_increased_height = data.remove("has_increased_height_already").and_then(|v| v.as_bool()).unwrap_or(true);
 
-        let Some(Value::Compound(dimensions)) = data.get_mut("dimensions") else { return };
+        let Some(JValue::Compound(dimensions)) = data.get_mut("dimensions") else { return };
 
         // only care about overworld
-        let Some(Value::Compound(overworld)) = dimensions.get_mut("minecraft:overworld") else { return };
+        let Some(JValue::Compound(overworld)) = dimensions.get_mut("minecraft:overworld") else { return };
 
-        let Some(Value::Compound(generator)) = overworld.get_mut("generator") else { return };
+        let Some(JValue::Compound(generator)) = overworld.get_mut("generator") else { return };
 
         match generator.get("type") {
-            Some(Value::String(str)) if str == "minecraft:noise" => {
-                let Some(Value::Compound(biome_source)) = generator.get("biome_source") else { return };
+            Some(JValue::String(str)) if str == "minecraft:noise" => {
+                let Some(JValue::Compound(biome_source)) = generator.get("biome_source") else { return };
 
                 let mut large_biomes = false;
 
-                if let Some(Value::String(source_type)) = biome_source.get("type") {
+                if let Some(JValue::String(source_type)) = biome_source.get("type") {
                     if source_type == "minecraft:vanilla_layered" || (no_height_flag && source_type == "minecraft:multi_noise") {
                         large_biomes = biome_source.get("large_biomes").and_then(|v| v.as_bool()).unwrap_or(false);
 
-                        let new_biome_source = compound! {
+                        let new_biome_source = jcompound! {
                             "preset" => "minecraft:overworld",
                             "type" => "minecraft:multi_noise",
                         };
@@ -355,15 +345,15 @@ pub(crate) fn register() {
                     }
                 }
 
-                if large_biomes && matches!(generator.get("settings"), Some(Value::String(str)) if str == "minecraft:overworld") {
+                if large_biomes && matches!(generator.get("settings"), Some(JValue::String(str)) if str == "minecraft:overworld") {
                     generator.insert("settings", "minecraft:large_biomes");
                 }
             }
-            Some(Value::String(str)) if str == "minecraft:flat" => {
+            Some(JValue::String(str)) if str == "minecraft:flat" => {
                 if !has_increased_height {
-                    let Some(Value::Compound(settings)) = generator.get_mut("settings") else { return };
-                    let Some(Value::List(layers)) = settings.get_mut("layers") else { return };
-                    if !matches!(layers, List::End | List::Compound(_)) {
+                    let Some(JValue::Compound(settings)) = generator.get_mut("settings") else { return };
+                    let Some(JValue::List(layers)) = settings.get_mut("layers") else { return };
+                    if !matches!(layers, JList::End | JList::Compound(_)) {
                         return;
                     }
                     update_layers(layers);
@@ -384,24 +374,24 @@ pub(crate) fn register() {
             // and this still works, so I'm keeping it. Don't fix what isn't broken.
             fix_lithium_chunks(data); // See https://github.com/CaffeineMC/lithium-fabric/issues/279
 
-            let [Some(Value::Compound(level)), context] =
+            let [Some(JValue::Compound(level)), context] =
                 get_mut_multi(data, ["Level", "__context"])
             else {
                 return;
             };
 
             let (dimension, generator) = match context {
-                Some(Value::Compound(context)) => (
+                Some(JValue::Compound(context)) => (
                     match context.get("dimension") {
-                        Some(Value::String(dimension)) => &dimension[..],
-                        _ => "",
+                        Some(JValue::String(dimension)) => &dimension[..],
+                        _ => JavaStr::from_str(""),
                     },
                     match context.get("generator") {
-                        Some(Value::String(generator)) => &generator[..],
-                        _ => "",
+                        Some(JValue::String(generator)) => &generator[..],
+                        _ => JavaStr::from_str(""),
                     },
                 ),
-                _ => ("", ""),
+                _ => (JavaStr::from_str(""), JavaStr::from_str("")),
             };
             let is_overworld = dimension == "minecraft:overworld";
             let min_section = if is_overworld { -4 } else { 0 };
@@ -411,10 +401,13 @@ pub(crate) fn register() {
                 create_biome_sections(level, is_overworld, &mut is_already_extended);
             let wrapped_empty_block_palette = get_empty_block_palette();
 
-            if !matches!(level.get("Sections"), Some(Value::List(List::Compound(_)))) {
-                level.insert("Sections", List::new());
+            if !matches!(
+                level.get("Sections"),
+                Some(JValue::List(JList::Compound(_)))
+            ) {
+                level.insert("Sections", JList::new());
             }
-            let Some(Value::List(sections)) = level.get_mut("Sections") else {
+            let Some(JValue::List(sections)) = level.get_mut("Sections") else {
                 unreachable!()
             };
 
@@ -425,7 +418,7 @@ pub(crate) fn register() {
             let mut existing_sections = AHashSet::new();
             let mut all_blocks = BTreeSet::new();
 
-            if let List::Compound(sections) = sections {
+            if let JList::Compound(sections) = sections {
                 for (idx, section) in sections.iter_mut().enumerate() {
                     let y = section.get("Y").and_then(|v| v.as_i32()).unwrap_or(0);
                     let section_index = y - min_section;
@@ -443,11 +436,11 @@ pub(crate) fn register() {
 
                     // update palette
                     let palette = match section.remove("Palette") {
-                        Some(Value::List(List::Compound(palette))) => Some(palette),
+                        Some(JValue::List(JList::Compound(palette))) => Some(palette),
                         _ => None,
                     };
                     let block_states = match section.remove("BlockStates") {
-                        Some(Value::LongArray(block_states)) => Some(block_states),
+                        Some(JValue::LongArray(block_states)) => Some(block_states),
                         _ => None,
                     };
 
@@ -480,7 +473,7 @@ pub(crate) fn register() {
                     continue;
                 }
 
-                let new_section = compound! {
+                let new_section = jcompound! {
                     "Y" => section_y as i8,
                     "block_states" => wrapped_empty_block_palette.clone(),
                     "biomes" => new_biomes,
@@ -506,23 +499,23 @@ pub(crate) fn register() {
     types::world_gen_settings_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(dimensions)) = data.get_mut("dimensions") else {
+            let Some(JValue::Compound(dimensions)) = data.get_mut("dimensions") else {
                 return;
             };
             for dimension_data in dimensions.values_mut() {
-                let Value::Compound(dimension_data) = dimension_data else {
+                let JValue::Compound(dimension_data) = dimension_data else {
                     continue;
                 };
-                let Some(Value::Compound(generator)) = dimension_data.get_mut("generator") else {
+                let Some(JValue::Compound(generator)) = dimension_data.get_mut("generator") else {
                     continue;
                 };
-                let Some(Value::String(typ)) = generator.get("type") else {
+                let Some(JValue::String(typ)) = generator.get("type") else {
                     continue;
                 };
 
-                match &typ[..] {
-                    "minecraft:flat" => {
-                        let Some(Value::Compound(settings)) = generator.get_mut("settings") else {
+                match typ.as_bytes() {
+                    b"minecraft:flat" => {
+                        let Some(JValue::Compound(settings)) = generator.get_mut("settings") else {
                             continue;
                         };
 
@@ -534,7 +527,7 @@ pub(crate) fn register() {
                             to_version,
                         );
 
-                        if let Some(Value::List(List::Compound(layers))) =
+                        if let Some(JValue::List(JList::Compound(layers))) =
                             settings.get_mut("layers")
                         {
                             for layer in layers {
@@ -548,8 +541,8 @@ pub(crate) fn register() {
                             }
                         }
                     }
-                    "minecraft:noise" => {
-                        if let Some(Value::Compound(settings)) = generator.get_mut("settings") {
+                    b"minecraft:noise" => {
+                        if let Some(JValue::Compound(settings)) = generator.get_mut("settings") {
                             convert_object_in_map(
                                 types::block_name_ref(),
                                 settings,
@@ -566,13 +559,14 @@ pub(crate) fn register() {
                             );
                         }
 
-                        if let Some(Value::Compound(biome_source)) =
+                        if let Some(JValue::Compound(biome_source)) =
                             generator.get_mut("biome_source")
                         {
-                            if let Some(Value::String(biome_source_type)) = biome_source.get("type")
+                            if let Some(JValue::String(biome_source_type)) =
+                                biome_source.get("type")
                             {
-                                match &biome_source_type[..] {
-                                    "minecraft:fixed" => {
+                                match biome_source_type.as_bytes() {
+                                    b"minecraft:fixed" => {
                                         convert_object_in_map(
                                             types::biome_ref(),
                                             biome_source,
@@ -581,7 +575,7 @@ pub(crate) fn register() {
                                             to_version,
                                         );
                                     }
-                                    "minecraft:multi_noise" => {
+                                    b"minecraft:multi_noise" => {
                                         convert_object_in_map(
                                             types::multi_noise_biome_source_parameter_list_ref(),
                                             biome_source,
@@ -594,7 +588,7 @@ pub(crate) fn register() {
                                         // But it just contains the list part. That obviously can never be the case, because
                                         // the root object is a compound, not a list.
 
-                                        if let Some(Value::List(List::Compound(biomes))) =
+                                        if let Some(JValue::List(JList::Compound(biomes))) =
                                             biome_source.get_mut("biomes")
                                         {
                                             for biome in biomes {
@@ -608,7 +602,7 @@ pub(crate) fn register() {
                                             }
                                         }
                                     }
-                                    "minecraft:checkerboard" => {
+                                    b"minecraft:checkerboard" => {
                                         convert_object_list_in_map(
                                             types::biome_ref(),
                                             biome_source,
@@ -631,7 +625,7 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
 
@@ -650,7 +644,7 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::List(List::Compound(tile_ticks))) = level.get_mut("TileTicks") {
+            if let Some(JValue::List(JList::Compound(tile_ticks))) = level.get_mut("TileTicks") {
                 for tile_tick in tile_ticks {
                     convert_object_in_map(
                         types::block_name_ref(),
@@ -662,9 +656,9 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") {
+            if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") {
                 for section in sections {
-                    if let Some(Value::Compound(biomes)) = section.get_mut("biomes") {
+                    if let Some(JValue::Compound(biomes)) = section.get_mut("biomes") {
                         convert_object_list_in_map(
                             types::biome_ref(),
                             biomes,
@@ -673,7 +667,7 @@ pub(crate) fn register() {
                             to_version,
                         );
                     }
-                    if let Some(Value::Compound(block_states)) = section.get_mut("block_states") {
+                    if let Some(JValue::Compound(block_states)) = section.get_mut("block_states") {
                         convert_map_list_in_map(
                             types::block_state_ref(),
                             block_states,
@@ -685,7 +679,7 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::Compound(structures)) = level.get_mut("Structures") {
+            if let Some(JValue::Compound(structures)) = level.get_mut("Structures") {
                 convert_values_in_map(
                     types::structure_feature_ref(),
                     structures,
@@ -698,60 +692,66 @@ pub(crate) fn register() {
     );
 }
 
-fn predict_chunk_status_before_surface(level: &mut Compound, mut chunk_blocks: BTreeSet<String>) {
+fn predict_chunk_status_before_surface(
+    level: &mut JCompound,
+    mut chunk_blocks: BTreeSet<JavaString>,
+) {
     let status = match level.get("Status") {
-        Some(Value::String(status)) => &status[..],
-        _ => "empty",
+        Some(JValue::String(status)) => &status[..],
+        _ => JavaStr::from_str("empty"),
     };
     if status_is_or_after_surface().contains(status) {
         return;
     }
 
-    chunk_blocks.remove("minecraft:air");
+    chunk_blocks.remove(JavaStr::from_str("minecraft:air"));
     let chunk_not_empty = !chunk_blocks.is_empty();
     let chunk_feature_status = chunk_blocks
         .into_iter()
         .any(|block| !blocks_before_feature_status().contains(&block[..]));
 
     let update = if chunk_feature_status {
-        "liquid_carvers".to_owned()
+        JavaString::from("liquid_carvers")
     } else if status != "noise" && !chunk_not_empty {
         if status == "biomes" {
-            "structure_references".to_owned()
+            JavaString::from("structure_references")
         } else {
             status.to_owned()
         }
     } else {
-        "noise".to_owned()
+        JavaString::from("noise")
     };
 
     level.insert("Status", update);
 }
 
-fn get_empty_block_palette() -> Compound {
+fn get_empty_block_palette() -> JCompound {
     wrap_palette(
-        List::Compound(vec![compound! {
+        JList::Compound(vec![jcompound! {
             "Name" => "minecraft:air",
         }]),
         None,
     )
 }
 
-fn shift_upgrade_data(upgrade_data: Option<&mut Value>, shift: i32) {
-    let Some(Value::Compound(upgrade_data)) = upgrade_data else {
+fn shift_upgrade_data(upgrade_data: Option<&mut JValue>, shift: i32) {
+    let Some(JValue::Compound(upgrade_data)) = upgrade_data else {
         return;
     };
-    let Some(Value::Compound(indices)) = upgrade_data.get_mut("Indices") else {
+    let Some(JValue::Compound(indices)) = upgrade_data.get_mut("Indices") else {
         return;
     };
 
     world_transmuter_engine::rename_keys(indices, |input| {
-        input.parse::<i32>().ok().map(|i| (i + shift).to_string())
+        input
+            .parse::<i32>()
+            .ok()
+            .map(|i| JavaString::from((i + shift).to_string()))
     });
 }
 
 fn upgrade_chunk_data(
-    level: &mut Compound,
+    level: &mut JCompound,
     want_extended_height: bool,
     is_already_extended: bool,
     on_noise_generator: bool,
@@ -786,7 +786,7 @@ fn upgrade_chunk_data(
         return;
     }
 
-    let Some(Value::String(status)) = level.get("Status") else {
+    let Some(JValue::String(status)) = level.get("Status") else {
         return;
     };
     if status == "empty" {
@@ -797,7 +797,7 @@ fn upgrade_chunk_data(
     let old_noise = status_is_or_after_noise().contains(&status[..]);
     level.insert(
         "blending_data",
-        compound! {
+        jcompound! {
             "old_noise" => old_noise,
         },
     );
@@ -805,7 +805,7 @@ fn upgrade_chunk_data(
     let Some(bottom_section_idx) = bottom_section_idx else {
         return;
     };
-    let Some(Value::List(List::Compound(sections))) = level.get("Sections") else {
+    let Some(JValue::List(JList::Compound(sections))) = level.get("Sections") else {
         unreachable!("bottom_section_idx can only get a value if there is a sections list and it is non-empty")
     };
     let bottom_section = &sections[bottom_section_idx];
@@ -838,15 +838,15 @@ fn upgrade_chunk_data(
     let missing_bedrock = missing_bedrock.into_inner();
     if has_bedrock && missing_bedrock != [u64::MAX; 4] {
         let target_status = if status == "full" {
-            "heightmaps".to_owned()
+            JavaString::from("heightmaps")
         } else {
             status
         };
         level.insert(
             "below_zero_retrogen",
-            compound! {
+            jcompound! {
                 "target_status" => target_status,
-                "missing_bedrock" => missing_bedrock.map(|i| i as i64).to_vec()
+                "missing_bedrock" => missing_bedrock.map(|i| i as i64).to_vec(),
             },
         );
         level.insert("Status", "empty");
@@ -855,15 +855,15 @@ fn upgrade_chunk_data(
     level.insert("isLightOn", false);
 }
 
-fn pad_carving_masks(level: &mut Compound, new_size: usize, offset: usize) {
-    let Some(Value::Compound(carving_masks)) = level.get_mut("CarvingMasks") else {
+fn pad_carving_masks(level: &mut JCompound, new_size: usize, offset: usize) {
+    let Some(JValue::Compound(carving_masks)) = level.get_mut("CarvingMasks") else {
         // if empty, DFU still writes
-        level.insert("CarvingMasks", Compound::new());
+        level.insert("CarvingMasks", JCompound::new());
         return;
     };
 
     for carving_mask in carving_masks.values_mut() {
-        let Value::ByteArray(old) = carving_mask else {
+        let JValue::ByteArray(old) = carving_mask else {
             continue;
         };
         let mut new_val = vec![0; 64 * new_size];
@@ -872,7 +872,7 @@ fn pad_carving_masks(level: &mut Compound, new_size: usize, offset: usize) {
             &mut new_val[..],
             64 * offset,
         );
-        *carving_mask = Value::LongArray(new_val);
+        *carving_mask = JValue::LongArray(new_val);
     }
 }
 
@@ -912,8 +912,8 @@ fn i8_slice_to_i64_le(i8_slice: &[i8], i64_slice: &mut [i64], offset: usize) {
     }
 }
 
-fn add_empty_list_padding(level: &mut Compound, path: &str) {
-    let Some(Value::List(list)) = level.get_mut(path) else {
+fn add_empty_list_padding(level: &mut JCompound, path: &str) {
+    let Some(JValue::List(list)) = level.get_mut(path) else {
         // difference from DFU: Don't create the damn thing!
         return;
     };
@@ -924,17 +924,17 @@ fn add_empty_list_padding(level: &mut Compound, path: &str) {
 
     // offset the section array to the new format
     for _ in 0..4 {
-        let _ = list.try_insert(0, List::new()); // add below
-        let _ = list.try_push(List::new()); // add above
+        let _ = list.try_insert(0, JList::new()); // add below
+        let _ = list.try_push(JList::new()); // add above
     }
 }
 
-fn offset_heightmaps(level: &mut Compound) {
-    let Some(Value::Compound(heightmaps)) = level.get_mut("Heightmaps") else {
+fn offset_heightmaps(level: &mut JCompound) {
+    let Some(JValue::Compound(heightmaps)) = level.get_mut("Heightmaps") else {
         return;
     };
     for key in HEIGHTMAP_TYPES {
-        if let Some(Value::LongArray(heightmap)) = heightmaps.get_mut(key) {
+        if let Some(JValue::LongArray(heightmap)) = heightmaps.get_mut(key) {
             offset_heightmap(heightmap);
         }
     }
@@ -960,14 +960,14 @@ fn offset_heightmap(heightmap: &mut [i64]) {
 }
 
 fn create_biome_sections(
-    level: &Compound,
+    level: &JCompound,
     want_extended_height: bool,
     is_already_extended: &mut bool,
-) -> Vec<Compound> {
+) -> Vec<JCompound> {
     let mut ret = Vec::with_capacity(if want_extended_height { 24 } else { 16 });
 
     let biomes = match level.get("Biomes") {
-        Some(Value::IntArray(biomes)) => Some(biomes),
+        Some(JValue::IntArray(biomes)) => Some(biomes),
         _ => None,
     };
 
@@ -1004,14 +1004,14 @@ fn create_biome_sections(
         }
     }
 
-    let palette = vec!["minecraft:plains".to_owned()];
+    let palette = vec![JavaString::from("minecraft:plains")];
     for _ in 0..if want_extended_height { 16 } else { 24 } {
         ret.push(wrap_palette(palette.clone(), None));
     }
     ret
 }
 
-fn create_biome_section(biomes: &[i32], offset: usize, mask: usize) -> Compound {
+fn create_biome_section(biomes: &[i32], offset: usize, mask: usize) -> JCompound {
     let mut palette_id = AHashMap::new();
     let mut palette_string = Vec::new();
     for idx in 0..64 {
@@ -1065,8 +1065,8 @@ fn create_biome_section(biomes: &[i32], offset: usize, mask: usize) -> Compound 
     wrap_palette(palette_string, Some(packed))
 }
 
-fn wrap_palette(palette: impl Into<List>, block_states: Option<Vec<i64>>) -> Compound {
-    let mut ret = compound! {
+fn wrap_palette(palette: impl Into<JList>, block_states: Option<Vec<i64>>) -> JCompound {
+    let mut ret = jcompound! {
         "palette" => palette.into(),
     };
     if let Some(block_states) = block_states {
@@ -1075,7 +1075,7 @@ fn wrap_palette(palette: impl Into<List>, block_states: Option<Vec<i64>>) -> Com
     ret
 }
 
-fn wrap_palette_optimized(palette: impl Into<List>, block_states: Vec<i64>) -> Compound {
+fn wrap_palette_optimized(palette: impl Into<JList>, block_states: Vec<i64>) -> JCompound {
     let palette = palette.into();
     if palette.len() == 1 {
         wrap_palette(palette, None)
@@ -1084,12 +1084,12 @@ fn wrap_palette_optimized(palette: impl Into<List>, block_states: Vec<i64>) -> C
     }
 }
 
-fn update_layers(layers: &mut List) {
+fn update_layers(layers: &mut JList) {
     let _ = layers.try_insert(0, create_empty_layer());
 }
 
-fn create_empty_layer() -> Compound {
-    compound! {
+fn create_empty_layer() -> JCompound {
+    jcompound! {
         "height" => 64,
         "block" => "minecraft:air",
     }

@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 1446;
 
@@ -15,7 +14,7 @@ pub(crate) fn register() {
                     continue;
                 }
 
-                if let Some(Value::String(value)) = data.get(key) {
+                if let Some(JValue::String(value)) = data.get(&key[..]) {
                     if value.starts_with("key.mouse") {
                         continue;
                     }

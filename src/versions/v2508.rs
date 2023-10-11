@@ -1,11 +1,12 @@
 use crate::helpers::rename::{rename_block, rename_item};
+use java_string::{JavaStr, JavaString};
 
 const VERSION: u32 = 2508;
 
-fn remap(name: &str) -> Option<String> {
-    match name {
-        "minecraft:warped_fungi" => Some("minecraft:warped_fungus".to_owned()),
-        "minecraft:crimson_fungi" => Some("minecraft:crimson_fungus".to_owned()),
+fn remap(name: &JavaStr) -> Option<JavaString> {
+    match name.as_bytes() {
+        b"minecraft:warped_fungi" => Some(JavaString::from("minecraft:warped_fungus")),
+        b"minecraft:crimson_fungi" => Some(JavaString::from("minecraft:crimson_fungus")),
         _ => None,
     }
 }

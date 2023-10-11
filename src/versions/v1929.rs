@@ -1,6 +1,7 @@
 use crate::types;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::{convert_map_in_map, convert_map_list_in_map, data_walker};
+use world_transmuter_engine::{
+    convert_map_in_map, convert_map_list_in_map, data_walker, JList, JValue,
+};
 
 const VERSION: u32 = 1929;
 
@@ -17,8 +18,8 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::Compound(offers)) = data.get_mut("Offers") {
-                if let Some(Value::List(List::Compound(recipes))) = offers.get_mut("Recipes") {
+            if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
+                if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
                     for recipe in recipes {
                         convert_map_in_map(
                             types::item_stack_ref(),

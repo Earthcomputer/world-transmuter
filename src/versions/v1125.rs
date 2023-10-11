@@ -1,8 +1,8 @@
 use crate::helpers::hooks::DataHookValueTypeEnforceNamespaced;
 use crate::helpers::rename::rename_keys_in_map;
 use crate::types;
-use valence_nbt::{compound, Compound, List, Value};
-use world_transmuter_engine::{data_walker, get_mut_multi, map_data_converter_func};
+use valence_nbt::{compound, jcompound};
+use world_transmuter_engine::{data_walker, get_mut_multi, map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 1125;
 const BED_BLOCK_ID: i8 = 26;
@@ -11,25 +11,25 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
             let chunk_x = level.get("xPos").and_then(|v| v.as_i32()).unwrap_or(0);
             let chunk_z = level.get("zPos").and_then(|v| v.as_i32()).unwrap_or(0);
 
-            if !matches!(level.get("TileEntities"), Some(Value::List(_))) {
-                level.insert("TileEntities", List::new());
+            if !matches!(level.get("TileEntities"), Some(JValue::List(_))) {
+                level.insert("TileEntities", JList::new());
             }
 
             let [tile_entities, sections] = get_mut_multi(level, ["TileEntities", "Sections"]);
-            let Some(Value::List(tile_entities)) = tile_entities else {
+            let Some(JValue::List(tile_entities)) = tile_entities else {
                 unreachable!()
             }; // unreachable because the presence of TileEntities is ensured above
 
-            if let Some(Value::List(List::Compound(sections))) = sections {
+            if let Some(JValue::List(JList::Compound(sections))) = sections {
                 for section in sections {
                     let section_y = section.get("Y").and_then(|v| v.as_i32()).unwrap_or(0);
-                    let Some(Value::ByteArray(blocks)) = section.get("Blocks") else {
+                    let Some(JValue::ByteArray(blocks)) = section.get("Blocks") else {
                         continue;
                     };
 
@@ -42,7 +42,7 @@ pub(crate) fn register() {
                         let local_y = ((index >> 4) & 15) as i32;
                         let local_z = ((index >> 8) & 15) as i32;
 
-                        let new_tile = compound! {
+                        let new_tile = jcompound! {
                             "id" => "minecraft:bed",
                             "x" => local_x + (chunk_x << 4),
                             "y" => local_y + (section_y << 4),
@@ -69,8 +69,8 @@ pub(crate) fn register() {
 
     types::advancements_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data: &mut Compound, from_version, to_version| {
-            if let Some(Value::Compound(adventuring_time)) =
+        data_walker(move |data, from_version, to_version| {
+            if let Some(JValue::Compound(adventuring_time)) =
                 data.get_mut("minecraft:adventure/adventuring_time")
             {
                 rename_keys_in_map(
@@ -81,7 +81,7 @@ pub(crate) fn register() {
                     to_version,
                 );
             }
-            if let Some(Value::Compound(kill_a_mob)) =
+            if let Some(JValue::Compound(kill_a_mob)) =
                 data.get_mut("minecraft:adventure/kill_a_mob")
             {
                 rename_keys_in_map(
@@ -92,7 +92,7 @@ pub(crate) fn register() {
                     to_version,
                 );
             }
-            if let Some(Value::Compound(kill_all_mobs)) =
+            if let Some(JValue::Compound(kill_all_mobs)) =
                 data.get_mut("minecraft:adventure/kill_all_mobs")
             {
                 rename_keys_in_map(
@@ -103,7 +103,7 @@ pub(crate) fn register() {
                     to_version,
                 );
             }
-            if let Some(Value::Compound(bred_all_animals)) =
+            if let Some(JValue::Compound(bred_all_animals)) =
                 data.get_mut("minecraft:adventure/bred_all_animals")
             {
                 rename_keys_in_map(

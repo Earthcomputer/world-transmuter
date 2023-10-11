@@ -1,13 +1,13 @@
 use crate::helpers::mc_namespace_map::McNamespaceSet;
+use java_string::JavaStr;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
+use world_transmuter_engine::{DataVersion, JCompound, JValue, MapDataConverterFunc};
 
 #[derive(Default)]
 struct ItemStackFlattenData {
     // Map of ("id", damage) -> "flattened id"
-    flatten_map: BTreeMap<(u8, &'static str), &'static str>,
+    flatten_map: BTreeMap<(u8, &'static JavaStr), &'static JavaStr>,
     // maps out ids requiring flattening
     ids_requiring_flattening: McNamespaceSet<'static>,
     // Damage tag is moved from the ItemStack base tag to the ItemStack tag, and we only want to migrate that
@@ -24,8 +24,15 @@ fn flatten_data() -> &'static ItemStackFlattenData {
         let mut flatten_data = ItemStackFlattenData::default();
 
         let mut flatten = |id: &'static str, data: u8, new_id: &'static str| {
-            debug_assert!(data == 0 || flatten_data.flatten_map.contains_key(&(0, id)));
-            flatten_data.flatten_map.insert((data, id), new_id);
+            debug_assert!(
+                data == 0
+                    || flatten_data
+                        .flatten_map
+                        .contains_key(&(0, JavaStr::from_str(id)))
+            );
+            flatten_data
+                .flatten_map
+                .insert((data, JavaStr::from_str(id)), JavaStr::from_str(new_id));
             flatten_data
                 .ids_requiring_flattening
                 .insert_mc(id.strip_prefix("minecraft:").unwrap());
@@ -713,13 +720,19 @@ fn flatten_data() -> &'static ItemStackFlattenData {
     })
 }
 
-pub(crate) fn flatten_item(old_name: &str, data: u8) -> Option<&'static str> {
+pub(crate) fn flatten_item(
+    old_name: &(impl AsRef<JavaStr> + ?Sized),
+    data: u8,
+) -> Option<&'static JavaStr> {
     let flatten_data = flatten_data();
-    if flatten_data.ids_requiring_flattening.contains(old_name) {
+    if flatten_data
+        .ids_requiring_flattening
+        .contains(old_name.as_ref())
+    {
         flatten_data
             .flatten_map
-            .get(&(data, old_name))
-            .or_else(|| flatten_data.flatten_map.get(&(0, old_name)))
+            .get(&(data, old_name.as_ref()))
+            .or_else(|| flatten_data.flatten_map.get(&(0, old_name.as_ref())))
             .copied()
     } else {
         None
@@ -729,8 +742,8 @@ pub(crate) fn flatten_item(old_name: &str, data: u8) -> Option<&'static str> {
 pub(crate) struct ConverterFlattenItemStack;
 
 impl MapDataConverterFunc for ConverterFlattenItemStack {
-    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
-        if let Some(Value::String(id)) = data.get("id") {
+    fn convert(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
+        if let Some(JValue::String(id)) = data.get("id") {
             let flatten_data = flatten_data();
 
             let damage = data.get("Damage").and_then(|v| v.as_i16()).unwrap_or(0);
@@ -745,10 +758,10 @@ impl MapDataConverterFunc for ConverterFlattenItemStack {
                 data.insert("id", remap);
             } else if damage != 0 && flatten_data.items_with_damage.contains(id) {
                 // migrate damage
-                if !matches!(data.get("tag"), Some(Value::Compound(_))) {
-                    data.insert("tag", Compound::new());
+                if !matches!(data.get("tag"), Some(JValue::Compound(_))) {
+                    data.insert("tag", JCompound::new());
                 }
-                let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+                let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
                     unreachable!()
                 };
                 tag.insert("Damage", damage as i32);

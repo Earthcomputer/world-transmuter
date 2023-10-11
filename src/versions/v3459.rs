@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 3459;
 
@@ -12,19 +11,19 @@ pub(crate) fn register() {
                 return;
             }
 
-            let Some(Value::Compound(dimension_data)) = data.get("DimensionData") else {
+            let Some(JValue::Compound(dimension_data)) = data.get("DimensionData") else {
                 return;
             };
 
-            let Some(Value::Compound(end_data)) = dimension_data.get("1") else {
+            let Some(JValue::Compound(end_data)) = dimension_data.get("1") else {
                 return;
             };
 
             data.insert(
                 "DragonFight",
                 match end_data.get("DragonFight") {
-                    Some(Value::Compound(dragon_fight)) => dragon_fight.clone(),
-                    _ => Compound::new(),
+                    Some(JValue::Compound(dragon_fight)) => dragon_fight.clone(),
+                    _ => JCompound::new(),
                 },
             );
         }),

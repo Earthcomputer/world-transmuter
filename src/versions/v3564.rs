@@ -1,7 +1,9 @@
 use crate::types;
+use java_string::JavaStr;
 use std::mem;
-use valence_nbt::{Compound, List, Value};
-use world_transmuter_engine::{get_mut_multi, DataVersion, MapDataConverterFunc};
+use world_transmuter_engine::{
+    get_mut_multi, DataVersion, JCompound, JList, JValue, MapDataConverterFunc,
+};
 
 const VERSION: u32 = 3564;
 
@@ -18,7 +20,7 @@ const LEGACY_FIELDS: [&str; 10] = [
     "GlowingText",
 ];
 
-const EMPTY: &str = "{\"text\":\"\"}";
+const EMPTY: &JavaStr = JavaStr::from_str("{\"text\":\"\"}");
 
 pub(crate) fn register() {
     types::tile_entity_mut().add_converter_for_id("minecraft:sign", VERSION, SignConverter);
@@ -28,7 +30,7 @@ pub(crate) fn register() {
 struct SignConverter;
 
 impl MapDataConverterFunc for SignConverter {
-    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+    fn convert(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
         update_text(data.get_mut("front_text"));
         update_text(data.get_mut("back_text"));
 
@@ -38,8 +40,8 @@ impl MapDataConverterFunc for SignConverter {
     }
 }
 
-fn update_text(text: Option<&mut Value>) {
-    let Some(Value::Compound(text)) = text else {
+fn update_text(text: Option<&mut JValue>) {
+    let Some(JValue::Compound(text)) = text else {
         return;
     };
 
@@ -51,7 +53,7 @@ fn update_text(text: Option<&mut Value>) {
         return;
     }
 
-    let [Some(Value::List(List::String(new_filtered_messages))), messages] =
+    let [Some(JValue::List(JList::String(new_filtered_messages))), messages] =
         get_mut_multi(text, ["filtered_messages", "messages"])
     else {
         return;
@@ -62,7 +64,7 @@ fn update_text(text: Option<&mut Value>) {
     }
 
     let messages = match messages {
-        Some(Value::List(List::String(messages))) => Some(&*messages),
+        Some(JValue::List(JList::String(messages))) => Some(&*messages),
         _ => None,
     };
 

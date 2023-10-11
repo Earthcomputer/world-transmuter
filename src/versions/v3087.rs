@@ -1,9 +1,14 @@
 use crate::types;
 use crate::versions::v3086::ConverterEntityToVariant;
+use java_string::JavaStr;
 
 const VERSION: u32 = 3087;
 
-const FROG_ID_CONVERSION: [&str; 3] = ["minecraft:temperate", "minecraft:warm", "minecraft:cold"];
+const FROG_ID_CONVERSION: [&JavaStr; 3] = [
+    JavaStr::from_str("minecraft:temperate"),
+    JavaStr::from_str("minecraft:warm"),
+    JavaStr::from_str("minecraft:cold"),
+];
 
 pub(crate) fn register() {
     types::entity_mut().add_converter_for_id(
@@ -13,7 +18,7 @@ pub(crate) fn register() {
             FROG_ID_CONVERSION
                 .get(id as usize)
                 .copied()
-                .unwrap_or("minecraft:temperate")
+                .unwrap_or(JavaStr::from_str("minecraft:temperate"))
         }),
     );
 }

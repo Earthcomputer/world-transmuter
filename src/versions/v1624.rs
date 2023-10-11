@@ -3,18 +3,17 @@ use crate::helpers::block_state::BlockState;
 use crate::types;
 use ahash::AHashSet;
 use log::warn;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::{get_mut_multi, map_data_converter_func};
+use world_transmuter_engine::{get_mut_multi, map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 1624;
 
 pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        let Some(Value::Compound(level)) = data.get_mut("Level") else { return };
+        let Some(JValue::Compound(level)) = data.get_mut("Level") else { return };
         let chunk_x = level.get("xPos").and_then(|v| v.as_i32()).unwrap_or(0);
         let chunk_z = level.get("zPos").and_then(|v| v.as_i32()).unwrap_or(0);
 
-        let [Some(Value::List(List::Compound(sections))), Some(Value::List(List::Compound(tile_entities)))] = get_mut_multi(level, ["Sections", "TileEntities"]) else { return };
+        let [Some(JValue::List(JList::Compound(sections))), Some(JValue::List(JList::Compound(tile_entities)))] = get_mut_multi(level, ["Sections", "TileEntities"]) else { return };
         let mut positions = AHashSet::new();
         for section in sections {
             if let Some(section_obj) = Section::<PackedBitStorage<_>>::wrap_1451(chunk_x, chunk_z, section, &mut TrappedChestSectionInitializer) {
@@ -31,7 +30,7 @@ pub(crate) fn register() {
             let y = tile_entity.get("y").and_then(|v| v.as_i32()).unwrap_or(0);
             let z = tile_entity.get("z").and_then(|v| v.as_i32()).unwrap_or(0);
             if positions.contains(&LocalPos::new((x & 15) as u8, y as u8, (z & 15) as u8)) {
-                if !matches!(tile_entity.get("id"), Some(Value::String(str)) if str == "minecraft:chest") {
+                if !matches!(tile_entity.get("id"), Some(JValue::String(str)) if str == "minecraft:chest") {
                     warn!("Block Entity ({},{},{}) was expected to be a chest (V1624)", x, y, z);
                 }
                 tile_entity.insert("id", "minecraft:trapped_chest");

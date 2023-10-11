@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 113;
 
@@ -15,8 +14,8 @@ pub(crate) fn register() {
     );
 }
 
-fn check_list(data: &mut Compound, id: &str, required_length: usize) {
-    if let Some(Value::List(list)) = data.get(id) {
+fn check_list(data: &mut JCompound, id: &str, required_length: usize) {
+    if let Some(JValue::List(list)) = data.get(id) {
         if list.len() == required_length {
             for float in list {
                 if let Some(float) = float.as_f32() {

@@ -1,16 +1,15 @@
+use java_string::{JavaCodePoint, JavaStr, JavaString};
 use nom::branch::alt;
-use nom::bytes::complete::{escaped_transform, is_a, tag};
-use nom::character::complete::{char, satisfy, space1};
-use nom::combinator::{map, map_opt, map_res, recognize, value};
+use nom::bytes::complete::{is_a, tag};
+use nom::combinator::{map, map_res, value};
 use nom::error::Error;
 use nom::multi::{many0, separated_list0};
 use nom::number::complete::recognize_float;
-use nom::sequence::{delimited, pair, preceded, separated_pair, terminated, tuple};
+use nom::sequence::{delimited, pair, preceded, separated_pair, terminated};
 use nom::{AsChar, Finish, IResult};
 use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
-use valence_nbt::value::ValueRef;
-use valence_nbt::{Compound, List, Value};
+use world_transmuter_engine::{JCompound, JList, JValue, JValueRef};
 
 #[derive(Debug, PartialEq)]
 pub struct ParseError(Error<String>);
@@ -50,10 +49,10 @@ impl Display for Indent {
 }
 
 /// `round_trip` corresponds to the same argument from [parse_compound].
-pub fn stringify_compound(map: Compound, round_trip: bool, pretty: bool) -> String {
-    let mut str = String::new();
+pub fn stringify_compound(map: JCompound, round_trip: bool, pretty: bool) -> JavaString {
+    let mut str = JavaString::new();
     stringify(
-        ValueRef::Compound(&map),
+        JValueRef::Compound(&map),
         &mut str,
         round_trip,
         pretty,
@@ -64,20 +63,20 @@ pub fn stringify_compound(map: Compound, round_trip: bool, pretty: bool) -> Stri
 }
 
 fn stringify(
-    obj: ValueRef,
-    str: &mut String,
+    obj: JValueRef,
+    str: &mut JavaString,
     round_trip: bool,
     pretty: bool,
     mut indent: Indent,
 ) -> std::fmt::Result {
     match obj {
-        ValueRef::Byte(b) => write!(str, "{}", b)?,
-        ValueRef::Short(s) => write!(str, "{}", s)?,
-        ValueRef::Int(i) => write!(str, "{}", i)?,
-        ValueRef::Long(l) => write!(str, "{}", l)?,
-        ValueRef::Float(f) => write!(str, "{}", f)?,
-        ValueRef::Double(d) => write!(str, "{}", d)?,
-        ValueRef::ByteArray(arr) => {
+        JValueRef::Byte(b) => write!(str, "{}", b)?,
+        JValueRef::Short(s) => write!(str, "{}", s)?,
+        JValueRef::Int(i) => write!(str, "{}", i)?,
+        JValueRef::Long(l) => write!(str, "{}", l)?,
+        JValueRef::Float(f) => write!(str, "{}", f)?,
+        JValueRef::Double(d) => write!(str, "{}", d)?,
+        JValueRef::ByteArray(arr) => {
             if round_trip && arr.len() == 1 && arr[0] <= 2 {
                 match arr[0] {
                     0 => str.push_str("false"),
@@ -107,7 +106,7 @@ fn stringify(
                 str.push(']');
             }
         }
-        ValueRef::IntArray(arr) => {
+        JValueRef::IntArray(arr) => {
             str.push('[');
             if pretty {
                 indent.indent();
@@ -128,7 +127,7 @@ fn stringify(
             }
             str.push(']');
         }
-        ValueRef::LongArray(arr) => {
+        JValueRef::LongArray(arr) => {
             str.push('[');
             if pretty {
                 indent.indent();
@@ -149,7 +148,7 @@ fn stringify(
             }
             str.push(']');
         }
-        ValueRef::List(list) => {
+        JValueRef::List(list) => {
             str.push('[');
             if pretty {
                 indent.indent();
@@ -170,7 +169,7 @@ fn stringify(
             }
             str.push(']');
         }
-        ValueRef::Compound(map) => {
+        JValueRef::Compound(map) => {
             str.push('{');
             if pretty {
                 indent.indent();
@@ -196,90 +195,99 @@ fn stringify(
             }
             str.push('}');
         }
-        ValueRef::String(input) => stringify_string(input, str),
+        JValueRef::String(input) => stringify_string(input, str),
     }
     Ok(())
 }
 
-fn stringify_string(input: &str, output: &mut String) {
+fn stringify_string(input: &JavaStr, output: &mut JavaString) {
+    const QUOTE: u32 = b'"' as u32;
+    const BACKSLASH: u32 = b'\\' as u32;
+    const NEWLINE: u32 = b'\n' as u32;
+    const CARRIAGE_RETURN: u32 = b'\r' as u32;
+    const TAB: u32 = b'\t' as u32;
+
     output.push('"');
     for ch in input.chars() {
-        match ch {
-            '"' => output.push_str("\\\""),
-            '\\' => output.push_str("\\\\"),
-            '\n' => output.push_str("\\n"),
-            '\r' => output.push_str("\\r"),
-            '\t' => output.push_str("\\t"),
-            _ => output.push(ch),
+        match ch.as_u32() {
+            QUOTE => output.push_str("\\\""),
+            BACKSLASH => output.push_str("\\\\"),
+            NEWLINE => output.push_str("\\n"),
+            CARRIAGE_RETURN => output.push_str("\\r"),
+            TAB => output.push_str("\\t"),
+            _ => output.push_java(ch),
         }
     }
     output.push('"');
 }
 
 /// If `round_trip` is true, encodes `false`, `true` and `null` as `[0]`, `[1]` and `[2]` byte arrays respectively.
-pub fn parse_compound(json: &str, round_trip: bool) -> Result<Compound, ParseError> {
-    preceded(space, |i| object(i, round_trip))(json)
+pub fn parse_compound(json: &JavaStr, round_trip: bool) -> Result<JCompound, ParseError> {
+    preceded(space, |i| object(i, round_trip))(json.as_bytes())
         .finish()
         .map(|(_, o)| o)
         .map_err(|err| {
             ParseError(Error {
-                input: err.input.to_owned(),
+                input: String::from_utf8_lossy(err.input).into_owned(),
                 code: err.code,
             })
         })
 }
 
-fn space(i: &str) -> IResult<&str, ()> {
-    value((), many0(alt((space1, is_a("\r\n")))))(i)
+fn space(i: &[u8]) -> IResult<&[u8], ()> {
+    value((), many0(is_a(&b" \t\r\n"[..])))(i)
 }
 
-fn any(i: &str, round_trip: bool) -> IResult<&str, Value> {
+fn any(i: &[u8], round_trip: bool) -> IResult<&[u8], JValue> {
     alt((
-        map(|i| object(i, round_trip), Value::Compound),
-        map(|i| array(i, round_trip), Value::List),
-        map(string, Value::String),
+        map(|i| object(i, round_trip), JValue::Compound),
+        map(|i| array(i, round_trip), JValue::List),
+        map(string, JValue::String),
         map_res(terminated(recognize_float, space), |str| {
-            Result::<_, <f64 as FromStr>::Err>::Ok(match str::parse::<i64>(str) {
-                Ok(long) => Value::Long(long),
-                Err(_) => Value::Double(str::parse::<f64>(str)?),
-            })
+            let str = unsafe { JavaStr::from_semi_utf8_unchecked(str) };
+            Result::<_, java_string::ParseError<<f64 as FromStr>::Err>>::Ok(
+                match JavaStr::parse::<i64>(str) {
+                    Ok(long) => JValue::Long(long),
+                    Err(_) => JValue::Double(JavaStr::parse::<f64>(str)?),
+                },
+            )
         }),
-        map(pair(tag("false"), space), |_| {
+        map(pair(tag(b"false"), space), |_| {
             if round_trip {
-                Value::ByteArray(vec![0])
+                JValue::ByteArray(vec![0])
             } else {
-                Value::Byte(0)
+                JValue::Byte(0)
             }
         }),
-        map(pair(tag("true"), space), |_| {
+        map(pair(tag(b"true"), space), |_| {
             if round_trip {
-                Value::ByteArray(vec![1])
+                JValue::ByteArray(vec![1])
             } else {
-                Value::Byte(1)
+                JValue::Byte(1)
             }
         }),
-        map(pair(tag("null"), space), |_| {
+        map(pair(tag(b"null"), space), |_| {
             if round_trip {
-                Value::ByteArray(vec![2])
+                JValue::ByteArray(vec![2])
             } else {
-                Value::Byte(0)
+                JValue::Byte(0)
             }
         }),
     ))(i)
 }
 
-fn object(i: &str, round_trip: bool) -> IResult<&str, Compound> {
+fn object(i: &[u8], round_trip: bool) -> IResult<&[u8], JCompound> {
     map(
         delimited(
-            pair(char('{'), space),
+            pair(tag(b"{"), space),
             separated_list0(
-                pair(char(','), space),
-                separated_pair(string, pair(char(':'), space), |i| any(i, round_trip)),
+                pair(tag(b","), space),
+                separated_pair(string, pair(tag(b":"), space), |i| any(i, round_trip)),
             ),
-            pair(char('}'), space),
+            pair(tag(b"}"), space),
         ),
         |vec| {
-            let mut map = Compound::new();
+            let mut map = JCompound::new();
             for (k, v) in vec {
                 map.insert(k, v);
             }
@@ -288,15 +296,15 @@ fn object(i: &str, round_trip: bool) -> IResult<&str, Compound> {
     )(i)
 }
 
-fn array(i: &str, round_trip: bool) -> IResult<&str, List> {
+fn array(i: &[u8], round_trip: bool) -> IResult<&[u8], JList> {
     map_res(
         delimited(
-            pair(char('['), space),
-            separated_list0(pair(char(','), space), |i| any(i, round_trip)),
-            pair(char(']'), space),
+            pair(tag(b"["), space),
+            separated_list0(pair(tag(b","), space), |i| any(i, round_trip)),
+            pair(tag(b"]"), space),
         ),
         |vec| {
-            let mut list = List::new();
+            let mut list = JList::new();
             for v in vec {
                 if !list.try_push(v) {
                     return Err(());
@@ -307,94 +315,129 @@ fn array(i: &str, round_trip: bool) -> IResult<&str, List> {
     )(i)
 }
 
-fn string(i: &str) -> IResult<&str, String> {
-    delimited(
-        char('"'),
-        escaped_transform(
-            satisfy(|ch| ch != '\\' && ch != '"' && ch != '\n' && ch != '\r'),
-            '\\',
-            alt((
-                value('\\', char('\\')),
-                value('"', char('"')),
-                value('\'', char('\'')),
-                value('\n', char('n')),
-                value('\r', char('r')),
-                value('\t', char('t')),
-                map_opt(
-                    preceded(
-                        char('u'),
-                        recognize(tuple((hex_digit, hex_digit, hex_digit, hex_digit))),
-                    ),
-                    |str| char::from_u32(u32::from_str_radix(str, 16).unwrap()),
-                ),
-            )),
-        ),
-        pair(char('"'), space),
-    )(i)
+fn string(i: &[u8]) -> IResult<&[u8], JavaString> {
+    delimited(tag(b"\""), escape_transform, pair(tag(b"\""), space))(i)
 }
 
-fn hex_digit(i: &str) -> IResult<&str, ()> {
-    value((), satisfy(|ch| ch.is_hex_digit()))(i)
+fn escape_transform(mut i: &[u8]) -> IResult<&[u8], JavaString> {
+    let mut result = Vec::new();
+    while !i.is_empty() {
+        let ch = i[0];
+
+        if ch == b'"' || ch == b'\n' || ch == b'\r' {
+            break;
+        }
+
+        if ch == b'\\' {
+            if i.len() < 2 {
+                break;
+            }
+            let ch2 = i[1];
+            match ch2 {
+                b'\\' => result.push(b'\\'),
+                b'"' => result.push(b'"'),
+                b'\'' => result.push(b'\''),
+                b'n' => result.push(b'\n'),
+                b'r' => result.push(b'\r'),
+                b't' => result.push(b'\t'),
+                b'u' => {
+                    if i.len() < 6 {
+                        break;
+                    }
+                    if !i[2..6].iter().all(|ch| ch.is_hex_digit()) {
+                        break;
+                    }
+                    // SAFETY: we just checked that all bytes in this range are hex digits, so valid UTF-8
+                    let Ok(ch) =
+                        u32::from_str_radix(unsafe { std::str::from_utf8_unchecked(&i[2..6]) }, 16)
+                    else {
+                        break;
+                    };
+                    let Some(ch) = JavaCodePoint::from_u32(ch) else {
+                        break;
+                    };
+                    result.extend_from_slice(ch.encode_semi_utf8(&mut [0; 4]));
+                    i = &i[6..];
+                    continue;
+                }
+                _ => break,
+            }
+            i = &i[2..];
+        } else {
+            i = &i[1..];
+            result.push(ch);
+        }
+    }
+    // SAFETY: we only made ASCII changes, and terminate the loop on ASCII characters which are char boundaries.
+    Ok((i, unsafe { JavaString::from_semi_utf8_unchecked(result) }))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse_compound;
-    use valence_nbt::snbt::from_snbt_str;
+    use super::ParseError;
+    use java_string::JavaStr;
     use valence_nbt::Value;
+    use world_transmuter_engine::{compound_to_java, JCompound};
+
+    fn parse_compound(json: &str) -> Result<JCompound, ParseError> {
+        super::parse_compound(JavaStr::from_str(json), false)
+    }
+
+    fn from_snbt_str(snbt: &str) -> JCompound {
+        let Value::Compound(compound) = valence_nbt::snbt::from_snbt_str(snbt).unwrap() else {
+            unreachable!("input a non-compound value");
+        };
+        compound_to_java(compound)
+    }
 
     #[test]
     fn test_parse_object() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": "bar", "baz": "quux"}"#, false).unwrap()),
-            from_snbt_str(r#"{"foo": "bar", "baz": "quux"}"#).unwrap()
+            parse_compound(r#"{"foo": "bar", "baz": "quux"}"#).unwrap(),
+            from_snbt_str(r#"{"foo": "bar", "baz": "quux"}"#)
         );
     }
 
     #[test]
     fn test_parse_array() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": ["bar", "baz", "quux"]}"#, false).unwrap()),
-            from_snbt_str(r#"{"foo": ["bar", "baz", "quux"]}"#).unwrap()
+            parse_compound(r#"{"foo": ["bar", "baz", "quux"]}"#).unwrap(),
+            from_snbt_str(r#"{"foo": ["bar", "baz", "quux"]}"#)
         )
     }
 
     #[test]
     fn test_parse_int() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": 123}"#, false).unwrap()),
-            from_snbt_str(r#"{"foo": 123L}"#).unwrap()
+            parse_compound(r#"{"foo": 123}"#).unwrap(),
+            from_snbt_str(r#"{"foo": 123L}"#)
         )
     }
 
     #[test]
     fn test_parse_double() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": 123.45}"#, false).unwrap()),
-            from_snbt_str(r#"{"foo": 123.45}"#).unwrap()
+            parse_compound(r#"{"foo": 123.45}"#).unwrap(),
+            from_snbt_str(r#"{"foo": 123.45}"#)
         )
     }
 
     #[test]
     fn test_whitespace() {
         assert_eq!(
-            Value::Compound(
-                parse_compound(
-                    r#" { "foo" : "bar" , "list" : [ "a" , "b" ] , "long" : 1 , "double" : 1.2 } "#,
-                    false,
-                )
-                .unwrap()
-            ),
+            parse_compound(
+                r#" { "foo" : "bar" , "list" : [ "a" , "b" ] , "long" : 1 , "double" : 1.2 } "#
+            )
+            .unwrap(),
             from_snbt_str(r#"{"foo": "bar", "list": ["a", "b"], "long": 1L, "double": 1.2}"#)
-                .unwrap()
         )
     }
 
     #[test]
     fn test_string_escapes() {
         assert_eq!(
-            Value::Compound(parse_compound(r#"{"foo": "\\\n\r\t\"\u0020"}"#, false).unwrap()),
-            from_snbt_str(r#"{"foo": "\\\n\r\t\" "}"#).unwrap()
+            parse_compound(r#"{"foo": "\\\n\r\t\"\u0020"}"#).unwrap(),
+            from_snbt_str("{\"foo\": \"\\\\\n\r\t\\\" \"}")
         )
     }
 }

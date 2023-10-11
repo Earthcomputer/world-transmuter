@@ -1,7 +1,6 @@
 use crate::types;
-use valence_nbt::{List, Value};
 use world_transmuter_engine::{
-    convert_map_in_map, data_walker, map_data_converter_func, DataWalkerMapListPaths,
+    convert_map_in_map, data_walker, map_data_converter_func, DataWalkerMapListPaths, JList, JValue,
 };
 
 const VERSION: u32 = 135;
@@ -13,10 +12,10 @@ pub(crate) fn register() {
     types::entity_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            while let Some(Value::Compound(riding)) = data.remove("Riding") {
+            while let Some(JValue::Compound(riding)) = data.remove("Riding") {
                 let mut passenger = riding;
                 std::mem::swap(&mut passenger, data);
-                let passengers = List::from(vec![passenger]);
+                let passengers = JList::from(vec![passenger]);
                 data.insert("Passengers", passengers);
             }
         }),
@@ -32,7 +31,7 @@ pub(crate) fn register() {
     types::player_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            if let Some(Value::Compound(root_vehicle)) = data.get_mut("RootVehicle") {
+            if let Some(JValue::Compound(root_vehicle)) = data.get_mut("RootVehicle") {
                 convert_map_in_map(
                     types::entity_ref(),
                     root_vehicle,

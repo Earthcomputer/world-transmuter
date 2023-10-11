@@ -1,54 +1,48 @@
 use crate::helpers::hooks::{DataHookEnforceNamespacedId, DataHookValueTypeEnforceNamespaced};
-use crate::helpers::mc_namespace_map::McNamespaceMap;
-use crate::types;
+use crate::{static_string_mc_map, types};
+use java_string::{JavaStr, JavaString};
 use log::warn;
-use std::sync::OnceLock;
-use valence_nbt::{List, Value};
 use world_transmuter_engine::*;
 
 const VERSION: u32 = 99;
 
-static ITEM_ID_TO_TILE_ENTITY_ID: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn item_id_to_tile_entity_id() -> &'static McNamespaceMap<'static, &'static str> {
-    ITEM_ID_TO_TILE_ENTITY_ID.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("furnace", "Furnace");
-        map.insert_mc("lit_furnace", "Furnace");
-        map.insert_mc("chest", "Chest");
-        map.insert_mc("trapped_chest", "Chest");
-        map.insert_mc("ender_chest", "EnderChest");
-        map.insert_mc("jukebox", "RecordPlayer");
-        map.insert_mc("dispenser", "Trap");
-        map.insert_mc("dropper", "Dropper");
-        map.insert_mc("sign", "Sign");
-        map.insert_mc("mob_spawner", "MobSpawner");
-        map.insert_mc("noteblock", "Music");
-        map.insert_mc("brewing_stand", "Cauldron");
-        map.insert_mc("enhanting_table", "EnchantTable");
-        map.insert_mc("command_block", "CommandBlock");
-        map.insert_mc("beacon", "Beacon");
-        map.insert_mc("skull", "Skull");
-        map.insert_mc("daylight_detector", "DLDetector");
-        map.insert_mc("hopper", "Hopper");
-        map.insert_mc("banner", "Banner");
-        map.insert_mc("flower_pot", "FlowerPot");
-        map.insert_mc("repeating_command_block", "CommandBlock");
-        map.insert_mc("chain_command_block", "CommandBlock");
-        map.insert_mc("standing_sign", "Sign");
-        map.insert_mc("wall_sign", "Sign");
-        map.insert_mc("piston_head", "Piston");
-        map.insert_mc("daylight_detector_inverted", "DLDetector");
-        map.insert_mc("unpowered_comparator", "Comparator");
-        map.insert_mc("powered_comparator", "Comparator");
-        map.insert_mc("wall_banner", "Banner");
-        map.insert_mc("standing_banner", "Banner");
-        map.insert_mc("structure_block", "Structure");
-        map.insert_mc("end_portal", "Airportal");
-        map.insert_mc("end_gateway", "EndGateway");
-        map.insert_mc("shield", "Banner");
-        map
-    })
+static_string_mc_map! {
+    ITEM_ID_TO_TILE_ENTITY_ID, item_id_to_tile_entity_id, {
+        "furnace" => "Furnace",
+        "lit_furnace" => "Furnace",
+        "chest" => "Chest",
+        "trapped_chest" => "Chest",
+        "ender_chest" => "EnderChest",
+        "jukebox" => "RecordPlayer",
+        "dispenser" => "Trap",
+        "dropper" => "Dropper",
+        "sign" => "Sign",
+        "mob_spawner" => "MobSpawner",
+        "noteblock" => "Music",
+        "brewing_stand" => "Cauldron",
+        "enhanting_table" => "EnchantTable",
+        "command_block" => "CommandBlock",
+        "beacon" => "Beacon",
+        "skull" => "Skull",
+        "daylight_detector" => "DLDetector",
+        "hopper" => "Hopper",
+        "banner" => "Banner",
+        "flower_pot" => "FlowerPot",
+        "repeating_command_block" => "CommandBlock",
+        "chain_command_block" => "CommandBlock",
+        "standing_sign" => "Sign",
+        "wall_sign" => "Sign",
+        "piston_head" => "Piston",
+        "daylight_detector_inverted" => "DLDetector",
+        "unpowered_comparator" => "Comparator",
+        "powered_comparator" => "Comparator",
+        "wall_banner" => "Banner",
+        "standing_banner" => "Banner",
+        "structure_block" => "Structure",
+        "end_portal" => "Airportal",
+        "end_gateway" => "EndGateway",
+        "shield" => "Banner",
+    }
 }
 
 pub(crate) fn register() {
@@ -202,8 +196,8 @@ pub(crate) fn register() {
         VERSION,
         "Villager",
         data_walker(move |data, from_version, to_version| {
-            if let Some(Value::Compound(offers)) = data.get_mut("Offers") {
-                if let Some(Value::List(List::Compound(recipes))) = offers.get_mut("Recipes") {
+            if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
+                if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
                     for recipe in recipes {
                         convert_map_in_map(
                             types::item_stack_ref(),
@@ -270,7 +264,7 @@ pub(crate) fn register() {
             let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
             let item_id = item_id.map(|v| &*v);
 
-            let Some(Value::Compound(tag)) = tag else {
+            let Some(JValue::Compound(tag)) = tag else {
                 return;
             };
 
@@ -284,32 +278,32 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::Compound(entity_tag)) = tag.get_mut("EntityTag") {
+            if let Some(JValue::Compound(entity_tag)) = tag.get_mut("EntityTag") {
                 let item_id_str = item_id.and_then(get_string_id);
-                let entity_id = match item_id_str {
+                let entity_id = match item_id_str.map(JavaStr::as_bytes) {
                     // The check for version id is removed here. For whatever reason, the legacy
                     // data converters used entity id "minecraft:armor_stand" when version was greater-than 514,
                     // but entity ids were not namespaced until V705! So somebody fucked up the legacy converters.
                     // DFU agrees with my analysis here, it will only set the entityId here to the namespaced variant
                     // with the V705 schema.
-                    Some("minecraft:armor_stand") => Some("ArmorStand"),
+                    Some(b"minecraft:armor_stand") => Some(JavaStr::from_str("ArmorStand")),
                     // add missing item_frame entity id
-                    Some("minecraft:item_frame") => Some("ItemFrame"),
+                    Some(b"minecraft:item_frame") => Some(JavaStr::from_str("ItemFrame")),
                     _ => match entity_tag.get("id") {
-                        Some(Value::String(id)) => Some(&id[..]),
+                        Some(JValue::String(id)) => Some(&id[..]),
                         _ => None,
                     },
                 };
 
                 let remove_id = if let Some(entity_id) = entity_id {
-                    let remove_id = !matches!(entity_tag.get("id"), Some(Value::String(_)));
+                    let remove_id = !matches!(entity_tag.get("id"), Some(JValue::String(_)));
                     if remove_id {
                         let new_id = entity_id.to_owned();
                         entity_tag.insert("id", new_id);
                     }
                     remove_id
                 } else {
-                    if item_id_str != Some("minecraft:air") {
+                    if item_id_str != Some(JavaStr::from_str("minecraft:air")) {
                         warn!(
                             "Unable to resolve Entity for ItemStack (V99): {:?}",
                             item_id
@@ -325,17 +319,17 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
+            if let Some(JValue::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
                 let item_id_str = item_id.as_ref().and_then(|v| get_string_id(v));
                 let entity_id =
                     item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id).copied());
 
                 let remove_id = if let Some(entity_id) = entity_id {
-                    let remove_id = !matches!(block_entity_tag.get("id"), Some(Value::String(_)));
+                    let remove_id = !matches!(block_entity_tag.get("id"), Some(JValue::String(_)));
                     block_entity_tag.insert("id", entity_id);
                     remove_id
                 } else {
-                    if item_id_str != Some("minecraft:air") {
+                    if item_id_str != Some(JavaStr::from_str("minecraft:air")) {
                         warn!(
                             "Unable to resolve BlockEntity for ItemStack (V99): {:?}",
                             item_id
@@ -379,7 +373,7 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
             convert_map_list_in_map(
@@ -397,7 +391,7 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::List(List::Compound(tile_ticks))) = level.get_mut("TileTicks") {
+            if let Some(JValue::List(JList::Compound(tile_ticks))) = level.get_mut("TileTicks") {
                 for tile_tick in tile_ticks {
                     convert_object_in_map(
                         types::block_name_ref(),
@@ -419,7 +413,7 @@ pub(crate) fn register() {
     types::saved_data_scoreboard_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(data)) = data.get_mut("data") else {
+            let Some(JValue::Compound(data)) = data.get_mut("data") else {
                 return;
             };
 
@@ -436,7 +430,7 @@ pub(crate) fn register() {
     types::saved_data_structure_feature_indices_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(data)) = data.get_mut("data") else {
+            let Some(JValue::Compound(data)) = data.get_mut("data") else {
                 return;
             };
             convert_values_in_map(
@@ -454,7 +448,7 @@ pub(crate) fn register() {
     types::item_stack_mut().add_structure_hook(VERSION, DataHookEnforceNamespacedId::id());
 }
 
-fn register_mob(id: impl Into<String>) {
+fn register_mob(id: impl Into<JavaString>) {
     types::entity_mut().add_walker_for_id(
         VERSION,
         id,
@@ -462,7 +456,7 @@ fn register_mob(id: impl Into<String>) {
     );
 }
 
-fn register_projectile(id: impl Into<String>) {
+fn register_projectile(id: impl Into<JavaString>) {
     types::entity_mut().add_walker_for_id(
         VERSION,
         id,
@@ -470,7 +464,7 @@ fn register_projectile(id: impl Into<String>) {
     );
 }
 
-fn register_inventory(id: impl Into<String>) {
+fn register_inventory(id: impl Into<JavaString>) {
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
         id,
@@ -478,8 +472,8 @@ fn register_inventory(id: impl Into<String>) {
     );
 }
 
-fn get_string_id(value: &Value) -> Option<&str> {
-    if let Value::String(str) = value {
+fn get_string_id(value: &JValue) -> Option<&JavaStr> {
+    if let JValue::String(str) = value {
         Some(str)
     } else {
         value

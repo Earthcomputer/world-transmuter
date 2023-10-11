@@ -1,7 +1,8 @@
 use crate::helpers::rename::rename_keys_in_map;
 use crate::types;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::{convert_map_list_in_map, data_walker, map_data_converter_func};
+use world_transmuter_engine::{
+    convert_map_list_in_map, data_walker, map_data_converter_func, JCompound, JValue,
+};
 
 const VERSION: u32 = 2501;
 
@@ -24,9 +25,9 @@ fn register_furnace(id: &str) {
                 return;
             }
 
-            let mut recipes_used = Compound::new();
+            let mut recipes_used = JCompound::new();
             for i in 0..recipes_used_size {
-                if let (Some(Value::String(recipe_key)), Some(recipe_amount)) = (
+                if let (Some(JValue::String(recipe_key)), Some(recipe_amount)) = (
                     data.get(&format!("RecipeLocation{}", i)),
                     data.get(&format!("RecipeAmount{}", i))
                         .and_then(|v| v.as_i32()),

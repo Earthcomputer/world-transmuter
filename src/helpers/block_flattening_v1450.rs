@@ -1,10 +1,11 @@
 use crate::helpers::block_state::BlockState;
 use ahash::AHashMap;
+use java_string::JavaStr;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use valence_nbt::Compound;
+use world_transmuter_engine::JCompound;
 
-pub(crate) fn flatten_nbt(nbt: &Compound) -> Option<Compound> {
+pub(crate) fn flatten_nbt(nbt: &JCompound) -> Option<JCompound> {
     if let Some(state) = BlockState::from_nbt(nbt) {
         let data = block_state_data();
         if let Some(id) = data.id_by_old_nbt.get(&state) {
@@ -17,7 +18,8 @@ pub(crate) fn flatten_nbt(nbt: &Compound) -> Option<Compound> {
     None
 }
 
-pub(crate) fn get_new_block_name(old: &str) -> &str {
+pub(crate) fn get_new_block_name(old: &impl AsRef<JavaStr>) -> &JavaStr {
+    let old = old.as_ref();
     let data = block_state_data();
     if let Some(id) = data.id_by_old_name.get(old) {
         if let Some(ret) = get_state_for_id_raw(*id) {
@@ -28,8 +30,8 @@ pub(crate) fn get_new_block_name(old: &str) -> &str {
     old
 }
 
-pub(crate) fn get_name_for_id(id: u16) -> &'static str {
-    get_state_for_id_raw(id).map_or_else(|| "minecraft:air", |state| state.name)
+pub(crate) fn get_name_for_id(id: u16) -> &'static JavaStr {
+    get_state_for_id_raw(id).map_or_else(|| JavaStr::from_str("minecraft:air"), |state| state.name)
 }
 
 pub(crate) fn get_state_for_id_raw(id: u16) -> Option<&'static BlockState<'static>> {
@@ -40,10 +42,10 @@ pub(crate) fn get_state_for_id_raw(id: u16) -> Option<&'static BlockState<'stati
     data.flattened_by_id[id as usize].map(|index| &data.states[index as usize])
 }
 
-pub(crate) fn get_nbt_for_id(id: u16) -> Compound {
+pub(crate) fn get_nbt_for_id(id: u16) -> JCompound {
     get_state_for_id_raw(id).map_or_else(
         || {
-            let mut ret = Compound::new();
+            let mut ret = JCompound::new();
             ret.insert("Name", "minecraft:air");
             ret
         },
@@ -56,7 +58,7 @@ struct BlockStateData {
     flattened_by_id: [Option<u16>; 4096],
     block_defaults: [Option<u16>; 256],
     id_by_old_nbt: AHashMap<BlockState<'static>, u16>,
-    id_by_old_name: AHashMap<&'static str, u16>,
+    id_by_old_name: AHashMap<&'static JavaStr, u16>,
 }
 
 static BLOCK_STATE_DATA: OnceLock<BlockStateData> = OnceLock::new();
@@ -130,26 +132,26 @@ fn block_state_data() -> &'static BlockStateData {
 macro_rules! register {
     ($registrar:ident, $id:literal, $new_name:literal $([$($new_prop_name:literal = $new_prop_value:literal),+])? $(, $($old_name:literal $([$($old_prop_name:literal = $old_prop_value:literal),+])?),+)?) => {
         $registrar($id, BlockState {
-            name: concat!("minecraft:", $new_name),
+            name: JavaStr::from_str(concat!("minecraft:", $new_name)),
             properties: {
                 #[allow(unused_mut)]
                 let mut map = BTreeMap::new();
                 $(
                     $(
-                        map.insert($new_prop_name, $new_prop_value);
+                        map.insert(JavaStr::from_str($new_prop_name), JavaStr::from_str($new_prop_value));
                     )+
                 )?
                 map
             }
         }, vec![$($(
             BlockState {
-                name: concat!("minecraft:", $old_name),
+                name: JavaStr::from_str(concat!("minecraft:", $old_name)),
                 properties: {
                     #[allow(unused_mut)]
                     let mut map = BTreeMap::new();
                     $(
                         $(
-                            map.insert($old_prop_name, $old_prop_value);
+                            map.insert(JavaStr::from_str($old_prop_name), JavaStr::from_str($old_prop_value));
                         )+
                     )?
                     map

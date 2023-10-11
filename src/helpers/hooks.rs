@@ -1,22 +1,23 @@
 use crate::helpers::resource_location::ResourceLocation;
-use valence_nbt::value::ValueMut;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::{DataVersion, MapDataHook, ValueDataHook};
+use java_string::JavaString;
+use world_transmuter_engine::{
+    DataVersion, JCompound, JValue, JValueMut, MapDataHook, ValueDataHook,
+};
 
 pub(crate) struct DataHookValueTypeEnforceNamespaced;
 
 impl ValueDataHook for DataHookValueTypeEnforceNamespaced {
-    fn pre_hook(&self, data: &mut ValueMut, _from_version: DataVersion, _to_version: DataVersion) {
-        if let ValueMut::String(str) = data {
-            if let Ok(replacement) = str.parse::<ResourceLocation>() {
-                **str = replacement.to_string();
+    fn pre_hook(&self, data: &mut JValueMut, _from_version: DataVersion, _to_version: DataVersion) {
+        if let JValueMut::String(str) = data {
+            if let Ok(replacement) = ResourceLocation::parse(str) {
+                **str = replacement.to_java_string();
             }
         }
     }
 
     fn post_hook(
         &self,
-        _data: &mut ValueMut,
+        _data: &mut JValueMut,
         _from_version: DataVersion,
         _to_version: DataVersion,
     ) {
@@ -24,7 +25,7 @@ impl ValueDataHook for DataHookValueTypeEnforceNamespaced {
 }
 
 pub(crate) struct DataHookEnforceNamespacedId {
-    id: String,
+    id: JavaString,
 }
 
 impl DataHookEnforceNamespacedId {
@@ -32,23 +33,23 @@ impl DataHookEnforceNamespacedId {
         Self::new("id")
     }
 
-    pub(crate) fn new(id: impl Into<String>) -> Self {
+    pub(crate) fn new(id: impl Into<JavaString>) -> Self {
         Self { id: id.into() }
     }
 }
 
 impl MapDataHook for DataHookEnforceNamespacedId {
-    fn pre_hook(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
-        if let Some(Value::String(str)) = data.get(&self.id) {
-            if let Ok(replacement) = str.parse::<ResourceLocation>() {
-                data.insert(self.id.clone(), replacement.to_string());
+    fn pre_hook(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
+        if let Some(JValue::String(str)) = data.get(&self.id[..]) {
+            if let Ok(replacement) = ResourceLocation::parse(str) {
+                data.insert(self.id.clone(), replacement.to_java_string());
             }
         }
     }
 
     fn post_hook(
         &self,
-        _data: &mut Compound,
+        _data: &mut JCompound,
         _from_version: DataVersion,
         _to_version: DataVersion,
     ) {

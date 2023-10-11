@@ -1,35 +1,36 @@
 use crate::types;
-use valence_nbt::{compound, Compound, List, Value};
-use world_transmuter_engine::map_data_converter_func;
+use java_string::{JavaStr, JavaString};
+use valence_nbt::{compound, jcompound};
+use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue};
 
 const VERSION: u32 = 3439;
 
-const BLANK_TEXT_LINE: &str = "{\"text\":\"\"}";
-const DEFAULT_COLOR: &str = "black";
+const BLANK_TEXT_LINE: &JavaStr = JavaStr::from_str("{\"text\":\"\"}");
+const DEFAULT_COLOR: &JavaStr = JavaStr::from_str("black");
 
-fn get_line_opt(root: &Compound, key: &str) -> Option<String> {
+fn get_line_opt(root: &JCompound, key: &str) -> Option<JavaString> {
     match root.get(key) {
-        Some(Value::String(line)) => Some(line.clone()),
+        Some(JValue::String(line)) => Some(line.clone()),
         _ => None,
     }
 }
 
-fn get_line(root: &Compound, key: &str) -> String {
+fn get_line(root: &JCompound, key: &str) -> JavaString {
     get_line_opt(root, key).unwrap_or_else(|| BLANK_TEXT_LINE.to_owned())
 }
 
 pub(crate) fn register() {
     for sign_id in ["minecraft:sign", "minecraft:hanging_sign"] {
         types::tile_entity_mut().add_converter_for_id(sign_id, VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-            let mut front_text = compound! {
-                "messages" => List::String(vec![
+            let mut front_text = jcompound! {
+                "messages" => JList::String(vec![
                     get_line(data, "Text1"),
                     get_line(data, "Text2"),
                     get_line(data, "Text3"),
                     get_line(data, "Text4"),
                 ]),
                 "color" => match data.get("Color") {
-                    Some(Value::String(color)) => color.clone(),
+                    Some(JValue::String(color)) => color.clone(),
                     _ => DEFAULT_COLOR.to_owned(),
                 },
                 "has_glowing_text" => data.get("GlowingText").and_then(|v| v.as_bool()).unwrap_or(false),
@@ -44,14 +45,14 @@ pub(crate) fn register() {
                 get_line_opt(data, "FilteredText4").map(|s| { need_filtered_messages = true; s }).unwrap_or_else(|| get_line(data, "Text4")),
             ];
             if need_filtered_messages {
-                front_text.insert("filtered_messages", List::String(filtered_messages));
+                front_text.insert("filtered_messages", JList::String(filtered_messages));
             }
 
             data.insert("front_text", front_text);
 
-            let back_text = compound! {
-                "messages" => List::String(vec![BLANK_TEXT_LINE.to_owned(); 4]),
-                "filtered_messages" => List::String(vec![BLANK_TEXT_LINE.to_owned(); 4]),
+            let back_text = jcompound! {
+                "messages" => JList::String(vec![BLANK_TEXT_LINE.to_owned(); 4]),
+                "filtered_messages" => JList::String(vec![BLANK_TEXT_LINE.to_owned(); 4]),
                 "color" => DEFAULT_COLOR,
                 "has_glowing_text" => false,
             };

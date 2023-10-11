@@ -1,93 +1,71 @@
-use crate::helpers::mc_namespace_map::McNamespaceMap;
-use crate::types;
-use std::sync::OnceLock;
-use valence_nbt::value::ValueMut;
-use world_transmuter_engine::value_data_converter_func;
+use crate::{static_string_mc_map, types};
+use world_transmuter_engine::{value_data_converter_func, JValueMut};
 
 const VERSION: u32 = 2553;
 
-static BIOME_RENAMES: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn biome_renames() -> &'static McNamespaceMap<'static, &'static str> {
-    BIOME_RENAMES.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("extreme_hills", "minecraft:mountains");
-        map.insert_mc("swampland", "minecraft:swamp");
-        map.insert_mc("hell", "minecraft:nether_wastes");
-        map.insert_mc("sky", "minecraft:the_end");
-        map.insert_mc("ice_flats", "minecraft:snowy_tundra");
-        map.insert_mc("ice_mountains", "minecraft:snowy_mountains");
-        map.insert_mc("mushroom_island", "minecraft:mushroom_fields");
-        map.insert_mc("mushroom_island_shore", "minecraft:mushroom_field_shore");
-        map.insert_mc("beaches", "minecraft:beach");
-        map.insert_mc("forest_hills", "minecraft:wooded_hills");
-        map.insert_mc("smaller_extreme_hills", "minecraft:mountain_edge");
-        map.insert_mc("stone_beach", "minecraft:stone_shore");
-        map.insert_mc("cold_beach", "minecraft:snowy_beach");
-        map.insert_mc("roofed_forest", "minecraft:dark_forest");
-        map.insert_mc("taiga_cold", "minecraft:snowy_taiga");
-        map.insert_mc("taiga_cold_hills", "minecraft:snowy_taiga_hills");
-        map.insert_mc("redwood_taiga", "minecraft:giant_tree_taiga");
-        map.insert_mc("redwood_taiga_hills", "minecraft:giant_tree_taiga_hills");
-        map.insert_mc("extreme_hills_with_trees", "minecraft:wooded_mountains");
-        map.insert_mc("savanna_rock", "minecraft:savanna_plateau");
-        map.insert_mc("mesa", "minecraft:badlands");
-        map.insert_mc("mesa_rock", "minecraft:wooded_badlands_plateau");
-        map.insert_mc("mesa_clear_rock", "minecraft:badlands_plateau");
-        map.insert_mc("sky_island_low", "minecraft:small_end_islands");
-        map.insert_mc("sky_island_medium", "minecraft:end_midlands");
-        map.insert_mc("sky_island_high", "minecraft:end_highlands");
-        map.insert_mc("sky_island_barren", "minecraft:end_barrens");
-        map.insert_mc("void", "minecraft:the_void");
-        map.insert_mc("mutated_plains", "minecraft:sunflower_plains");
-        map.insert_mc("mutated_desert", "minecraft:desert_lakes");
-        map.insert_mc("mutated_extreme_hills", "minecraft:gravelly_mountains");
-        map.insert_mc("mutated_forest", "minecraft:flower_forest");
-        map.insert_mc("mutated_taiga", "minecraft:taiga_mountains");
-        map.insert_mc("mutated_swampland", "minecraft:swamp_hills");
-        map.insert_mc("mutated_ice_flats", "minecraft:ice_spikes");
-        map.insert_mc("mutated_jungle", "minecraft:modified_jungle");
-        map.insert_mc("mutated_jungle_edge", "minecraft:modified_jungle_edge");
-        map.insert_mc("mutated_birch_forest", "minecraft:tall_birch_forest");
-        map.insert_mc("mutated_birch_forest_hills", "minecraft:tall_birch_hills");
-        map.insert_mc("mutated_roofed_forest", "minecraft:dark_forest_hills");
-        map.insert_mc("mutated_taiga_cold", "minecraft:snowy_taiga_mountains");
-        map.insert_mc("mutated_redwood_taiga", "minecraft:giant_spruce_taiga");
-        map.insert_mc(
-            "mutated_redwood_taiga_hills",
-            "minecraft:giant_spruce_taiga_hills",
-        );
-        map.insert_mc(
-            "mutated_extreme_hills_with_trees",
-            "minecraft:modified_gravelly_mountains",
-        );
-        map.insert_mc("mutated_savanna", "minecraft:shattered_savanna");
-        map.insert_mc(
-            "mutated_savanna_rock",
-            "minecraft:shattered_savanna_plateau",
-        );
-        map.insert_mc("mutated_mesa", "minecraft:eroded_badlands");
-        map.insert_mc(
-            "mutated_mesa_rock",
-            "minecraft:modified_wooded_badlands_plateau",
-        );
-        map.insert_mc(
-            "mutated_mesa_clear_rock",
-            "minecraft:modified_badlands_plateau",
-        );
-        map.insert_mc("warm_deep_ocean", "minecraft:deep_warm_ocean");
-        map.insert_mc("lukewarm_deep_ocean", "minecraft:deep_lukewarm_ocean");
-        map.insert_mc("cold_deep_ocean", "minecraft:deep_cold_ocean");
-        map.insert_mc("frozen_deep_ocean", "minecraft:deep_frozen_ocean");
-        map
-    })
+static_string_mc_map! {
+    BIOME_RENAMES, biome_renames, {
+        "extreme_hills" => "minecraft:mountains",
+        "swampland" => "minecraft:swamp",
+        "hell" => "minecraft:nether_wastes",
+        "sky" => "minecraft:the_end",
+        "ice_flats" => "minecraft:snowy_tundra",
+        "ice_mountains" => "minecraft:snowy_mountains",
+        "mushroom_island" => "minecraft:mushroom_fields",
+        "mushroom_island_shore" => "minecraft:mushroom_field_shore",
+        "beaches" => "minecraft:beach",
+        "forest_hills" => "minecraft:wooded_hills",
+        "smaller_extreme_hills" => "minecraft:mountain_edge",
+        "stone_beach" => "minecraft:stone_shore",
+        "cold_beach" => "minecraft:snowy_beach",
+        "roofed_forest" => "minecraft:dark_forest",
+        "taiga_cold" => "minecraft:snowy_taiga",
+        "taiga_cold_hills" => "minecraft:snowy_taiga_hills",
+        "redwood_taiga" => "minecraft:giant_tree_taiga",
+        "redwood_taiga_hills" => "minecraft:giant_tree_taiga_hills",
+        "extreme_hills_with_trees" => "minecraft:wooded_mountains",
+        "savanna_rock" => "minecraft:savanna_plateau",
+        "mesa" => "minecraft:badlands",
+        "mesa_rock" => "minecraft:wooded_badlands_plateau",
+        "mesa_clear_rock" => "minecraft:badlands_plateau",
+        "sky_island_low" => "minecraft:small_end_islands",
+        "sky_island_medium" => "minecraft:end_midlands",
+        "sky_island_high" => "minecraft:end_highlands",
+        "sky_island_barren" => "minecraft:end_barrens",
+        "void" => "minecraft:the_void",
+        "mutated_plains" => "minecraft:sunflower_plains",
+        "mutated_desert" => "minecraft:desert_lakes",
+        "mutated_extreme_hills" => "minecraft:gravelly_mountains",
+        "mutated_forest" => "minecraft:flower_forest",
+        "mutated_taiga" => "minecraft:taiga_mountains",
+        "mutated_swampland" => "minecraft:swamp_hills",
+        "mutated_ice_flats" => "minecraft:ice_spikes",
+        "mutated_jungle" => "minecraft:modified_jungle",
+        "mutated_jungle_edge" => "minecraft:modified_jungle_edge",
+        "mutated_birch_forest" => "minecraft:tall_birch_forest",
+        "mutated_birch_forest_hills" => "minecraft:tall_birch_hills",
+        "mutated_roofed_forest" => "minecraft:dark_forest_hills",
+        "mutated_taiga_cold" => "minecraft:snowy_taiga_mountains",
+        "mutated_redwood_taiga" => "minecraft:giant_spruce_taiga",
+        "mutated_redwood_taiga_hills" => "minecraft:giant_spruce_taiga_hills",
+        "mutated_extreme_hills_with_trees" => "minecraft:modified_gravelly_mountains",
+        "mutated_savanna" => "minecraft:shattered_savanna",
+        "mutated_savanna_rock" => "minecraft:shattered_savanna_plateau",
+        "mutated_mesa" => "minecraft:eroded_badlands",
+        "mutated_mesa_rock" => "minecraft:modified_wooded_badlands_plateau",
+        "mutated_mesa_clear_rock" => "minecraft:modified_badlands_plateau",
+        "warm_deep_ocean" => "minecraft:deep_warm_ocean",
+        "lukewarm_deep_ocean" => "minecraft:deep_lukewarm_ocean",
+        "cold_deep_ocean" => "minecraft:deep_cold_ocean",
+        "frozen_deep_ocean" => "minecraft:deep_frozen_ocean",
+    }
 }
 
 pub(crate) fn register() {
     types::biome_mut().add_structure_converter(
         VERSION,
         value_data_converter_func(|data, _from_version, _to_version| {
-            if let ValueMut::String(data) = data {
+            if let JValueMut::String(data) = data {
                 if let Some(new_name) = biome_renames().get(&data[..]).copied() {
                     **data = new_name.to_owned();
                 }

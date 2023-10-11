@@ -5,13 +5,14 @@ use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_keys_in_map;
 use crate::helpers::resource_location::ResourceLocation;
 use crate::helpers::{block_flattening_v1450, flatten_item_stack_v1451, item_name_v102};
-use crate::types;
+use crate::{static_string_mc_map, types};
+use java_string::{format_java, JavaStr, JavaString};
 use std::sync::OnceLock;
-use valence_nbt::{compound, Compound, List, Value};
+use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, data_walker,
     map_data_converter_func, rename_key, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, MapDataConverterFunc, MapDataHook,
+    DataWalkerMapTypePaths, JCompound, JList, JValue, MapDataConverterFunc, MapDataHook,
 };
 
 const VERSION: u32 = 1451;
@@ -279,61 +280,54 @@ fn block_name_to_id() -> &'static McNamespaceMap<'static, u8> {
     })
 }
 
-static ENTITY_ID_TO_NEW_EGG_ID: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn entity_id_to_new_egg_id() -> &'static McNamespaceMap<'static, &'static str> {
-    ENTITY_ID_TO_NEW_EGG_ID.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("bat", "minecraft:bat_spawn_egg");
-        map.insert_mc("blaze", "minecraft:blaze_spawn_egg");
-        map.insert_mc("cave_spider", "minecraft:cave_spider_spawn_egg");
-        map.insert_mc("chicken", "minecraft:chicken_spawn_egg");
-        map.insert_mc("cow", "minecraft:cow_spawn_egg");
-        map.insert_mc("creeper", "minecraft:creeper_spawn_egg");
-        map.insert_mc("donkey", "minecraft:donkey_spawn_egg");
-        map.insert_mc("elder_guardian", "minecraft:elder_guardian_spawn_egg");
-        map.insert_mc("enderman", "minecraft:enderman_spawn_egg");
-        map.insert_mc("endermite", "minecraft:endermite_spawn_egg");
-        map.insert_mc("evocation_illager", "minecraft:evocation_illager_spawn_egg");
-        map.insert_mc("ghast", "minecraft:ghast_spawn_egg");
-        map.insert_mc("guardian", "minecraft:guardian_spawn_egg");
-        map.insert_mc("horse", "minecraft:horse_spawn_egg");
-        map.insert_mc("husk", "minecraft:husk_spawn_egg");
-        map.insert_mc("llama", "minecraft:llama_spawn_egg");
-        map.insert_mc("magma_cube", "minecraft:magma_cube_spawn_egg");
-        map.insert_mc("mooshroom", "minecraft:mooshroom_spawn_egg");
-        map.insert_mc("mule", "minecraft:mule_spawn_egg");
-        map.insert_mc("ocelot", "minecraft:ocelot_spawn_egg");
-        map.insert_mc("pufferfish", "minecraft:pufferfish_spawn_egg");
-        map.insert_mc("parrot", "minecraft:parrot_spawn_egg");
-        map.insert_mc("pig", "minecraft:pig_spawn_egg");
-        map.insert_mc("polar_bear", "minecraft:polar_bear_spawn_egg");
-        map.insert_mc("rabbit", "minecraft:rabbit_spawn_egg");
-        map.insert_mc("sheep", "minecraft:sheep_spawn_egg");
-        map.insert_mc("shulker", "minecraft:shulker_spawn_egg");
-        map.insert_mc("silverfish", "minecraft:silverfish_spawn_egg");
-        map.insert_mc("skeleton", "minecraft:skeleton_spawn_egg");
-        map.insert_mc("skeleton_horse", "minecraft:skeleton_horse_spawn_egg");
-        map.insert_mc("slime", "minecraft:slime_spawn_egg");
-        map.insert_mc("spider", "minecraft:spider_spawn_egg");
-        map.insert_mc("squid", "minecraft:squid_spawn_egg");
-        map.insert_mc("stray", "minecraft:stray_spawn_egg");
-        map.insert_mc("turtle", "minecraft:turtle_spawn_egg");
-        map.insert_mc("vex", "minecraft:vex_spawn_egg");
-        map.insert_mc("villager", "minecraft:villager_spawn_egg");
-        map.insert_mc(
-            "vindication_illager",
-            "minecraft:vindication_illager_spawn_egg",
-        );
-        map.insert_mc("witch", "minecraft:witch_spawn_egg");
-        map.insert_mc("wither_skeleton", "minecraft:wither_skeleton_spawn_egg");
-        map.insert_mc("wolf", "minecraft:wolf_spawn_egg");
-        map.insert_mc("zombie", "minecraft:zombie_spawn_egg");
-        map.insert_mc("zombie_horse", "minecraft:zombie_horse_spawn_egg");
-        map.insert_mc("zombie_pigman", "minecraft:zombie_pigman_spawn_egg");
-        map.insert_mc("zombie_villager", "minecraft:zombie_villager_spawn_egg");
-        map
-    })
+static_string_mc_map! {
+    ENTITY_ID_TO_NEW_EGG_ID, entity_id_to_new_egg_id, {
+        "bat" => "minecraft:bat_spawn_egg",
+        "blaze" => "minecraft:blaze_spawn_egg",
+        "cave_spider" => "minecraft:cave_spider_spawn_egg",
+        "chicken" => "minecraft:chicken_spawn_egg",
+        "cow" => "minecraft:cow_spawn_egg",
+        "creeper" => "minecraft:creeper_spawn_egg",
+        "donkey" => "minecraft:donkey_spawn_egg",
+        "elder_guardian" => "minecraft:elder_guardian_spawn_egg",
+        "enderman" => "minecraft:enderman_spawn_egg",
+        "endermite" => "minecraft:endermite_spawn_egg",
+        "evocation_illager" => "minecraft:evocation_illager_spawn_egg",
+        "ghast" => "minecraft:ghast_spawn_egg",
+        "guardian" => "minecraft:guardian_spawn_egg",
+        "horse" => "minecraft:horse_spawn_egg",
+        "husk" => "minecraft:husk_spawn_egg",
+        "llama" => "minecraft:llama_spawn_egg",
+        "magma_cube" => "minecraft:magma_cube_spawn_egg",
+        "mooshroom" => "minecraft:mooshroom_spawn_egg",
+        "mule" => "minecraft:mule_spawn_egg",
+        "ocelot" => "minecraft:ocelot_spawn_egg",
+        "pufferfish" => "minecraft:pufferfish_spawn_egg",
+        "parrot" => "minecraft:parrot_spawn_egg",
+        "pig" => "minecraft:pig_spawn_egg",
+        "polar_bear" => "minecraft:polar_bear_spawn_egg",
+        "rabbit" => "minecraft:rabbit_spawn_egg",
+        "sheep" => "minecraft:sheep_spawn_egg",
+        "shulker" => "minecraft:shulker_spawn_egg",
+        "silverfish" => "minecraft:silverfish_spawn_egg",
+        "skeleton" => "minecraft:skeleton_spawn_egg",
+        "skeleton_horse" => "minecraft:skeleton_horse_spawn_egg",
+        "slime" => "minecraft:slime_spawn_egg",
+        "spider" => "minecraft:spider_spawn_egg",
+        "squid" => "minecraft:squid_spawn_egg",
+        "stray" => "minecraft:stray_spawn_egg",
+        "turtle" => "minecraft:turtle_spawn_egg",
+        "vex" => "minecraft:vex_spawn_egg",
+        "villager" => "minecraft:villager_spawn_egg",
+        "vindication_illager" => "minecraft:vindication_illager_spawn_egg",
+        "witch" => "minecraft:witch_spawn_egg",
+        "wither_skeleton" => "minecraft:wither_skeleton_spawn_egg",
+        "wolf" => "minecraft:wolf_spawn_egg",
+        "zombie" => "minecraft:zombie_spawn_egg",
+        "zombie_horse" => "minecraft:zombie_horse_spawn_egg",
+        "zombie_pigman" => "minecraft:zombie_pigman_spawn_egg",
+        "zombie_villager" => "minecraft:zombie_villager_spawn_egg",
+    }
 }
 
 pub(crate) fn register() {
@@ -349,8 +343,8 @@ pub(crate) fn register() {
 
     types::chunk_mut().add_structure_walker(
         DataVersion::new(VERSION, 1),
-        data_walker(move |data: &mut Compound, from_version, to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+        data_walker(move |data, from_version, to_version| {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
             convert_map_list_in_map(
@@ -368,7 +362,7 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::List(List::Compound(tile_ticks))) = level.get_mut("TileTicks") {
+            if let Some(JValue::List(JList::Compound(tile_ticks))) = level.get_mut("TileTicks") {
                 for tile_tick in tile_ticks {
                     convert_object_in_map(
                         types::block_name_ref(),
@@ -380,7 +374,7 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") {
+            if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") {
                 for section in sections {
                     convert_map_list_in_map(
                         types::block_state_ref(),
@@ -424,10 +418,10 @@ pub(crate) fn register() {
         "minecraft:filled_map",
         DataVersion::new(VERSION, 3),
         map_data_converter_func(|data, _from_version, _to_version| {
-            if !matches!(data.get("tag"), Some(Value::Compound(_))) {
-                data.insert("tag", Compound::new());
+            if !matches!(data.get("tag"), Some(JValue::Compound(_))) {
+                data.insert("tag", JCompound::new());
             }
-            let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+            let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
                 unreachable!()
             };
 
@@ -540,16 +534,16 @@ pub(crate) fn register() {
     types::item_stack_mut().add_structure_converter(
         DataVersion::new(VERSION, 4),
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+            let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
                 return;
             };
             replace_ids(tag, "CanDestroy");
             replace_ids(tag, "CanPlaceOn");
-            fn replace_ids(tag: &mut Compound, key: &str) {
-                let Some(Value::List(value)) = tag.get_mut(key) else {
+            fn replace_ids(tag: &mut JCompound, key: &str) {
+                let Some(JValue::List(value)) = tag.get_mut(key) else {
                     return;
                 };
-                if let List::String(strings) = value {
+                if let JList::String(strings) = value {
                     for string in strings {
                         *string = block_flattening_v1450::get_new_block_name(string).to_owned();
                     }
@@ -562,7 +556,7 @@ pub(crate) fn register() {
                             })
                         })
                         .collect();
-                    *value = List::String(new_list);
+                    *value = JList::String(new_list);
                 }
             }
         }),
@@ -570,19 +564,19 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(
         DataVersion::new(VERSION, 4),
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
-            if let Some(Value::List(List::Compound(tile_ticks))) = level.get_mut("TileTicks") {
+            if let Some(JValue::List(JList::Compound(tile_ticks))) = level.get_mut("TileTicks") {
                 for tile_tick in tile_ticks {
                     let Some(id_val) = tile_tick.get_mut("i") else {
                         continue;
                     };
                     if let Some(id) = id_val.as_i16() {
-                        *id_val = Value::String(
+                        *id_val = JValue::String(
                             block_flattening_v1450::get_name_for_id(id as u16).to_owned(),
                         );
-                    } else if let Value::String(id) = id_val {
+                    } else if let JValue::String(id) = id_val {
                         *id = block_flattening_v1450::get_new_block_name(id).to_owned();
                     }
                 }
@@ -609,7 +603,7 @@ pub(crate) fn register() {
                 data.insert("Base", 15i32.wrapping_sub(base));
             }
 
-            if let Some(Value::List(List::Compound(patterns))) = data.get_mut("Patterns") {
+            if let Some(JValue::List(JList::Compound(patterns))) = data.get_mut("Patterns") {
                 for pattern in patterns {
                     if let Some(color) = pattern.get("Color").and_then(|v| v.as_i32()) {
                         pattern.insert("Color", 15i32.wrapping_sub(color));
@@ -621,16 +615,18 @@ pub(crate) fn register() {
     types::level_mut().add_structure_converter(
         DataVersion::new(VERSION, 5),
         map_data_converter_func(|data, _from_version, _to_version| {
-            if !matches!(data.get("generatorName"), Some(Value::String(str)) if str == "flat") {
+            if !matches!(data.get("generatorName"), Some(JValue::String(str)) if str == "flat") {
                 return;
             }
 
-            let Some(Value::String(generator_options)) = data.get_mut("generatorOptions") else {
+            let Some(JValue::String(generator_options)) = data.get_mut("generatorOptions") else {
                 return;
             };
 
             let new_options = if generator_options.is_empty() {
-                "minecraft:bedrock,2*minecraft:dirt,minecraft:grass_block;1;village".to_owned()
+                JavaString::from(
+                    "minecraft:bedrock,2*minecraft:dirt,minecraft:grass_block;1;village",
+                )
             } else {
                 let mut parts = generator_options.splitn(5, ';');
                 let first = parts.next().unwrap();
@@ -640,7 +636,7 @@ pub(crate) fn register() {
                     (0, first)
                 };
                 if (0..=3).contains(&version) {
-                    let mut result = layers
+                    let result = layers
                         .split(',')
                         .map(|layer| {
                             let mut amount_parts =
@@ -671,7 +667,7 @@ pub(crate) fn register() {
 
                             let block_id = if version == 3 {
                                 block_name_to_id()
-                                    .get(&format!("minecraft:{}", block_name))
+                                    .get(&format_java!("minecraft:{}", block_name))
                                     .copied()
                                     .unwrap_or(0) as u16
                             } else {
@@ -681,24 +677,27 @@ pub(crate) fn register() {
                             let new_block_name = block_flattening_v1450::get_state_for_id_raw(
                                 (block_id << 4) | meta as u16,
                             )
-                            .map_or_else(|| "minecraft:air", |state| state.name);
+                            .map_or_else(|| JavaStr::from_str("minecraft:air"), |state| state.name);
                             if count == 1 {
-                                new_block_name.to_owned()
+                                new_block_name.to_string()
                             } else {
                                 format!("{}*{}", count, new_block_name)
                             }
                         })
                         .collect::<Vec<_>>()
                         .join(",");
+                    let mut result = JavaString::from(result);
 
                     for part in parts {
                         result.push(';');
-                        result.push_str(part);
+                        result.push_java_str(part);
                     }
 
                     result
                 } else {
-                    "minecraft:bedrock,2*minecraft:dirt,minecraft:grass_block;1;village".to_owned()
+                    JavaString::from(
+                        "minecraft:bedrock,2*minecraft:dirt,minecraft:grass_block;1;village",
+                    )
                 }
             };
 
@@ -723,7 +722,7 @@ pub(crate) fn register() {
             if let Some(new_item_id) = item_name_v102::get_name_from_id(record)
                 .and_then(|str| flatten_item_stack_v1451::flatten_item(str, 0))
             {
-                let record_item = compound! {
+                let record_item = jcompound! {
                     "id" => new_item_id,
                     "Count" => 1i8,
                 };
@@ -735,7 +734,7 @@ pub(crate) fn register() {
     types::stats_mut().add_structure_walker(
         DataVersion::new(VERSION, 6),
         data_walker(move |data, from_version, to_version| {
-            if let Some(Value::Compound(stats)) = data.get_mut("stats") {
+            if let Some(JValue::Compound(stats)) = data.get_mut("stats") {
                 rename_keys_in_map(
                     types::block_name_ref(),
                     stats,
@@ -802,27 +801,29 @@ pub(crate) fn register() {
     impl MapDataHook for ObjectiveHook {
         fn pre_hook(
             &self,
-            data: &mut Compound,
+            data: &mut JCompound,
             _from_version: DataVersion,
             _to_version: DataVersion,
         ) {
             // unpack
-            if let Some(Value::String(criteria_name)) = data.get("CriteriaName") {
-                fn try_get_type_and_id(criteria_name: &str) -> Option<(String, String)> {
+            if let Some(JValue::String(criteria_name)) = data.get("CriteriaName") {
+                fn try_get_type_and_id(
+                    criteria_name: &JavaStr,
+                ) -> Option<(JavaString, JavaString)> {
                     let (typ, id) = criteria_name.split_at(criteria_name.find(':')?);
                     let id = id.strip_prefix(':').unwrap();
                     let typ = ResourceLocation::parse_with_separator(typ, '.')
                         .ok()?
-                        .to_string();
+                        .to_java_string();
                     let id = ResourceLocation::parse_with_separator(id, '.')
                         .ok()?
-                        .to_string();
+                        .to_java_string();
                     Some((typ, id))
                 }
                 let (typ, id) = try_get_type_and_id(criteria_name)
-                    .unwrap_or_else(|| ("_special".to_owned(), criteria_name.to_owned()));
+                    .unwrap_or_else(|| (JavaString::from("_special"), criteria_name.to_owned()));
 
-                let criteria_type = compound! {
+                let criteria_type = jcompound! {
                     "type" => typ,
                     "id" => id,
                 };
@@ -832,19 +833,19 @@ pub(crate) fn register() {
 
         fn post_hook(
             &self,
-            data: &mut Compound,
+            data: &mut JCompound,
             _from_version: DataVersion,
             _to_version: DataVersion,
         ) {
             // repack
-            if let Some(Value::Compound(criteria_type)) = data.get("CriteriaType") {
-                if let (Some(Value::String(typ)), Some(Value::String(id))) =
+            if let Some(JValue::Compound(criteria_type)) = data.get("CriteriaType") {
+                if let (Some(JValue::String(typ)), Some(JValue::String(id))) =
                     (criteria_type.get("type"), criteria_type.get("id"))
                 {
                     let new_name = if typ == "_special" {
                         id.to_owned()
                     } else {
-                        format!("{}:{}", pack_with_dot(typ), pack_with_dot(id))
+                        format_java!("{}:{}", pack_with_dot(typ), pack_with_dot(id))
                     };
 
                     data.remove("CriteriaType");
@@ -858,14 +859,14 @@ pub(crate) fn register() {
     types::objective_mut().add_structure_walker(
         DataVersion::new(VERSION, 6),
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(criteria_type)) = data.get_mut("CriteriaType") else {
+            let Some(JValue::Compound(criteria_type)) = data.get_mut("CriteriaType") else {
                 return;
             };
-            let Some(Value::String(typ)) = criteria_type.get("type") else {
+            let Some(JValue::String(typ)) = criteria_type.get("type") else {
                 return;
             };
-            match &typ[..] {
-                "minecraft:mined" => {
+            match typ.as_bytes() {
+                b"minecraft:mined" => {
                     convert_object_in_map(
                         types::block_name_ref(),
                         criteria_type,
@@ -874,11 +875,11 @@ pub(crate) fn register() {
                         to_version,
                     );
                 }
-                "minecraft:crafted"
-                | "minecraft:used"
-                | "minecraft:broken"
-                | "minecraft:picked_up"
-                | "minecraft:dropped" => {
+                b"minecraft:crafted"
+                | b"minecraft:used"
+                | b"minecraft:broken"
+                | b"minecraft:picked_up"
+                | b"minecraft:dropped" => {
                     convert_object_in_map(
                         types::item_name_ref(),
                         criteria_type,
@@ -887,7 +888,7 @@ pub(crate) fn register() {
                         to_version,
                     );
                 }
-                "minecraft:killed" | "minecraft:killed_by" => {
+                b"minecraft:killed" | b"minecraft:killed_by" => {
                     convert_object_in_map(
                         types::entity_name_ref(),
                         criteria_type,
@@ -905,7 +906,7 @@ pub(crate) fn register() {
     types::structure_feature_mut().add_structure_converter(
         DataVersion::new(VERSION, 7),
         map_data_converter_func(|data, _from_version, _to_version| {
-            fn convert_to_block_state(data: &mut Compound, path: &str) {
+            fn convert_to_block_state(data: &mut JCompound, path: &str) {
                 if let Some(id) = data.get(path).and_then(|v| v.as_i16()) {
                     data.insert(
                         path,
@@ -914,17 +915,17 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
+            if let Some(JValue::List(JList::Compound(children))) = data.get_mut("Children") {
                 for child in children.iter_mut() {
-                    let Some(Value::String(id)) = child.get("id") else {
+                    let Some(JValue::String(id)) = child.get("id") else {
                         continue;
                     };
-                    match &id[..] {
-                        "ViF" => {
+                    match id.as_bytes() {
+                        b"ViF" => {
                             convert_to_block_state(child, "CA");
                             convert_to_block_state(child, "CB");
                         }
-                        "ViDF" => {
+                        b"ViDF" => {
                             convert_to_block_state(child, "CA");
                             convert_to_block_state(child, "CB");
                             convert_to_block_state(child, "CC");
@@ -939,16 +940,16 @@ pub(crate) fn register() {
 
     // convert villagers to trade with pumpkins and not the carved pumpkin
     types::entity_mut().add_converter_for_id("minecraft:villager", DataVersion::new(VERSION, 7), map_data_converter_func(|data, _from_version, _to_version| {
-        fn convert_pumpkin(data: &mut Compound, path: &str) {
-            if let Some(Value::Compound(item)) = data.get_mut(path) {
-                if matches!(item.get("id"), Some(Value::String(str)) if str == "minecraft:carved_pumpkin") {
+        fn convert_pumpkin(data: &mut JCompound, path: &str) {
+            if let Some(JValue::Compound(item)) = data.get_mut(path) {
+                if matches!(item.get("id"), Some(JValue::String(str)) if str == "minecraft:carved_pumpkin") {
                     item.insert("id", "minecraft:pumpkin");
                 }
             }
         }
 
-        if let Some(Value::Compound(offers)) = data.get_mut("Offers") {
-            if let Some(Value::List(List::Compound(recipes))) = offers.get_mut("Recipes") {
+        if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
+            if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
                 for recipe in recipes {
                     convert_pumpkin(recipe, "buy");
                     convert_pumpkin(recipe, "buyB");
@@ -961,7 +962,7 @@ pub(crate) fn register() {
     types::structure_feature_mut().add_structure_walker(
         DataVersion::new(VERSION, 7),
         data_walker(move |data, from_version, to_version| {
-            if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
+            if let Some(JValue::List(JList::Compound(children))) = data.get_mut("Children") {
                 for child in children {
                     convert_map_in_map(
                         types::block_state_ref(),
@@ -1005,7 +1006,7 @@ fn register_entity_flatteners() {
             let block_id = if data.contains_key("Block") {
                 if let Some(id) = data.get("Block").and_then(|v| v.as_i16()) {
                     id as u16
-                } else if let Some(Value::String(id)) = data.get("Block") {
+                } else if let Some(JValue::String(id)) = data.get("Block") {
                     block_name_to_id().get(id).copied().unwrap_or(0) as u16
                 } else {
                     0
@@ -1099,7 +1100,7 @@ fn register_entity_flatteners() {
     );
 }
 
-fn remove_in_tile(entity_id: impl Into<String>) {
+fn remove_in_tile(entity_id: impl Into<JavaString>) {
     types::entity_mut().add_converter_for_id(
         entity_id,
         DataVersion::new(VERSION, 3),
@@ -1110,10 +1111,10 @@ fn remove_in_tile(entity_id: impl Into<String>) {
 }
 
 fn convert_entity_state(
-    entity_id: impl Into<String>,
+    entity_id: impl Into<JavaString>,
     id_path: &'static str,
     data_path: &'static str,
-    output_path: impl Into<String> + Clone + 'static,
+    output_path: impl Into<JavaString> + Clone + 'static,
 ) {
     types::entity_mut().add_converter_for_id(
         entity_id,
@@ -1121,7 +1122,7 @@ fn convert_entity_state(
         map_data_converter_func(move |data, _from_version, _to_version| {
             let block_id = if let Some(id) = data.get(id_path).and_then(|v| v.as_i16()) {
                 id as u16
-            } else if let Some(Value::String(id)) = data.get(id_path) {
+            } else if let Some(JValue::String(id)) = data.get(id_path) {
                 block_name_to_id().get(id).copied().unwrap_or(0) as u16
             } else {
                 0
@@ -1139,24 +1140,24 @@ fn convert_entity_state(
     );
 }
 
-pub(crate) fn pack_with_dot(id: &str) -> String {
-    id.parse::<ResourceLocation>().map_or_else(
+pub(crate) fn pack_with_dot(id: &JavaStr) -> JavaString {
+    ResourceLocation::parse(id).map_or_else(
         |_| id.to_owned(),
-        |loc| format!("{}.{}", loc.namespace, loc.path),
+        |loc| format_java!("{}.{}", loc.namespace, loc.path),
     )
 }
 
 pub(crate) struct ConverterFlattenSpawnEgg;
 
 impl MapDataConverterFunc for ConverterFlattenSpawnEgg {
-    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
-        if let Some(Value::Compound(tag)) = data.get("tag") {
-            if let Some(Value::Compound(entity_tag)) = tag.get("EntityTag") {
-                if let Some(Value::String(id)) = entity_tag.get("id") {
+    fn convert(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
+        if let Some(JValue::Compound(tag)) = data.get("tag") {
+            if let Some(JValue::Compound(entity_tag)) = tag.get("EntityTag") {
+                if let Some(JValue::String(id)) = entity_tag.get("id") {
                     let new_id = entity_id_to_new_egg_id()
                         .get(id)
                         .copied()
-                        .unwrap_or("minecraft:pig_spawn_egg");
+                        .unwrap_or(JavaStr::from_str("minecraft:pig_spawn_egg"));
                     data.insert("id", new_id);
                 }
             }

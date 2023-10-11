@@ -7,12 +7,13 @@ edition = "2021"
 
 ahash = "0.8.3"
 bitvec = { version = "1.0.0", default-features = false }
+java_string = ">=0.1.1"
 log = "0.4.16"
 nom = "7.1.1"
 strength_reduce = "0.2.3"
 uuid = "1"
-valence_nbt = "0.7"
-world-transmuter-engine = "0.2.0"
+valence_nbt = { version = "0.8", features = ["java_string"] }
+world-transmuter-engine = "0.6.0"
 
 [dev-dependencies]
 
@@ -21,7 +22,7 @@ regex = "1.5.5"
 serde = { version = "1.0.183", features = ["derive"] }
 serde_json = "1.0.104"
 time = { version = "0.3.25", features = ["macros", "parsing", "serde"] }
-valence_nbt = { version = "0.7", features = ["snbt"] }
+valence_nbt = { version = "0.8", features = ["java_string", "snbt"] }
 zip = "0.6.6"
 
 [features]

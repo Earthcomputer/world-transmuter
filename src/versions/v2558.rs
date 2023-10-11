@@ -1,8 +1,7 @@
 use crate::helpers::rename::{rename_option, simple_rename};
 use crate::types;
 use crate::versions::v2550;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 2558;
 
@@ -16,7 +15,7 @@ pub(crate) fn register() {
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             let has_empty_dimensions = match data.get("dimensions") {
-                Some(Value::Compound(dimensions)) => dimensions.is_empty(),
+                Some(JValue::Compound(dimensions)) => dimensions.is_empty(),
                 _ => true,
             };
             if has_empty_dimensions {
@@ -27,7 +26,7 @@ pub(crate) fn register() {
     );
 }
 
-fn recreate_settings(data: &Compound) -> Compound {
+fn recreate_settings(data: &JCompound) -> JCompound {
     let seed = data.get("seed").and_then(|v| v.as_i64()).unwrap_or(0);
     v2550::vanilla_levels(seed, v2550::default_overworld(seed), false)
 }

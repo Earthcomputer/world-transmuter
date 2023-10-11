@@ -1,8 +1,7 @@
 use crate::helpers::block_state::{BlockState, BlockStateOwned};
 use log::{error, warn};
 use strength_reduce::StrengthReducedUsize;
-use valence_nbt::{Compound, List, Value};
-use world_transmuter_engine::get_mut_multi;
+use world_transmuter_engine::{get_mut_multi, JCompound, JList, JValue};
 
 pub(crate) const fn bitset_size(size: usize) -> usize {
     const USIZE_BITS: usize = std::mem::size_of::<usize>() * 8;
@@ -29,10 +28,10 @@ pub(crate) struct ChunkNibbleArray<'a> {
 }
 
 impl<'a> ChunkNibbleArray<'a> {
-    pub(crate) fn wrap(nbt: &'a Compound, key: &str) -> Option<Self> {
+    pub(crate) fn wrap(nbt: &'a JCompound, key: &str) -> Option<Self> {
         nbt.get(key)
             .and_then(|o| match o {
-                Value::ByteArray(arr) => Some(arr),
+                JValue::ByteArray(arr) => Some(arr),
                 _ => None,
             })
             .and_then(|arr| {
@@ -488,14 +487,14 @@ where
     pub(crate) fn wrap_2832(
         chunk_x: i32,
         chunk_z: i32,
-        section: &'a Compound,
+        section: &'a JCompound,
         initializer: &mut impl SectionInitializer,
     ) -> Option<Self> {
         let section_y = section.get("Y").and_then(|v| v.as_i32()).unwrap_or(0);
-        let Some(Value::Compound(block_states)) = section.get("block_states") else {
+        let Some(JValue::Compound(block_states)) = section.get("block_states") else {
             return None;
         };
-        let Some(Value::List(palette)) = block_states.get("palette") else {
+        let Some(JValue::List(palette)) = block_states.get("palette") else {
             return None;
         };
         if palette.is_empty() {
@@ -505,11 +504,11 @@ where
             );
             return None;
         }
-        let List::Compound(palette) = palette else {
+        let JList::Compound(palette) = palette else {
             return None;
         };
         let data = match block_states.get("data") {
-            Some(Value::LongArray(data)) => &data[..],
+            Some(JValue::LongArray(data)) => &data[..],
             _ => &[0; 256],
         };
 
@@ -553,12 +552,12 @@ where
     pub(crate) fn wrap_1451(
         chunk_x: i32,
         chunk_z: i32,
-        section: &'a mut Compound,
+        section: &'a mut JCompound,
         initializer: &mut impl SectionInitializer,
     ) -> Option<Self> {
         let [palette, section_y, block_states] =
             get_mut_multi(section, ["Palette", "Y", "BlockStates"]);
-        let Some(Value::List(palette)) = palette else {
+        let Some(JValue::List(palette)) = palette else {
             return None;
         };
         let section_y = section_y.and_then(|v| v.as_i32()).unwrap_or(0);
@@ -569,10 +568,10 @@ where
             );
             return None;
         }
-        let List::Compound(palette) = palette else {
+        let JList::Compound(palette) = palette else {
             return None;
         };
-        let Some(Value::LongArray(block_states)) = block_states else {
+        let Some(JValue::LongArray(block_states)) = block_states else {
             return None;
         };
 

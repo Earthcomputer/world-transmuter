@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 3077;
 
@@ -12,7 +11,7 @@ pub(crate) fn register() {
                 return;
             }
 
-            let Some(Value::List(List::Compound(sections))) = data.get_mut("sections") else {
+            let Some(JValue::List(JList::Compound(sections))) = data.get_mut("sections") else {
                 return;
             };
             for section in sections {

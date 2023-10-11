@@ -1,7 +1,6 @@
 use crate::helpers::bit_storage::ceil_log2;
 use crate::types;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 2527;
 
@@ -9,18 +8,18 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
-            if let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") {
+            if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") {
                 for section in sections.iter_mut() {
-                    if let Some(Value::Compound(palette)) = section.get("Palette") {
+                    if let Some(JValue::Compound(palette)) = section.get("Palette") {
                         let bits = 4.max(ceil_log2(palette.len() as u32));
                         if bits.is_power_of_two() {
                             // fits perfectly
                             continue;
                         }
-                        if let Some(Value::LongArray(states)) = section.get_mut("BlockStates") {
+                        if let Some(JValue::LongArray(states)) = section.get_mut("BlockStates") {
                             let new_states = add_padding(4096, bits as usize, states);
                             *states = new_states;
                         }
@@ -28,9 +27,9 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::Compound(heightmaps)) = level.get_mut("Heightmaps") {
+            if let Some(JValue::Compound(heightmaps)) = level.get_mut("Heightmaps") {
                 for heightmap in heightmaps.values_mut() {
-                    if let Value::LongArray(heightmap) = heightmap {
+                    if let JValue::LongArray(heightmap) = heightmap {
                         let new_heightmap = add_padding(256, 9, heightmap);
                         *heightmap = new_heightmap;
                     }

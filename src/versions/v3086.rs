@@ -1,47 +1,38 @@
 use crate::helpers::rename::rename_criteria;
-use crate::types;
-use std::collections::BTreeMap;
-use std::sync::OnceLock;
-use valence_nbt::Compound;
-use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
+use crate::{static_string_map, types};
+use java_string::JavaStr;
+use world_transmuter_engine::{DataVersion, JCompound, MapDataConverterFunc};
 
 const VERSION: u32 = 3086;
 
-const CAT_ID_CONVERSION: [&str; 11] = [
-    "minecraft:tabby",
-    "minecraft:black",
-    "minecraft:red",
-    "minecraft:siamese",
-    "minecraft:british",
-    "minecraft:calico",
-    "minecraft:persian",
-    "minecraft:ragdoll",
-    "minecraft:white",
-    "minecraft:jellie",
-    "minecraft:all_black",
+const CAT_ID_CONVERSION: [&JavaStr; 11] = [
+    JavaStr::from_str("minecraft:tabby"),
+    JavaStr::from_str("minecraft:black"),
+    JavaStr::from_str("minecraft:red"),
+    JavaStr::from_str("minecraft:siamese"),
+    JavaStr::from_str("minecraft:british"),
+    JavaStr::from_str("minecraft:calico"),
+    JavaStr::from_str("minecraft:persian"),
+    JavaStr::from_str("minecraft:ragdoll"),
+    JavaStr::from_str("minecraft:white"),
+    JavaStr::from_str("minecraft:jellie"),
+    JavaStr::from_str("minecraft:all_black"),
 ];
 
-static CAT_ADVANCEMENTS_CONVERSION: OnceLock<BTreeMap<&str, &str>> = OnceLock::new();
-
-fn cat_advancements_conversion() -> &'static BTreeMap<&'static str, &'static str> {
-    CAT_ADVANCEMENTS_CONVERSION.get_or_init(|| {
-        let mut map = BTreeMap::new();
-        map.insert("textures/entity/cat/tabby.png", "minecraft:tabby");
-        map.insert("textures/entity/cat/black.png", "minecraft:black");
-        map.insert("textures/entity/cat/red.png", "minecraft:red");
-        map.insert("textures/entity/cat/siamese.png", "minecraft:siamese");
-        map.insert(
-            "textures/entity/cat/british_shorthair.png",
-            "minecraft:british",
-        );
-        map.insert("textures/entity/cat/calico.png", "minecraft:calico");
-        map.insert("textures/entity/cat/persian.png", "minecraft:persian");
-        map.insert("textures/entity/cat/ragdoll.png", "minecraft:ragdoll");
-        map.insert("textures/entity/cat/white.png", "minecraft:white");
-        map.insert("textures/entity/cat/jellie.png", "minecraft:jellie");
-        map.insert("textures/entity/cat/all_black.png", "minecraft:all_black");
-        map
-    })
+static_string_map! {
+    CAT_ADVANCEMENTS_CONVERSION, cat_advancements_conversion, {
+        "textures/entity/cat/tabby.png" => "minecraft:tabby",
+        "textures/entity/cat/black.png" => "minecraft:black",
+        "textures/entity/cat/red.png" => "minecraft:red",
+        "textures/entity/cat/siamese.png" => "minecraft:siamese",
+        "textures/entity/cat/british_shorthair.png" => "minecraft:british",
+        "textures/entity/cat/calico.png" => "minecraft:calico",
+        "textures/entity/cat/persian.png" => "minecraft:persian",
+        "textures/entity/cat/ragdoll.png" => "minecraft:ragdoll",
+        "textures/entity/cat/white.png" => "minecraft:white",
+        "textures/entity/cat/jellie.png" => "minecraft:jellie",
+        "textures/entity/cat/all_black.png" => "minecraft:all_black",
+    }
 }
 
 pub(crate) fn register() {
@@ -52,7 +43,7 @@ pub(crate) fn register() {
             CAT_ID_CONVERSION
                 .get(id as usize)
                 .copied()
-                .unwrap_or("minecraft:tabby")
+                .unwrap_or(JavaStr::from_str("minecraft:tabby"))
         }),
     );
     rename_criteria(VERSION, "minecraft:husbandry/complete_catalogue", |name| {
@@ -76,9 +67,9 @@ impl<F> ConverterEntityToVariant<F> {
 
 impl<F> MapDataConverterFunc for ConverterEntityToVariant<F>
 where
-    F: Fn(i32) -> &'static str,
+    F: Fn(i32) -> &'static JavaStr,
 {
-    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+    fn convert(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
         let Some(value) = data.get(self.path).and_then(|v| v.as_i32()) else {
             // nothing to do, DFU does the same
             return;

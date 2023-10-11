@@ -2,87 +2,82 @@ use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::{
     rename_block, rename_entity, rename_item, rename_recipe, rename_stat,
 };
-use crate::types;
+use crate::{static_string_mc_map, types};
+use java_string::{format_java, JavaStr, JavaString};
 use std::sync::OnceLock;
 
 const VERSION: u32 = 1510;
 
-static RENAMED_ENTITY_IDS: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn renamed_entity_ids() -> &'static McNamespaceMap<'static, &'static str> {
-    RENAMED_ENTITY_IDS.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("commandblock_minecart", "minecraft:command_block_minecart");
-        map.insert_mc("ender_crystal", "minecraft:end_crystal");
-        map.insert_mc("snowman", "minecraft:snow_golem");
-        map.insert_mc("evocation_illager", "minecraft:evoker");
-        map.insert_mc("evocation_fangs", "minecraft:evoker_fangs");
-        map.insert_mc("illusion_illager", "minecraft:illusioner");
-        map.insert_mc("vindication_illager", "minecraft:vindicator");
-        map.insert_mc("villager_golem", "minecraft:iron_golem");
-        map.insert_mc("xp_orb", "minecraft:experience_orb");
-        map.insert_mc("xp_bottle", "minecraft:experience_bottle");
-        map.insert_mc("eye_of_ender_signal", "minecraft:eye_of_ender");
-        map.insert_mc("fireworks_rocket", "minecraft:firework_rocket");
-        map
-    })
+static_string_mc_map! {
+    RENAMED_ENTITY_IDS, renamed_entity_ids, {
+        "commandblock_minecart" => "minecraft:command_block_minecart",
+        "ender_crystal" => "minecraft:end_crystal",
+        "snowman" => "minecraft:snow_golem",
+        "evocation_illager" => "minecraft:evoker",
+        "evocation_fangs" => "minecraft:evoker_fangs",
+        "illusion_illager" => "minecraft:illusioner",
+        "vindication_illager" => "minecraft:vindicator",
+        "villager_golem" => "minecraft:iron_golem",
+        "xp_orb" => "minecraft:experience_orb",
+        "xp_bottle" => "minecraft:experience_bottle",
+        "eye_of_ender_signal" => "minecraft:eye_of_ender",
+        "fireworks_rocket" => "minecraft:firework_rocket",
+    }
 }
 
-static RENAMED_BLOCKS: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn renamed_blocks() -> &'static McNamespaceMap<'static, &'static str> {
-    RENAMED_BLOCKS.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("portal", "minecraft:nether_portal");
-        map.insert_mc("oak_bark", "minecraft:oak_wood");
-        map.insert_mc("spruce_bark", "minecraft:spruce_wood");
-        map.insert_mc("birch_bark", "minecraft:birch_wood");
-        map.insert_mc("jungle_bark", "minecraft:jungle_wood");
-        map.insert_mc("acacia_bark", "minecraft:acacia_wood");
-        map.insert_mc("dark_oak_bark", "minecraft:dark_oak_wood");
-        map.insert_mc("stripped_oak_bark", "minecraft:stripped_oak_wood");
-        map.insert_mc("stripped_spruce_bark", "minecraft:stripped_spruce_wood");
-        map.insert_mc("stripped_birch_bark", "minecraft:stripped_birch_wood");
-        map.insert_mc("stripped_jungle_bark", "minecraft:stripped_jungle_wood");
-        map.insert_mc("stripped_acacia_bark", "minecraft:stripped_acacia_wood");
-        map.insert_mc("stripped_dark_oak_bark", "minecraft:stripped_dark_oak_wood");
-        map.insert_mc("mob_spawner", "minecraft:spawner");
-        map
-    })
+static_string_mc_map! {
+    RENAMED_BLOCKS, renamed_blocks, {
+        "portal" => "minecraft:nether_portal",
+        "oak_bark" => "minecraft:oak_wood",
+        "spruce_bark" => "minecraft:spruce_wood",
+        "birch_bark" => "minecraft:birch_wood",
+        "jungle_bark" => "minecraft:jungle_wood",
+        "acacia_bark" => "minecraft:acacia_wood",
+        "dark_oak_bark" => "minecraft:dark_oak_wood",
+        "stripped_oak_bark" => "minecraft:stripped_oak_wood",
+        "stripped_spruce_bark" => "minecraft:stripped_spruce_wood",
+        "stripped_birch_bark" => "minecraft:stripped_birch_wood",
+        "stripped_jungle_bark" => "minecraft:stripped_jungle_wood",
+        "stripped_acacia_bark" => "minecraft:stripped_acacia_wood",
+        "stripped_dark_oak_bark" => "minecraft:stripped_dark_oak_wood",
+        "mob_spawner" => "minecraft:spawner",
+    }
 }
 
-static RENAMED_ITEMS: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
+static RENAMED_ITEMS: OnceLock<McNamespaceMap<&'static JavaStr>> = OnceLock::new();
 
-fn renamed_items() -> &'static McNamespaceMap<'static, &'static str> {
+fn renamed_items() -> &'static McNamespaceMap<'static, &'static JavaStr> {
     RENAMED_ITEMS.get_or_init(|| {
         let mut map = McNamespaceMap::new();
         for (&k, &v) in renamed_blocks().iter_mc_to_value() {
             map.insert_mc(k, v);
         }
-        map.insert_mc("clownfish", "minecraft:tropical_fish");
-        map.insert_mc("chorus_fruit_popped", "minecraft:popped_chorus_fruit");
-        map.insert_mc("evocation_illager_spawn_egg", "minecraft:evoker_spawn_egg");
+        map.insert_mc("clownfish", JavaStr::from_str("minecraft:tropical_fish"));
+        map.insert_mc(
+            "chorus_fruit_popped",
+            JavaStr::from_str("minecraft:popped_chorus_fruit"),
+        );
+        map.insert_mc(
+            "evocation_illager_spawn_egg",
+            JavaStr::from_str("minecraft:evoker_spawn_egg"),
+        );
         map.insert_mc(
             "vindication_illager_spawn_egg",
-            "minecraft:vindicator_spawn_egg",
+            JavaStr::from_str("minecraft:vindicator_spawn_egg"),
         );
         map
     })
 }
 
-static RECIPES_UPDATES: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn recipes_updates() -> &'static McNamespaceMap<'static, &'static str> {
-    RECIPES_UPDATES.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("acacia_bark", "minecraft:acacia_wood");
-        map.insert_mc("birch_bark", "minecraft:birch_wood");
-        map.insert_mc("dark_oak_bark", "minecraft:dark_oak_wood");
-        map.insert_mc("jungle_bark", "minecraft:jungle_wood");
-        map.insert_mc("oak_bark", "minecraft:oak_wood");
-        map.insert_mc("spruce_bark", "minecraft:spruce_wood");
-        map
-    })
+static_string_mc_map! {
+    RECIPES_UPDATES, recipes_updates, {
+        "acacia_bark" => "minecraft:acacia_wood",
+        "birch_bark" => "minecraft:birch_wood",
+        "dark_oak_bark" => "minecraft:dark_oak_wood",
+        "jungle_bark" => "minecraft:jungle_wood",
+        "oak_bark" => "minecraft:oak_wood",
+        "spruce_bark" => "minecraft:spruce_wood",
+    }
 }
 
 pub(crate) fn register() {
@@ -98,15 +93,15 @@ pub(crate) fn register() {
     rename_entity(VERSION, |name| {
         if let Some(path) = name.strip_prefix("minecraft:bred_") {
             renamed_entity_ids()
-                .get(&format!("minecraft:{}", path)[..])
+                .get(&format_java!("minecraft:{}", path)[..])
                 .map(|&str| str.to_owned())
         } else {
             renamed_entity_ids().get(name).map(|&str| str.to_owned())
         }
     });
-    rename_stat(VERSION, |name| match name {
-        "minecraft:swim_one_cm" => Some("minecraft:walk_on_water_one_cm".to_owned()),
-        "minecraft:dive_one_cm" => Some("minecraft:walk_under_water_one_cm".to_owned()),
+    rename_stat(VERSION, |name| match name.as_bytes() {
+        b"minecraft:swim_one_cm" => Some(JavaString::from("minecraft:walk_on_water_one_cm")),
+        b"minecraft:dive_one_cm" => Some(JavaString::from("minecraft:walk_under_water_one_cm")),
         _ => None,
     });
 

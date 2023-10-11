@@ -1,5 +1,5 @@
 use crate::types;
-use valence_nbt::compound;
+use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 1918;
@@ -23,7 +23,7 @@ pub(crate) fn register() {
                     .and_then(|obj| obj.as_i32())
                     .unwrap_or(1);
 
-                let villager_data = compound! {
+                let villager_data = jcompound! {
                     "type" => "minecraft:plains",
                     "profession" => get_profession_string(profession, career),
                     "level" => career_level,

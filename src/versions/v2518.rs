@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 2518;
 
@@ -9,10 +8,10 @@ pub(crate) fn register() {
         "minecraft:jigsaw",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::String(typ)) = data.remove("attachment_type") else {
+            let Some(JValue::String(typ)) = data.remove("attachment_type") else {
                 return;
             };
-            let Some(Value::String(pool)) = data.remove("target_pool") else {
+            let Some(JValue::String(pool)) = data.remove("target_pool") else {
                 return;
             };
             data.insert("name", typ.clone());
@@ -24,18 +23,18 @@ pub(crate) fn register() {
     types::block_state_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            if matches!(data.get("Name"), Some(Value::String(str)) if str == "minecraft:jigsaw") {
-                if let Some(Value::Compound(properties)) = data.get_mut("Properties") {
+            if matches!(data.get("Name"), Some(JValue::String(str)) if str == "minecraft:jigsaw") {
+                if let Some(JValue::Compound(properties)) = data.get_mut("Properties") {
                     let facing = match properties.remove("facing") {
-                        Some(Value::String(facing)) => Some(facing),
+                        Some(JValue::String(facing)) => Some(facing),
                         _ => None,
                     };
-                    let facing = match facing.as_deref() {
-                        Some("down") => "down_south",
-                        Some("up") => "up_north",
-                        Some("south") => "south_up",
-                        Some("west") => "west_up",
-                        Some("east") => "east_up",
+                    let facing = match facing.as_ref().map(|str| str.as_bytes()) {
+                        Some(b"down") => "down_south",
+                        Some(b"up") => "up_north",
+                        Some(b"south") => "south_up",
+                        Some(b"west") => "west_up",
+                        Some(b"east") => "east_up",
                         _ => "north_up",
                     };
                     properties.insert("orientation", facing);

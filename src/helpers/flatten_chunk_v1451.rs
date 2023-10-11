@@ -7,11 +7,11 @@ use crate::helpers::{block_flattening_v1450, item_name_v102};
 use crate::{block_state, block_state_owned, make_bit_arr};
 use ahash::{AHashMap, AHashSet};
 use bitvec::prelude::*;
+use java_string::{JavaStr, JavaString};
 use log::{error, warn};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use valence_nbt::{Compound, List, Value};
-use world_transmuter_engine::{DataVersion, MapDataConverterFunc};
+use world_transmuter_engine::{DataVersion, JCompound, JList, JValue, MapDataConverterFunc};
 
 const VIRTUAL_SET: BitArray<[usize; bitset_size(256)]> = make_bit_arr![256;
     54, 146, 25, 26, 51,
@@ -73,11 +73,14 @@ block_states! {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct FlowerPotState<'a> {
     data: u8,
-    block_name: &'a str,
+    block_name: &'a JavaStr,
 }
 impl<'a> FlowerPotState<'a> {
-    fn new(block_name: &'a str, data: u8) -> Self {
-        Self { block_name, data }
+    fn new(block_name: &'a (impl AsRef<JavaStr> + ?Sized), data: u8) -> Self {
+        Self {
+            block_name: block_name.as_ref(),
+            data,
+        }
     }
 }
 static FLOWER_POT_MAP: OnceLock<BTreeMap<FlowerPotState<'static>, BlockState<'static>>> =
@@ -180,10 +183,10 @@ fn flower_pot_map() -> &'static BTreeMap<FlowerPotState<'static>, BlockState<'st
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct SkullState {
     id: u8,
-    dir_or_rotation: String,
+    dir_or_rotation: JavaString,
 }
 impl SkullState {
-    fn new(id: u8, dir_or_rotation: impl Into<String>) -> Self {
+    fn new(id: u8, dir_or_rotation: impl Into<JavaString>) -> Self {
         Self {
             id,
             dir_or_rotation: dir_or_rotation.into(),
@@ -214,27 +217,27 @@ fn skull_map() -> &'static BTreeMap<SkullState, BlockStateOwned> {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct DoorState<'a> {
-    facing: &'a str,
-    half: &'a str,
-    hinge: &'a str,
+    facing: &'a JavaStr,
+    half: &'a JavaStr,
+    hinge: &'a JavaStr,
     open: bool,
     powered: bool,
-    id: String,
+    id: JavaString,
 }
 impl<'a> DoorState<'a> {
     fn new(
-        id: impl Into<String>,
-        facing: &'a str,
-        half: &'a str,
-        hinge: &'a str,
+        id: impl Into<JavaString>,
+        facing: &'a (impl AsRef<JavaStr> + ?Sized),
+        half: &'a (impl AsRef<JavaStr> + ?Sized),
+        hinge: &'a (impl AsRef<JavaStr> + ?Sized),
         open: bool,
         powered: bool,
     ) -> Self {
         Self {
             id: id.into(),
-            facing,
-            half,
-            hinge,
+            facing: facing.as_ref(),
+            half: half.as_ref(),
+            hinge: hinge.as_ref(),
             open,
             powered,
         }
@@ -367,17 +370,22 @@ static DYE_COLOR_MAP: [&str; 16] = [
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct BedState<'a> {
-    facing: &'a str,
+    facing: &'a JavaStr,
     occupied: bool,
-    part: &'a str,
+    part: &'a JavaStr,
     color: u8,
 }
 impl<'a> BedState<'a> {
-    fn new(facing: &'a str, occupied: bool, part: &'a str, color: u8) -> Self {
+    fn new(
+        facing: &'a (impl AsRef<JavaStr> + ?Sized),
+        occupied: bool,
+        part: &'a (impl AsRef<JavaStr> + ?Sized),
+        color: u8,
+    ) -> Self {
         Self {
-            facing,
+            facing: facing.as_ref(),
             occupied,
-            part,
+            part: part.as_ref(),
             color,
         }
     }
@@ -404,13 +412,13 @@ fn bed_block_map() -> &'static BTreeMap<BedState<'static>, BlockStateOwned> {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct BannerState<'a> {
-    rotation_or_facing: &'a str,
+    rotation_or_facing: &'a JavaStr,
     color: u8,
 }
 impl<'a> BannerState<'a> {
-    fn new(rotation_or_facing: &'a str, color: u8) -> Self {
+    fn new(rotation_or_facing: &'a (impl AsRef<JavaStr> + ?Sized), color: u8) -> Self {
         Self {
-            rotation_or_facing,
+            rotation_or_facing: rotation_or_facing.as_ref(),
             color,
         }
     }
@@ -455,8 +463,8 @@ pub(crate) fn get_side_mask(no_left: bool, no_right: bool, no_back: bool, no_for
 pub(crate) struct ConverterFlattenChunk;
 
 impl MapDataConverterFunc for ConverterFlattenChunk {
-    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
-        if let Some(Value::Compound(level)) = data.get_mut("Level") {
+    fn convert(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
+        if let Some(JValue::Compound(level)) = data.get_mut("Level") {
             UpgradeChunk::upgrade(level);
         }
     }
@@ -467,14 +475,14 @@ struct UpgradeChunk<'a> {
     sections: [Option<Section>; 16],
     block_x: i32,
     block_z: i32,
-    tile_entities: AHashMap<LocalPos, &'a Compound>,
+    tile_entities: AHashMap<LocalPos, &'a JCompound>,
     // in the case of skulls, this doesn't fully remove it, just removes some properties
     tile_entities_to_remove: AHashSet<LocalPos>,
     converted_from_alpha_format: bool,
 }
 
 impl<'a> UpgradeChunk<'a> {
-    fn upgrade(level: &mut Compound) {
+    fn upgrade(level: &mut JCompound) {
         let mut upgrade_chunk = UpgradeChunk::from_nbt(level);
         upgrade_chunk.do_upgrade();
         let UpgradeChunk {
@@ -486,11 +494,11 @@ impl<'a> UpgradeChunk<'a> {
         Self::write_back_to_level(level, sides, sections, tile_entities_to_remove);
     }
 
-    fn from_nbt(level: &'a Compound) -> Self {
+    fn from_nbt(level: &'a JCompound) -> Self {
         let block_x = level.get("xPos").and_then(|v| v.as_i32()).unwrap_or(0) << 4;
         let block_z = level.get("zPos").and_then(|v| v.as_i32()).unwrap_or(0) << 4;
         let mut tile_entities_map = AHashMap::new();
-        if let Some(Value::List(List::Compound(tile_entities))) = level.get("TileEntities") {
+        if let Some(JValue::List(JList::Compound(tile_entities))) = level.get("TileEntities") {
             for tile_entity in tile_entities {
                 let x = ((tile_entity.get("x").and_then(|v| v.as_i32()).unwrap_or(0) - block_x)
                     & 15) as u8;
@@ -513,7 +521,7 @@ impl<'a> UpgradeChunk<'a> {
         const NONE: Option<Section> = None;
         let mut sections_arr = [NONE; 16];
         let mut sides = 0;
-        if let Some(Value::List(List::Compound(sections))) = level.get("Sections") {
+        if let Some(JValue::List(JList::Compound(sections))) = level.get("Sections") {
             for section in sections {
                 let section = Section::from_nbt(section, &mut sides);
                 let section_y = section.y;
@@ -598,9 +606,9 @@ impl<'a> UpgradeChunk<'a> {
                                 if color != 14 && (0..16).contains(&color) {
                                     let state = self.get_block(pos);
                                     if let (Some(facing), Some(occupied), Some(part)) = (
-                                        state.properties.get("facing"),
-                                        state.properties.get("occupied").and_then(|str| str.parse::<bool>().ok()),
-                                        state.properties.get("part")
+                                        state.get_property("facing"),
+                                        state.get_property("occupied").and_then(|str| str.parse::<bool>().ok()),
+                                        state.get_property("part")
                                     ) {
                                         if let Some(state) = bed_block_map().get(&BedState::new(facing, occupied, part, color as u8)) {
                                             self.set_block(pos, state.clone());
@@ -627,7 +635,7 @@ impl<'a> UpgradeChunk<'a> {
                             if !state.name.ends_with("_door") {
                                 continue;
                             }
-                            if state.properties.get("half").map(|str| str == "lower") != Some(true) {
+                            if state.get_property("half").map(|str| str == "lower") != Some(true) {
                                 continue;
                             }
 
@@ -638,16 +646,16 @@ impl<'a> UpgradeChunk<'a> {
                             }
 
                             if let (Some(facing), Some(open), Some(hinge), Some(powered)) = (
-                                state.properties.get("facing"),
-                                state.properties.get("open").and_then(|str| str.parse::<bool>().ok()),
-                                if self.converted_from_alpha_format { Some("left") } else { state_above.properties.get("hinge").map(|str| str.as_str()) },
-                                if self.converted_from_alpha_format { Some(false) } else { state_above.properties.get("powered").and_then(|str| str.parse::<bool>().ok()) }
+                                state.get_property("facing"),
+                                state.get_property("open").and_then(|str| str.parse::<bool>().ok()),
+                                if self.converted_from_alpha_format { Some(JavaStr::from_str("left")) } else { state_above.get_property("hinge") },
+                                if self.converted_from_alpha_format { Some(false) } else { state_above.get_property("powered").and_then(|str| str.parse::<bool>().ok()) }
                             ) {
                                 let name = state.name.clone();
                                 let lower_state = door_map().get(&DoorState::new(name.clone(), facing, "lower", hinge, open, powered))
                                     .unwrap_or_else(|| door_map().get(&DoorState::new("minecraft:oak_door", "north", "lower", "left", false, false)).unwrap())
                                     .clone();
-                                let upper_state = door_map().get(&DoorState::new(name.clone(), &facing.clone(), "upper", hinge, open, powered))
+                                let upper_state = door_map().get(&DoorState::new(name.clone(), facing, "upper", hinge, open, powered))
                                     .unwrap_or_else(|| door_map().get(&DoorState::new("minecraft:oak_door", "north", "upper", "left", false, false)).unwrap())
                                     .clone();
                                 self.set_block(pos, lower_state);
@@ -697,11 +705,11 @@ impl<'a> UpgradeChunk<'a> {
                                     // the item name converter should have migrated to number, however no legacy converter
                                     // ever did this. so we can get data with versions above v102 (old worlds, converted prior to DFU)
                                     // that didn't convert. so just do it here.
-                                    item_name_v102::get_name_from_id(id).unwrap_or("")
+                                    item_name_v102::get_name_from_id(id).unwrap_or(JavaStr::from_str(""))
                                 } else {
                                     match tile.get("Item") {
-                                        Some(Value::String(str)) => &str[..],
-                                        _ => "",
+                                        Some(JValue::String(str)) => &str[..],
+                                        _ => JavaStr::from_str(""),
                                     }
                                 };
                                 let data = tile.get("Data").and_then(|v| v.as_i8()).unwrap_or(0) as u8;
@@ -718,7 +726,7 @@ impl<'a> UpgradeChunk<'a> {
                             let pos = pos.with_section_y(section_y);
                             // in the case of skulls, this doesn't fully remove it, just removes some properties
                             if let Some(tile) = self.remove_tile_entity(pos) {
-                                let facing = self.get_block(pos).properties.get("facing").map(|str| str.as_str()).unwrap_or("north");
+                                let facing = self.get_block(pos).get_property("facing").unwrap_or(JavaStr::from_str("north"));
                                 let skull_type = tile.get("SkullType").and_then(|v| v.as_i8()).unwrap_or(0) as u8;
                                 let state = if facing == "up" || facing == "down" {
                                     SkullState::new(skull_type, tile.get("Rot").and_then(|v| v.as_i64()).unwrap_or(0).to_string())
@@ -739,28 +747,28 @@ impl<'a> UpgradeChunk<'a> {
                             if pos.y() == 0 {
                                 continue;
                             }
-                            if self.get_block(pos).properties.get("half").map(|str| str == "upper") != Some(true) {
+                            if self.get_block(pos).get_property("half").map(|str| str == "upper") != Some(true) {
                                 continue;
                             }
 
                             let state_below = self.get_block(pos.down());
-                            match state_below.name.as_str() {
-                                "minecraft:sunflower" => {
+                            match state_below.name.as_bytes() {
+                                b"minecraft:sunflower" => {
                                     self.set_block(pos, upper_sunflower().to_owned());
                                 },
-                                "minecraft:lilac" => {
+                                b"minecraft:lilac" => {
                                     self.set_block(pos, upper_lilac().to_owned());
                                 },
-                                "minecraft:tall_grass" => {
+                                b"minecraft:tall_grass" => {
                                     self.set_block(pos, upper_tall_grass().to_owned());
                                 },
-                                "minecraft:large_fern" => {
+                                b"minecraft:large_fern" => {
                                     self.set_block(pos, upper_large_fern().to_owned());
                                 },
-                                "minecraft:rose_bush" => {
+                                b"minecraft:rose_bush" => {
                                     self.set_block(pos, upper_rose_bush().to_owned());
                                 },
-                                "minecraft:peony" => {
+                                b"minecraft:peony" => {
                                     self.set_block(pos, upper_peony().to_owned());
                                 }
                                 _ => {}
@@ -775,7 +783,7 @@ impl<'a> UpgradeChunk<'a> {
                                 let base = tile.get("Base").and_then(|v| v.as_i32()).unwrap_or(0);
                                 if base != 15 && (0..16).contains(&base) {
                                     let state = self.get_block(pos);
-                                    if let Some(rotation_or_facing) = state.properties.get(if state_id == 176 { "rotation" } else { "facing" }) {
+                                    if let Some(rotation_or_facing) = state.get_property(if state_id == 176 { "rotation" } else { "facing" }) {
                                         if let Some(update) = banner_block_map().get(&BannerState::new(rotation_or_facing, base as u8)) {
                                             self.set_block(pos, update.clone());
                                         }
@@ -791,14 +799,14 @@ impl<'a> UpgradeChunk<'a> {
     }
 
     fn write_back_to_level(
-        level: &mut Compound,
+        level: &mut JCompound,
         sides: u8,
         sections: [Option<Section>; 16],
         tile_entities_to_remove: AHashSet<LocalPos>,
     ) {
         // apply tile entity removals
         let mut remove_tile_entities = false;
-        if let Some(Value::List(List::Compound(tile_entities))) = level.get_mut("TileEntities") {
+        if let Some(JValue::List(JList::Compound(tile_entities))) = level.get_mut("TileEntities") {
             tile_entities.retain_mut(|te| {
                 let pos = LocalPos::new(
                     te.get("x").and_then(|v| v.as_i8()).unwrap_or(0) as u8,
@@ -807,7 +815,7 @@ impl<'a> UpgradeChunk<'a> {
                 );
                 if tile_entities_to_remove.contains(&pos) {
                     match te.get("id") {
-                        Some(Value::String(id)) if id == "minecraft:skull" => {
+                        Some(JValue::String(id)) if id == "minecraft:skull" => {
                             te.remove("SkullType");
                             te.remove("facing");
                             te.remove("Rot");
@@ -825,7 +833,7 @@ impl<'a> UpgradeChunk<'a> {
         }
 
         // rewrite sections and add upgrade data
-        let mut indices = Compound::new();
+        let mut indices = JCompound::new();
         let mut sections_list = Vec::new();
         for section in sections.into_iter().flatten() {
             indices.insert(
@@ -836,20 +844,20 @@ impl<'a> UpgradeChunk<'a> {
             );
 
             // find the existing section with the y coordinate, and write to it
-            if let Some(Value::List(List::Compound(sections))) = level.get_mut("Section") {
+            if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Section") {
                 if let Some(existing_section) = sections
                     .iter_mut()
                     .find(|sec| sec.get("Y").and_then(|v| v.as_i32()) == Some(section.y))
                 {
                     section.into_nbt(existing_section);
-                    sections_list.push(std::mem::replace(existing_section, Compound::new()));
+                    sections_list.push(std::mem::replace(existing_section, JCompound::new()));
                 }
             }
         }
 
-        level.insert("Sections", List::Compound(sections_list));
+        level.insert("Sections", JList::Compound(sections_list));
 
-        let mut upgrade_data = Compound::new();
+        let mut upgrade_data = JCompound::new();
         upgrade_data.insert("Sides", sides as i8);
         upgrade_data.insert("Indices", indices);
 
@@ -902,7 +910,7 @@ impl<'a> UpgradeChunk<'a> {
     }
 
     // in the case of skulls, this doesn't fully remove it, just removes some properties
-    fn remove_tile_entity(&mut self, pos: LocalPos) -> Option<&'a Compound> {
+    fn remove_tile_entity(&mut self, pos: LocalPos) -> Option<&'a JCompound> {
         let te = self.tile_entities.get(&pos).copied();
         if te.is_some() {
             self.tile_entities_to_remove.insert(pos);
@@ -921,7 +929,7 @@ struct Section {
 }
 
 impl Section {
-    fn from_nbt(nbt: &Compound, sides: &mut u8) -> Self {
+    fn from_nbt(nbt: &JCompound, sides: &mut u8) -> Self {
         let mut palette = AHashMap::new();
         let mut palette_states = Vec::new();
         let mut to_fix = AHashMap::<_, Vec<LocalPos>>::new();
@@ -930,7 +938,7 @@ impl Section {
         let buffer = nbt
             .get("Blocks")
             .and_then(|o| match o {
-                Value::ByteArray(arr) => Some(arr),
+                JValue::ByteArray(arr) => Some(arr),
                 _ => None,
             })
             .filter(|blocks| {
@@ -1007,7 +1015,7 @@ impl Section {
         }
     }
 
-    fn into_nbt(self, dest: &mut Compound) {
+    fn into_nbt(self, dest: &mut JCompound) {
         let buffer = match self.buffer {
             Some(buf) => buf,
             None => return,
@@ -1018,7 +1026,7 @@ impl Section {
             .into_iter()
             .map(|state| state.to_nbt())
             .collect();
-        dest.insert("Palette", List::Compound(palette));
+        dest.insert("Palette", JList::Compound(palette));
 
         let bit_size = ceil_log2(self.palette.len() as u32).max(4);
         let mut packed_ids = PackedBitStorage::new(bit_size, buffer.len());

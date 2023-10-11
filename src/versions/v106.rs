@@ -1,6 +1,8 @@
 use crate::types;
-use valence_nbt::{Compound, List, Value};
-use world_transmuter_engine::{convert_map_in_map, data_walker, map_data_converter_func};
+use java_string::JavaString;
+use world_transmuter_engine::{
+    convert_map_in_map, data_walker, map_data_converter_func, JCompound, JList, JValue,
+};
 
 const VERSION: u32 = 106;
 
@@ -13,13 +15,13 @@ pub(crate) fn register() {
             // used and applied spawner converters. In anycase, do not check the id - we are not guaranteed to be a tile
             // entity. We can be a regular old minecart spawner. And we know we are a spawner because this is only called from data walkers.
 
-            if let Some(Value::String(entity_id)) = data.remove("EntityId") {
-                let spawn_data = data.entry("SpawnData").or_insert_with(Compound::new);
-                if let Value::Compound(spawn_data) = spawn_data {
+            if let Some(JValue::String(entity_id)) = data.remove("EntityId") {
+                let spawn_data = data.entry("SpawnData").or_insert_with(JCompound::new);
+                if let JValue::Compound(spawn_data) = spawn_data {
                     spawn_data.insert(
                         "id",
                         if entity_id.is_empty() {
-                            "Pig".to_owned()
+                            JavaString::from("Pig")
                         } else {
                             entity_id
                         },
@@ -27,16 +29,16 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::List(List::Compound(spawn_potentials))) =
+            if let Some(JValue::List(JList::Compound(spawn_potentials))) =
                 data.get_mut("SpawnPotentials")
             {
                 for spawn in spawn_potentials {
                     // convert to standard entity format (it's not a coincidence a walker for spawners is only added
                     // in this version)
-                    if let Some(Value::String(typ)) = spawn.remove("Type") {
+                    if let Some(JValue::String(typ)) = spawn.remove("Type") {
                         let mut properties = match spawn.remove("Properties") {
-                            Some(Value::Compound(properties)) => properties,
-                            _ => Compound::new(),
+                            Some(JValue::Compound(properties)) => properties,
+                            _ => JCompound::new(),
                         };
                         properties.insert("id", typ);
                         spawn.insert("Entity", properties);
@@ -48,8 +50,8 @@ pub(crate) fn register() {
 
     types::untagged_spawner_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data: &mut Compound, from_version, to_version| {
-            if let Some(Value::List(List::Compound(spawn_potentials))) =
+        data_walker(move |data, from_version, to_version| {
+            if let Some(JValue::List(JList::Compound(spawn_potentials))) =
                 data.get_mut("SpawnPotentials")
             {
                 for spawn in spawn_potentials {

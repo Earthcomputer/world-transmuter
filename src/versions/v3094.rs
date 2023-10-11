@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 3094;
 
@@ -20,7 +19,7 @@ pub(crate) fn register() {
         "minecraft:goat_horn",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+            let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
                 return;
             };
             let sound_variant = tag

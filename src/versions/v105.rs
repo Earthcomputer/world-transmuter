@@ -1,7 +1,6 @@
 use crate::helpers::spawn_egg_name_v105;
 use crate::types;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 105;
 
@@ -14,14 +13,15 @@ pub(crate) fn register() {
             if damage != 0 {
                 data.insert("Damage", 0i16);
             }
-            let Value::Compound(tag) = data.entry("tag").or_insert_with(Compound::new) else {
+            let JValue::Compound(tag) = data.entry("tag").or_insert_with(JCompound::new) else {
                 return;
             };
-            let Value::Compound(entity_tag) = tag.entry("EntityTag").or_insert_with(Compound::new)
+            let JValue::Compound(entity_tag) =
+                tag.entry("EntityTag").or_insert_with(JCompound::new)
             else {
                 return;
             };
-            if !matches!(entity_tag.get("id"), Some(Value::String(_))) {
+            if !matches!(entity_tag.get("id"), Some(JValue::String(_))) {
                 if let Some(converted) =
                     spawn_egg_name_v105::get_spawn_name_from_id((damage & 255) as u8)
                 {

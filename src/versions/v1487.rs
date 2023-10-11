@@ -1,12 +1,15 @@
 use crate::helpers::rename::{rename_block, rename_item};
+use java_string::{JavaStr, JavaString};
 
 const VERSION: u32 = 1487;
 
 pub(crate) fn register() {
-    let renamer = |name: &str| match name {
-        "minecraft:prismarine_bricks_slab" => Some("minecraft:prismarine_brick_slab".to_owned()),
-        "minecraft:prismarine_bricks_stairs" => {
-            Some("minecraft:prismarine_brick_stairs".to_owned())
+    let renamer = |name: &JavaStr| match name.as_bytes() {
+        b"minecraft:prismarine_bricks_slab" => {
+            Some(JavaString::from("minecraft:prismarine_brick_slab"))
+        }
+        b"minecraft:prismarine_bricks_stairs" => {
+            Some(JavaString::from("minecraft:prismarine_brick_stairs"))
         }
         _ => None,
     };

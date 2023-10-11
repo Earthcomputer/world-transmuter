@@ -1,5 +1,6 @@
 use crate::helpers::rename::{rename_item, rename_tile_entity};
 use crate::types;
+use java_string::JavaString;
 use world_transmuter_engine::{map_data_converter_func, rename_key};
 
 const VERSION: u32 = 3438;
@@ -14,7 +15,7 @@ pub(crate) fn register() {
 
     rename_tile_entity(VERSION, |name| {
         if name == "minecraft:suspicious_sand" {
-            Some("minecraft:brushable_block".to_owned())
+            Some(JavaString::from("minecraft:brushable_block"))
         } else {
             None
         }
@@ -29,11 +30,15 @@ pub(crate) fn register() {
         }),
     );
 
-    rename_item(VERSION, |name| match name {
-        "minecraft:pottery_shard_archer" => Some("minecraft:archer_pottery_shard".to_owned()),
-        "minecraft:pottery_shard_prize" => Some("minecraft:prize_pottery_shard".to_owned()),
-        "minecraft:pottery_shard_arms_up" => Some("minecraft:arms_up_pottery_shard".to_owned()),
-        "minecraft:pottery_shard_skull" => Some("minecraft:skull_pottery_shard".to_owned()),
+    rename_item(VERSION, |name| match name.as_bytes() {
+        b"minecraft:pottery_shard_archer" => {
+            Some(JavaString::from("minecraft:archer_pottery_shard"))
+        }
+        b"minecraft:pottery_shard_prize" => Some(JavaString::from("minecraft:prize_pottery_shard")),
+        b"minecraft:pottery_shard_arms_up" => {
+            Some(JavaString::from("minecraft:arms_up_pottery_shard"))
+        }
+        b"minecraft:pottery_shard_skull" => Some(JavaString::from("minecraft:skull_pottery_shard")),
         _ => None,
     });
 }

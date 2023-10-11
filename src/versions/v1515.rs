@@ -1,21 +1,16 @@
-use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_block;
-use std::sync::OnceLock;
+use crate::static_string_mc_map;
 
 const VERSION: u32 = 1515;
 
-static RENAMED_BLOCK_IDS: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn renamed_block_ids() -> &'static McNamespaceMap<'static, &'static str> {
-    RENAMED_BLOCK_IDS.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("tube_coral_fan", "minecraft:tube_coral_wall_fan");
-        map.insert_mc("brain_coral_fan", "minecraft:brain_coral_wall_fan");
-        map.insert_mc("bubble_coral_fan", "minecraft:bubble_coral_wall_fan");
-        map.insert_mc("fire_coral_fan", "minecraft:fire_coral_wall_fan");
-        map.insert_mc("horn_coral_fan", "minecraft:horn_coral_wall_fan");
-        map
-    })
+static_string_mc_map! {
+    RENAMED_BLOCK_IDS, renamed_block_ids, {
+        "tube_coral_fan" => "minecraft:tube_coral_wall_fan",
+        "brain_coral_fan" => "minecraft:brain_coral_wall_fan",
+        "bubble_coral_fan" => "minecraft:bubble_coral_wall_fan",
+        "fire_coral_fan" => "minecraft:fire_coral_wall_fan",
+        "horn_coral_fan" => "minecraft:horn_coral_wall_fan",
+    }
 }
 
 pub(crate) fn register() {

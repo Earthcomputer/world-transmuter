@@ -1,20 +1,20 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::types;
+use java_string::JavaStr;
 use log::error;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use valence_nbt::{Compound, List, Value};
-use world_transmuter_engine::{get_mut_multi, map_data_converter_func};
+use world_transmuter_engine::{get_mut_multi, map_data_converter_func, JCompound, JList, JValue};
 
 const VERSION: u32 = 2970;
 
-static CONVERSION_MAP: OnceLock<BTreeMap<&str, BiomeRemap>> = OnceLock::new();
+static CONVERSION_MAP: OnceLock<BTreeMap<&JavaStr, BiomeRemap>> = OnceLock::new();
 
-fn conversion_map() -> &'static BTreeMap<&'static str, BiomeRemap> {
+fn conversion_map() -> &'static BTreeMap<&'static JavaStr, BiomeRemap> {
     CONVERSION_MAP.get_or_init(|| {
         let mut map = BTreeMap::new();
         map.insert(
-            "mineshaft",
+            JavaStr::from_str("mineshaft"),
             BiomeRemap::create(
                 &[(
                     &["badlands", "eroded_badlands", "wooded_badlands"],
@@ -24,14 +24,14 @@ fn conversion_map() -> &'static BTreeMap<&'static str, BiomeRemap> {
             ),
         );
         map.insert(
-            "shipwreck",
+            JavaStr::from_str("shipwreck"),
             BiomeRemap::create(
                 &[(&["beach", "snowy_beach"], "minecraft:shipwreck_beached")],
                 "minecraft:shipwreck",
             ),
         );
         map.insert(
-            "ocean_ruin",
+            JavaStr::from_str("ocean_ruin"),
             BiomeRemap::create(
                 &[(
                     &["warm_ocean", "lukewarm_ocean", "deep_lukewarm_ocean"],
@@ -41,7 +41,7 @@ fn conversion_map() -> &'static BTreeMap<&'static str, BiomeRemap> {
             ),
         );
         map.insert(
-            "village",
+            JavaStr::from_str("village"),
             BiomeRemap::create(
                 &[
                     (&["desert"], "minecraft:village_desert"),
@@ -53,7 +53,7 @@ fn conversion_map() -> &'static BTreeMap<&'static str, BiomeRemap> {
             ),
         );
         map.insert(
-            "ruined_portal", // Fix MC-248814, ruined_portal_standard->ruined_portal
+            JavaStr::from_str("ruined_portal"), // Fix MC-248814, ruined_portal_standard->ruined_portal
             BiomeRemap::create(
                 &[
                     (&["desert"], "minecraft:ruined_portal_desert"),
@@ -99,37 +99,55 @@ fn conversion_map() -> &'static BTreeMap<&'static str, BiomeRemap> {
             ),
         );
         map.insert(
-            "pillager_outpost",
+            JavaStr::from_str("pillager_outpost"),
             BiomeRemap::create(&[], "minecraft:pillager_outpost"),
         );
-        map.insert("mansion", BiomeRemap::create(&[], "minecraft:mansion"));
         map.insert(
-            "jungle_pyramid",
+            JavaStr::from_str("mansion"),
+            BiomeRemap::create(&[], "minecraft:mansion"),
+        );
+        map.insert(
+            JavaStr::from_str("jungle_pyramid"),
             BiomeRemap::create(&[], "minecraft:jungle_pyramid"),
         );
         map.insert(
-            "desert_pyramid",
+            JavaStr::from_str("desert_pyramid"),
             BiomeRemap::create(&[], "minecraft:desert_pyramid"),
         );
-        map.insert("igloo", BiomeRemap::create(&[], "minecraft:igloo"));
-        map.insert("swamp_hut", BiomeRemap::create(&[], "minecraft:swamp_hut"));
         map.insert(
-            "stronghold",
+            JavaStr::from_str("igloo"),
+            BiomeRemap::create(&[], "minecraft:igloo"),
+        );
+        map.insert(
+            JavaStr::from_str("swamp_hut"),
+            BiomeRemap::create(&[], "minecraft:swamp_hut"),
+        );
+        map.insert(
+            JavaStr::from_str("stronghold"),
             BiomeRemap::create(&[], "minecraft:stronghold"),
         );
-        map.insert("monument", BiomeRemap::create(&[], "minecraft:monument"));
-        map.insert("fortress", BiomeRemap::create(&[], "minecraft:fortress"));
-        map.insert("endcity", BiomeRemap::create(&[], "minecraft:end_city"));
         map.insert(
-            "buried_treasure",
+            JavaStr::from_str("monument"),
+            BiomeRemap::create(&[], "minecraft:monument"),
+        );
+        map.insert(
+            JavaStr::from_str("fortress"),
+            BiomeRemap::create(&[], "minecraft:fortress"),
+        );
+        map.insert(
+            JavaStr::from_str("endcity"),
+            BiomeRemap::create(&[], "minecraft:end_city"),
+        );
+        map.insert(
+            JavaStr::from_str("buried_treasure"),
             BiomeRemap::create(&[], "minecraft:buried_treasure"),
         );
         map.insert(
-            "nether_fossil",
+            JavaStr::from_str("nether_fossil"),
             BiomeRemap::create(&[], "minecraft:nether_fossil"),
         );
         map.insert(
-            "bastion_remnant",
+            JavaStr::from_str("bastion_remnant"),
             BiomeRemap::create(&[], "minecraft:bastion_remnant"),
         );
         map
@@ -140,7 +158,7 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let [Some(Value::Compound(structures)), sections] =
+            let [Some(JValue::Compound(structures)), sections] =
                 get_mut_multi(data, ["structures", "sections"])
             else {
                 return;
@@ -151,15 +169,15 @@ pub(crate) fn register() {
 
             let biome_counts = count_biomes(sections.map(|sections| &*sections));
 
-            if let Some(Value::Compound(starts)) = structures.remove("starts") {
-                let mut new_starts = Compound::new();
+            if let Some(JValue::Compound(starts)) = structures.remove("starts") {
+                let mut new_starts = JCompound::new();
 
                 for (key, value) in starts {
-                    let Value::Compound(mut value) = value else {
+                    let JValue::Compound(mut value) = value else {
                         continue;
                     };
                     match value.get("id") {
-                        Some(Value::String(id)) => {
+                        Some(JValue::String(id)) => {
                             if id == "INVALID" {
                                 continue;
                             }
@@ -178,11 +196,11 @@ pub(crate) fn register() {
             }
 
             // This TRULY is a guess, no idea what biomes the referent has.
-            if let Some(Value::Compound(references)) = structures.remove("References") {
-                let mut new_references = Compound::new();
+            if let Some(JValue::Compound(references)) = structures.remove("References") {
+                let mut new_references = JCompound::new();
 
                 for (key, value) in references {
-                    let Value::LongArray(value) = value else {
+                    let JValue::LongArray(value) = value else {
                         continue;
                     };
                     if value.is_empty() {
@@ -201,18 +219,18 @@ pub(crate) fn register() {
     );
 }
 
-fn count_biomes(sections: Option<&Value>) -> BTreeMap<&str, u32> {
+fn count_biomes(sections: Option<&JValue>) -> BTreeMap<&JavaStr, u32> {
     let mut ret = BTreeMap::new();
 
-    let Some(Value::List(List::Compound(sections))) = sections else {
+    let Some(JValue::List(JList::Compound(sections))) = sections else {
         return ret;
     };
 
     for section in sections {
-        let Some(Value::Compound(biomes)) = section.get("biomes") else {
+        let Some(JValue::Compound(biomes)) = section.get("biomes") else {
             continue;
         };
-        let Some(Value::List(List::String(palette))) = biomes.get("palette") else {
+        let Some(JValue::List(JList::String(palette))) = biomes.get("palette") else {
             continue;
         };
         for biome in palette {
@@ -223,7 +241,10 @@ fn count_biomes(sections: Option<&Value>) -> BTreeMap<&str, u32> {
     ret
 }
 
-fn get_structure_converted(id: &str, biome_count: &BTreeMap<&str, u32>) -> Option<&'static str> {
+fn get_structure_converted(
+    id: &JavaStr,
+    biome_count: &BTreeMap<&JavaStr, u32>,
+) -> Option<&'static JavaStr> {
     let id = id.to_lowercase();
     let Some(remap) = conversion_map().get(&id[..]) else {
         error!("Unknown structure {}", id);
@@ -256,8 +277,8 @@ fn get_structure_converted(id: &str, biome_count: &BTreeMap<&str, u32>) -> Optio
 }
 
 struct BiomeRemap {
-    biome_to_new_structure: McNamespaceMap<'static, &'static str>,
-    dfl: &'static str,
+    biome_to_new_structure: McNamespaceMap<'static, &'static JavaStr>,
+    dfl: &'static JavaStr,
 }
 
 impl BiomeRemap {
@@ -267,7 +288,7 @@ impl BiomeRemap {
         for (biomes, new_biome_structure) in biome_map {
             for biome in *biomes {
                 if let Some(old_value) =
-                    biome_to_new_structure.insert_mc(biome, *new_biome_structure)
+                    biome_to_new_structure.insert_mc(*biome, JavaStr::from_str(new_biome_structure))
                 {
                     error!(
                         "Duplicate biome remap: {} -> {}, but already mapped to {}",
@@ -279,7 +300,7 @@ impl BiomeRemap {
 
         BiomeRemap {
             biome_to_new_structure,
-            dfl: new_id,
+            dfl: JavaStr::from_str(new_id),
         }
     }
 }

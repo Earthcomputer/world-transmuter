@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 2202;
 
@@ -8,10 +7,10 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
-            let Some(Value::IntArray(biomes)) = level.get_mut("Biomes") else {
+            let Some(JValue::IntArray(biomes)) = level.get_mut("Biomes") else {
                 return;
             };
             if biomes.len() == 256 {

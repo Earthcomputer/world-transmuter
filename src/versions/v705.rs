@@ -1,98 +1,92 @@
 use crate::helpers::hooks::{DataHookEnforceNamespacedId, DataHookValueTypeEnforceNamespaced};
 use crate::helpers::rename::rename_entity;
-use crate::types;
-use std::collections::BTreeMap;
-use std::sync::OnceLock;
-use valence_nbt::{List, Value};
+use crate::{static_string_map, types};
+use java_string::JavaString;
 use world_transmuter_engine::{
     convert_map_in_map, data_walker, AbstractMapDataType, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, DataWalkerObjectTypePaths,
+    DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JList, JValue,
 };
 
 const VERSION: u32 = 705;
 
-static ENTITY_ID_UPDATE: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
-
-fn entity_id_update() -> &'static BTreeMap<&'static str, &'static str> {
-    ENTITY_ID_UPDATE.get_or_init(|| {
-        let mut map = BTreeMap::new();
-        map.insert("AreaEffectCloud", "minecraft:area_effect_cloud");
-        map.insert("ArmorStand", "minecraft:armor_stand");
-        map.insert("Arrow", "minecraft:arrow");
-        map.insert("Bat", "minecraft:bat");
-        map.insert("Blaze", "minecraft:blaze");
-        map.insert("Boat", "minecraft:boat");
-        map.insert("CaveSpider", "minecraft:cave_spider");
-        map.insert("Chicken", "minecraft:chicken");
-        map.insert("Cow", "minecraft:cow");
-        map.insert("Creeper", "minecraft:creeper");
-        map.insert("Donkey", "minecraft:donkey");
-        map.insert("DragonFireball", "minecraft:dragon_fireball");
-        map.insert("ElderGuardian", "minecraft:elder_guardian");
-        map.insert("EnderCrystal", "minecraft:ender_crystal");
-        map.insert("EnderDragon", "minecraft:ender_dragon");
-        map.insert("Enderman", "minecraft:enderman");
-        map.insert("Endermite", "minecraft:endermite");
-        map.insert("EyeOfEnderSignal", "minecraft:eye_of_ender_signal");
-        map.insert("FallingSand", "minecraft:falling_block");
-        map.insert("Fireball", "minecraft:fireball");
-        map.insert("FireworksRocketEntity", "minecraft:fireworks_rocket");
-        map.insert("Ghast", "minecraft:ghast");
-        map.insert("Giant", "minecraft:giant");
-        map.insert("Guardian", "minecraft:guardian");
-        map.insert("Horse", "minecraft:horse");
-        map.insert("Husk", "minecraft:husk");
-        map.insert("Item", "minecraft:item");
-        map.insert("ItemFrame", "minecraft:item_frame");
-        map.insert("LavaSlime", "minecraft:magma_cube");
-        map.insert("LeashKnot", "minecraft:leash_knot");
-        map.insert("MinecartChest", "minecraft:chest_minecart");
-        map.insert("MinecartCommandBlock", "minecraft:commandblock_minecart");
-        map.insert("MinecartFurnace", "minecraft:furnace_minecart");
-        map.insert("MinecartHopper", "minecraft:hopper_minecart");
-        map.insert("MinecartRideable", "minecraft:minecart");
-        map.insert("MinecartSpawner", "minecraft:spawner_minecart");
-        map.insert("MinecartTNT", "minecraft:tnt_minecart");
-        map.insert("Mule", "minecraft:mule");
-        map.insert("MushroomCow", "minecraft:mooshroom");
-        map.insert("Ozelot", "minecraft:ocelot");
-        map.insert("Painting", "minecraft:painting");
-        map.insert("Pig", "minecraft:pig");
-        map.insert("PigZombie", "minecraft:zombie_pigman");
-        map.insert("PolarBear", "minecraft:polar_bear");
-        map.insert("PrimedTnt", "minecraft:tnt");
-        map.insert("Rabbit", "minecraft:rabbit");
-        map.insert("Sheep", "minecraft:sheep");
-        map.insert("Shulker", "minecraft:shulker");
-        map.insert("ShulkerBullet", "minecraft:shulker_bullet");
-        map.insert("Silverfish", "minecraft:silverfish");
-        map.insert("Skeleton", "minecraft:skeleton");
-        map.insert("SkeletonHorse", "minecraft:skeleton_horse");
-        map.insert("Slime", "minecraft:slime");
-        map.insert("SmallFireball", "minecraft:small_fireball");
-        map.insert("SnowMan", "minecraft:snowman");
-        map.insert("Snowball", "minecraft:snowball");
-        map.insert("SpectralArrow", "minecraft:spectral_arrow");
-        map.insert("Spider", "minecraft:spider");
-        map.insert("Squid", "minecraft:squid");
-        map.insert("Stray", "minecraft:stray");
-        map.insert("ThrownEgg", "minecraft:egg");
-        map.insert("ThrownEnderpearl", "minecraft:ender_pearl");
-        map.insert("ThrownExpBottle", "minecraft:xp_bottle");
-        map.insert("ThrownPotion", "minecraft:potion");
-        map.insert("Villager", "minecraft:villager");
-        map.insert("VillagerGolem", "minecraft:villager_golem");
-        map.insert("Witch", "minecraft:witch");
-        map.insert("WitherBoss", "minecraft:wither");
-        map.insert("WitherSkeleton", "minecraft:wither_skeleton");
-        map.insert("WitherSkull", "minecraft:wither_skull");
-        map.insert("Wolf", "minecraft:wolf");
-        map.insert("XPOrb", "minecraft:xp_orb");
-        map.insert("Zombie", "minecraft:zombie");
-        map.insert("ZombieHorse", "minecraft:zombie_horse");
-        map.insert("ZombieVillager", "minecraft:zombie_villager");
-        map
-    })
+static_string_map! {
+    ENTITY_ID_UPDATE, entity_id_update, {
+        "AreaEffectCloud" => "minecraft:area_effect_cloud",
+        "ArmorStand" => "minecraft:armor_stand",
+        "Arrow" => "minecraft:arrow",
+        "Bat" => "minecraft:bat",
+        "Blaze" => "minecraft:blaze",
+        "Boat" => "minecraft:boat",
+        "CaveSpider" => "minecraft:cave_spider",
+        "Chicken" => "minecraft:chicken",
+        "Cow" => "minecraft:cow",
+        "Creeper" => "minecraft:creeper",
+        "Donkey" => "minecraft:donkey",
+        "DragonFireball" => "minecraft:dragon_fireball",
+        "ElderGuardian" => "minecraft:elder_guardian",
+        "EnderCrystal" => "minecraft:ender_crystal",
+        "EnderDragon" => "minecraft:ender_dragon",
+        "Enderman" => "minecraft:enderman",
+        "Endermite" => "minecraft:endermite",
+        "EyeOfEnderSignal" => "minecraft:eye_of_ender_signal",
+        "FallingSand" => "minecraft:falling_block",
+        "Fireball" => "minecraft:fireball",
+        "FireworksRocketEntity" => "minecraft:fireworks_rocket",
+        "Ghast" => "minecraft:ghast",
+        "Giant" => "minecraft:giant",
+        "Guardian" => "minecraft:guardian",
+        "Horse" => "minecraft:horse",
+        "Husk" => "minecraft:husk",
+        "Item" => "minecraft:item",
+        "ItemFrame" => "minecraft:item_frame",
+        "LavaSlime" => "minecraft:magma_cube",
+        "LeashKnot" => "minecraft:leash_knot",
+        "MinecartChest" => "minecraft:chest_minecart",
+        "MinecartCommandBlock" => "minecraft:commandblock_minecart",
+        "MinecartFurnace" => "minecraft:furnace_minecart",
+        "MinecartHopper" => "minecraft:hopper_minecart",
+        "MinecartRideable" => "minecraft:minecart",
+        "MinecartSpawner" => "minecraft:spawner_minecart",
+        "MinecartTNT" => "minecraft:tnt_minecart",
+        "Mule" => "minecraft:mule",
+        "MushroomCow" => "minecraft:mooshroom",
+        "Ozelot" => "minecraft:ocelot",
+        "Painting" => "minecraft:painting",
+        "Pig" => "minecraft:pig",
+        "PigZombie" => "minecraft:zombie_pigman",
+        "PolarBear" => "minecraft:polar_bear",
+        "PrimedTnt" => "minecraft:tnt",
+        "Rabbit" => "minecraft:rabbit",
+        "Sheep" => "minecraft:sheep",
+        "Shulker" => "minecraft:shulker",
+        "ShulkerBullet" => "minecraft:shulker_bullet",
+        "Silverfish" => "minecraft:silverfish",
+        "Skeleton" => "minecraft:skeleton",
+        "SkeletonHorse" => "minecraft:skeleton_horse",
+        "Slime" => "minecraft:slime",
+        "SmallFireball" => "minecraft:small_fireball",
+        "SnowMan" => "minecraft:snowman",
+        "Snowball" => "minecraft:snowball",
+        "SpectralArrow" => "minecraft:spectral_arrow",
+        "Spider" => "minecraft:spider",
+        "Squid" => "minecraft:squid",
+        "Stray" => "minecraft:stray",
+        "ThrownEgg" => "minecraft:egg",
+        "ThrownEnderpearl" => "minecraft:ender_pearl",
+        "ThrownExpBottle" => "minecraft:xp_bottle",
+        "ThrownPotion" => "minecraft:potion",
+        "Villager" => "minecraft:villager",
+        "VillagerGolem" => "minecraft:villager_golem",
+        "Witch" => "minecraft:witch",
+        "WitherBoss" => "minecraft:wither",
+        "WitherSkeleton" => "minecraft:wither_skeleton",
+        "WitherSkull" => "minecraft:wither_skull",
+        "Wolf" => "minecraft:wolf",
+        "XPOrb" => "minecraft:xp_orb",
+        "Zombie" => "minecraft:zombie",
+        "ZombieHorse" => "minecraft:zombie_horse",
+        "ZombieVillager" => "minecraft:zombie_villager",
+    }
 }
 
 pub(crate) fn register() {
@@ -298,8 +292,8 @@ pub(crate) fn register() {
         VERSION,
         "minecraft:villager",
         data_walker(move |data, from_version, to_version| {
-            if let Some(Value::Compound(offers)) = data.get_mut("Offers") {
-                if let Some(Value::List(List::Compound(recipes))) = offers.get_mut("Recipes") {
+            if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
+                if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
                     for recipe in recipes {
                         convert_map_in_map(
                             types::item_stack_ref(),
@@ -381,7 +375,7 @@ pub(crate) fn register() {
     types::entity_name_mut().add_structure_hook(VERSION, DataHookValueTypeEnforceNamespaced);
 }
 
-fn register_mob(id: impl Into<String>) {
+fn register_mob(id: impl Into<JavaString>) {
     types::entity_mut().add_walker_for_id(
         VERSION,
         id,
@@ -392,7 +386,7 @@ fn register_mob(id: impl Into<String>) {
     );
 }
 
-fn register_throwable_projectile(id: impl Into<String>) {
+fn register_throwable_projectile(id: impl Into<JavaString>) {
     types::entity_mut().add_walker_for_id(
         VERSION,
         id,

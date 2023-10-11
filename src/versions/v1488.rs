@@ -1,16 +1,15 @@
 use crate::helpers::rename::{rename_block, rename_item, simple_rename};
 use crate::types;
 use crate::versions::v1458;
-use valence_nbt::value::ValueRef;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use java_string::JavaString;
+use world_transmuter_engine::{map_data_converter_func, JValue, JValueRef};
 
 const VERSION: u32 = 1488;
 
 pub(crate) fn register() {
-    rename_block(VERSION, |name| match name {
-        "minecraft:kelp_top" => Some("minecraft:kelp".to_owned()),
-        "minecraft:kelp" => Some("minecraft:kelp_plant".to_owned()),
+    rename_block(VERSION, |name| match name.as_bytes() {
+        b"minecraft:kelp_top" => Some(JavaString::from("minecraft:kelp")),
+        b"minecraft:kelp" => Some(JavaString::from("minecraft:kelp_plant")),
         _ => None,
     });
     rename_item(
@@ -40,15 +39,15 @@ pub(crate) fn register() {
     types::structure_feature_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::List(children)) = data.get_mut("Children") else {
+            let Some(JValue::List(children)) = data.get_mut("Children") else {
                 return;
             };
 
-            let is_child_igloo = |child: ValueRef| {
-                let ValueRef::Compound(child) = child else {
+            let is_child_igloo = |child: JValueRef| {
+                let JValueRef::Compound(child) = child else {
                     return false;
                 };
-                let Some(Value::String(id)) = child.get("id") else {
+                let Some(JValue::String(id)) = child.get("id") else {
                     return false;
                 };
                 id == "Iglu"

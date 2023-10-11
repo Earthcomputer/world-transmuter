@@ -1,8 +1,8 @@
 use crate::helpers::item_name_v102;
 use crate::types;
+use java_string::JavaStr;
 use log::warn;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 102;
 
@@ -50,11 +50,11 @@ pub(crate) fn register() {
                 if damage != 0 {
                     data.insert("Damage", 0i16);
                 }
-                let tag = data.entry("tag").or_insert_with(Compound::new);
-                if let Value::Compound(tag) = tag {
-                    if !matches!(tag.get("Potion"), Some(Value::String(_))) {
+                let tag = data.entry("tag").or_insert_with(JCompound::new);
+                if let JValue::Compound(tag) = tag {
+                    if !matches!(tag.get("Potion"), Some(JValue::String(_))) {
                         let converted = item_name_v102::get_potion_name_from_id(damage as i32)
-                            .unwrap_or("minecraft:water");
+                            .unwrap_or(JavaStr::from_str("minecraft:water"));
                         tag.insert("Potion", converted);
                         if (damage & 16384) == 16384 {
                             data.insert("id", "minecraft:splash_potion");

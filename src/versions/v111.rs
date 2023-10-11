@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::Compound;
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JCompound};
 
 const VERSION: u32 = 111;
 
@@ -23,7 +22,7 @@ pub(crate) fn register() {
     );
 }
 
-fn convert_entity_rotation(data: &mut Compound, is_item_frame: bool) {
+fn convert_entity_rotation(data: &mut JCompound, is_item_frame: bool) {
     if data.get("Facing").map(|v| v.is_number()) == Some(true) {
         return;
     }

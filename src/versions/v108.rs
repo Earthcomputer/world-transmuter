@@ -1,7 +1,6 @@
 use crate::types;
 use log::warn;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 108;
 
@@ -10,9 +9,16 @@ pub(crate) fn register() {
     types::entity_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            if let Some(Value::String(uuid)) = data.remove("UUID") {
-                let uuid = match uuid::Uuid::parse_str(&uuid) {
-                    Ok(uuid) => uuid,
+            if let Some(JValue::String(uuid)) = data.remove("UUID") {
+                let uuid = match uuid.as_str().map(uuid::Uuid::parse_str) {
+                    Ok(Ok(uuid)) => uuid,
+                    Ok(Err(err)) => {
+                        warn!(
+                            "Failed to parse UUID for legacy entity (V108): {}: {}",
+                            uuid, err
+                        );
+                        return;
+                    }
                     Err(err) => {
                         warn!(
                             "Failed to parse UUID for legacy entity (V108): {}: {}",

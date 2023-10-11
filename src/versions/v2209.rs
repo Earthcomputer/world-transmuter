@@ -1,10 +1,11 @@
 use crate::helpers::rename::{rename_block, rename_item, rename_poi};
+use java_string::{JavaStr, JavaString};
 
 const VERSION: u32 = 2209;
 
-fn renamer(name: &str) -> Option<String> {
+fn renamer(name: &JavaStr) -> Option<JavaString> {
     if name == "minecraft:bee_hive" {
-        Some("minecraft:beehive".to_owned())
+        Some(JavaString::from("minecraft:beehive"))
     } else {
         None
     }

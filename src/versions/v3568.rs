@@ -1,9 +1,7 @@
-use crate::helpers::mc_namespace_map::McNamespaceSet;
-use crate::types;
-use std::sync::OnceLock;
-use valence_nbt::{Compound, List, Value};
+use crate::{static_string_mc_set, types};
 use world_transmuter_engine::{
-    get_mut_multi, map_data_converter_func, DataVersion, MapDataConverterFunc,
+    get_mut_multi, map_data_converter_func, DataVersion, JCompound, JList, JValue,
+    MapDataConverterFunc,
 };
 
 const VERSION: u32 = 3568;
@@ -48,20 +46,16 @@ fn get_effect_id(id: i32) -> Option<&'static str> {
     EFFECT_ID_MAP.get(id.wrapping_sub(1) as usize).copied()
 }
 
-static EFFECT_ITEMS: OnceLock<McNamespaceSet> = OnceLock::new();
-
-fn effect_items() -> &'static McNamespaceSet<'static> {
-    EFFECT_ITEMS.get_or_init(|| {
-        let mut set = McNamespaceSet::new();
-        set.insert_mc("potion");
-        set.insert_mc("splash_potion");
-        set.insert_mc("lingering_potion");
-        set.insert_mc("tipped_arrow");
-        set
-    })
+static_string_mc_set! {
+    EFFECT_ITEMS, effect_items, {
+        "potion",
+        "splash_potion",
+        "lingering_potion",
+        "tipped_arrow",
+    }
 }
 
-fn convert_legacy_effect(data: &mut Compound, legacy_path: &str, new_path: &str) {
+fn convert_legacy_effect(data: &mut JCompound, legacy_path: &str, new_path: &str) {
     let Some(id) = data.remove(legacy_path).and_then(|id| id.as_i32()) else {
         return;
     };
@@ -83,7 +77,7 @@ static MOB_EFFECT_RENAMES: [(&str, &str); 7] = [
     ("HiddenEffect", "hidden_effect"),
 ];
 
-fn convert_mob_effect(mob_effect: &mut Compound) {
+fn convert_mob_effect(mob_effect: &mut JCompound) {
     convert_legacy_effect(mob_effect, "Id", "id");
 
     for (old_key, new_key) in MOB_EFFECT_RENAMES {
@@ -92,13 +86,13 @@ fn convert_mob_effect(mob_effect: &mut Compound) {
         }
     }
 
-    if let Some(Value::Compound(hidden_effect)) = mob_effect.get_mut("hidden_effect") {
+    if let Some(JValue::Compound(hidden_effect)) = mob_effect.get_mut("hidden_effect") {
         convert_mob_effect(hidden_effect);
     }
 }
 
-fn convert_mob_effect_list(data: &mut Compound, old_path: &str, new_path: &str) {
-    let Some(Value::List(List::Compound(mut effects))) = data.remove(old_path) else {
+fn convert_mob_effect_list(data: &mut JCompound, old_path: &str, new_path: &str) {
+    let Some(JValue::List(JList::Compound(mut effects))) = data.remove(old_path) else {
         return;
     };
 
@@ -106,11 +100,11 @@ fn convert_mob_effect_list(data: &mut Compound, old_path: &str, new_path: &str) 
         convert_mob_effect(effect);
     }
 
-    data.insert(new_path, List::Compound(effects));
+    data.insert(new_path, JList::Compound(effects));
 }
 
-fn update_suspicious_stew(from: &mut Compound) -> Compound {
-    let mut into = Compound::new();
+fn update_suspicious_stew(from: &mut JCompound) -> JCompound {
+    let mut into = JCompound::new();
     if let Some(effect) = from
         .remove("EffectId")
         .and_then(|v| v.as_i32())
@@ -141,7 +135,7 @@ pub(crate) fn register() {
             let new_effect = update_suspicious_stew(data);
 
             if !new_effect.is_empty() {
-                data.insert("stew_effects", List::Compound(vec![new_effect]));
+                data.insert("stew_effects", JList::Compound(vec![new_effect]));
             }
         }),
     );
@@ -166,7 +160,7 @@ pub(crate) fn register() {
     types::item_stack_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let [Some(Value::String(id)), Some(Value::Compound(tag))] =
+            let [Some(JValue::String(id)), Some(JValue::Compound(tag))] =
                 get_mut_multi(data, ["id", "tag"])
             else {
                 return;
@@ -174,10 +168,10 @@ pub(crate) fn register() {
 
             if id == "minecraft:suspicious_stew" {
                 if let Some(effects) = tag.remove("Effects") {
-                    if let Value::List(List::Compound(effects)) = effects {
+                    if let JValue::List(JList::Compound(effects)) = effects {
                         tag.insert(
                             "effects",
-                            List::Compound(
+                            JList::Compound(
                                 effects
                                     .into_iter()
                                     .map(|mut effect| update_suspicious_stew(&mut effect))
@@ -200,7 +194,7 @@ pub(crate) fn register() {
 struct LivingEntityConverter;
 
 impl MapDataConverterFunc for LivingEntityConverter {
-    fn convert(&self, data: &mut Compound, _from_version: DataVersion, _to_version: DataVersion) {
+    fn convert(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
         convert_mob_effect_list(data, "ActiveEffects", "active_effects");
     }
 }

@@ -1,6 +1,5 @@
 use crate::types;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 804;
 
@@ -9,10 +8,10 @@ pub(crate) fn register() {
         "minecraft:banner",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(tag)) = data.get("tag") else {
+            let Some(JValue::Compound(tag)) = data.get("tag") else {
                 return;
             };
-            let Some(Value::Compound(block_entity)) = tag.get("BlockEntityTag") else {
+            let Some(JValue::Compound(block_entity)) = tag.get("BlockEntityTag") else {
                 return;
             };
             let base = block_entity
@@ -23,19 +22,19 @@ pub(crate) fn register() {
 
             data.insert("Damage", base);
 
-            let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+            let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
                 unreachable!()
             };
 
-            if let Some(Value::Compound(display)) = tag.get("display") {
-                if let Some(Value::List(List::String(lore))) = display.get("Lore") {
+            if let Some(JValue::Compound(display)) = tag.get("display") {
+                if let Some(JValue::List(JList::String(lore))) = display.get("Lore") {
                     if lore.len() == 1 && lore[0] == "(+NBT)" {
                         return;
                     }
                 }
             }
 
-            let Some(Value::Compound(block_entity)) = tag.get_mut("BlockEntityTag") else {
+            let Some(JValue::Compound(block_entity)) = tag.get_mut("BlockEntityTag") else {
                 unreachable!()
             };
             block_entity.remove("Base");

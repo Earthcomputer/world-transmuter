@@ -1,8 +1,7 @@
 use crate::types;
-use valence_nbt::{List, Value};
 use world_transmuter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, convert_values_in_map,
-    data_walker, map_data_converter_func,
+    data_walker, map_data_converter_func, JList, JValue,
 };
 
 const VERSION: u32 = 1466;
@@ -31,7 +30,7 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
 
@@ -55,7 +54,7 @@ pub(crate) fn register() {
 
             // convert biome byte[] to int[]
             if let Some(biomes) = level.get("Biomes").and_then(|o| match o {
-                Value::ByteArray(arr) => Some(arr),
+                JValue::ByteArray(arr) => Some(arr),
                 _ => None,
             }) {
                 let new_biomes: Vec<_> = biomes.iter().map(|b| *b as u8 as i32).collect();
@@ -63,10 +62,10 @@ pub(crate) fn register() {
             }
 
             // ProtoChunks have their own dedicated tick list, so we must convert the TileTicks to that.
-            if let Some(Value::List(tile_ticks)) = level.get("TileTicks") {
+            if let Some(JValue::List(tile_ticks)) = level.get("TileTicks") {
                 let mut sections = vec![Vec::new(); 16];
 
-                if let List::Compound(tile_ticks) = tile_ticks {
+                if let JList::Compound(tile_ticks) = tile_ticks {
                     for tile_tick in tile_ticks {
                         let x = tile_tick.get("x").and_then(|v| v.as_i8()).unwrap_or(0) as u8;
                         let y = tile_tick.get("y").and_then(|v| v.as_i8()).unwrap_or(0) as u8;
@@ -79,7 +78,7 @@ pub(crate) fn register() {
 
                 level.insert(
                     "ToBeTicked",
-                    List::List(sections.into_iter().map(List::from).collect::<Vec<_>>()),
+                    JList::List(sections.into_iter().map(JList::from).collect::<Vec<_>>()),
                 );
             }
         }),
@@ -88,7 +87,7 @@ pub(crate) fn register() {
     types::chunk_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
 
@@ -107,7 +106,7 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::List(List::Compound(tile_ticks))) = level.get_mut("TileTicks") {
+            if let Some(JValue::List(JList::Compound(tile_ticks))) = level.get_mut("TileTicks") {
                 for tile_tick in tile_ticks {
                     convert_object_in_map(
                         types::block_name_ref(),
@@ -119,7 +118,7 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") {
+            if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") {
                 for section in sections.iter_mut() {
                     convert_map_list_in_map(
                         types::block_state_ref(),
@@ -131,7 +130,7 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::Compound(structures)) = level.get_mut("Structures") {
+            if let Some(JValue::Compound(structures)) = level.get_mut("Structures") {
                 convert_values_in_map(
                     types::structure_feature_ref(),
                     structures,
@@ -145,7 +144,7 @@ pub(crate) fn register() {
     types::structure_feature_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            if let Some(Value::List(List::Compound(children))) = data.get_mut("Children") {
+            if let Some(JValue::List(JList::Compound(children))) = data.get_mut("Children") {
                 for child in children {
                     convert_map_in_map(
                         types::block_state_ref(),

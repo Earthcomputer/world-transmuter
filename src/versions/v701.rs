@@ -1,4 +1,5 @@
 use crate::types;
+use java_string::JavaString;
 use world_transmuter_engine::{map_data_converter_func, DataWalkerMapListPaths};
 
 const VERSION: u32 = 701;
@@ -24,7 +25,7 @@ pub(crate) fn register() {
     register_mob("Stray");
 }
 
-fn register_mob(id: impl Into<String>) {
+fn register_mob(id: impl Into<JavaString>) {
     types::entity_mut().add_walker_for_id(
         VERSION,
         id,

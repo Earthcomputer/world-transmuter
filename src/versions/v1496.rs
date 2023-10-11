@@ -1,14 +1,14 @@
 use crate::helpers::bit_storage::{
     Direction, LocalPos, PackedBitStorage, Section, SectionInitializer,
 };
-use crate::helpers::block_state::{BlockState, BlockStateOwned};
+use crate::helpers::block_state::BlockState;
 use crate::helpers::flatten_chunk_v1451;
-use crate::helpers::mc_namespace_map::{McNamespaceMap, McNamespaceSet};
-use crate::{block_state_owned, types};
+use crate::helpers::mc_namespace_map::McNamespaceMap;
+use crate::{block_state_owned, static_string_set, types};
 use ahash::AHashSet;
+use java_string::JavaStr;
 use std::sync::OnceLock;
-use valence_nbt::{Compound, List, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue};
 
 const VERSION: u32 = 1496;
 
@@ -27,45 +27,41 @@ fn leaves_to_id() -> &'static McNamespaceMap<'static, u8> {
     })
 }
 
-static LOGS: OnceLock<McNamespaceSet> = OnceLock::new();
-
-fn logs() -> &'static McNamespaceSet<'static> {
-    LOGS.get_or_init(|| {
-        let mut set = McNamespaceSet::new();
-        set.insert_mc("acacia_bark");
-        set.insert_mc("birch_bark");
-        set.insert_mc("dark_oak_bark");
-        set.insert_mc("jungle_bark");
-        set.insert_mc("oak_bark");
-        set.insert_mc("spruce_bark");
-        set.insert_mc("acacia_log");
-        set.insert_mc("birch_log");
-        set.insert_mc("dark_oak_log");
-        set.insert_mc("jungle_log");
-        set.insert_mc("oak_log");
-        set.insert_mc("spruce_log");
-        set.insert_mc("stripped_acacia_log");
-        set.insert_mc("stripped_birch_log");
-        set.insert_mc("stripped_dark_oak_log");
-        set.insert_mc("stripped_jungle_log");
-        set.insert_mc("stripped_oak_log");
-        set.insert_mc("stripped_spruce_log");
-        set
-    })
+static_string_set! {
+    LOGS, logs, {
+        "acacia_bark",
+        "birch_bark",
+        "dark_oak_bark",
+        "jungle_bark",
+        "oak_bark",
+        "spruce_bark",
+        "acacia_log",
+        "birch_log",
+        "dark_oak_log",
+        "jungle_log",
+        "oak_log",
+        "spruce_log",
+        "stripped_acacia_log",
+        "stripped_birch_log",
+        "stripped_dark_oak_log",
+        "stripped_jungle_log",
+        "stripped_oak_log",
+        "stripped_spruce_log",
+    }
 }
 
 pub(crate) fn register() {
     types::chunk_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(level)) = data.get_mut("Level") else {
+            let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
 
             let chunk_x = level.get("xPos").and_then(|v| v.as_i32()).unwrap_or(0);
             let chunk_z = level.get("zPos").and_then(|v| v.as_i32()).unwrap_or(0);
 
-            let Some(Value::List(List::Compound(sections))) = level.get_mut("Sections") else {
+            let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") else {
                 return;
             };
 
@@ -98,7 +94,7 @@ pub(crate) fn register() {
                 for index in 0..4096 {
                     let pos = LocalPos::from_raw(index);
                     let block = section.get_block(pos);
-                    if block.map(|block| logs().contains(&block.name)) == Some(true) {
+                    if block.map(|block| logs().contains(&block.name[..])) == Some(true) {
                         positions_equal.insert(pos.with_section_y(section.section_y as u8));
                     } else if block.map(|block| leaves_to_id().contains_key(&block.name))
                         == Some(true)
@@ -132,8 +128,7 @@ pub(crate) fn register() {
                         };
                         if leaves_to_id().contains_key(&to_block.name) {
                             let old_distance = to_block
-                                .properties
-                                .get("distance")
+                                .get_property("distance")
                                 .and_then(|d| d.parse::<u8>().ok())
                                 .unwrap_or(0);
                             if (distance as u8) < old_distance {
@@ -155,17 +150,17 @@ pub(crate) fn register() {
                             .iter()
                             .map(|state| state.to_nbt())
                             .collect::<Vec<_>>();
-                        section.insert("Palette", List::Compound(palette_nbt));
+                        section.insert("Palette", JList::Compound(palette_nbt));
                     }
                 }
             }
 
             // if sides changed during process, update it now
             if new_sides != 0 {
-                if !matches!(level.get("UpgradeData"), Some(Value::Compound(_))) {
-                    level.insert("UpgradeData", Compound::new());
+                if !matches!(level.get("UpgradeData"), Some(JValue::Compound(_))) {
+                    level.insert("UpgradeData", JCompound::new());
                 }
-                let Some(Value::Compound(upgrade_data)) = level.get_mut("UpgradeData") else {
+                let Some(JValue::Compound(upgrade_data)) = level.get_mut("UpgradeData") else {
                     unreachable!()
                 };
                 upgrade_data.insert("Sides", new_sides as i8);
@@ -181,8 +176,7 @@ fn set_leaves_distance(
 ) {
     let old_block = section.get_block(pos).unwrap();
     let persistent = old_block
-        .properties
-        .get("persistent")
+        .get_property("persistent")
         .map(|str| str == "true")
         .unwrap_or(false);
     let new_state = block_state_owned!(old_block.name.clone(); ["persistent" => persistent.to_string(), "distance" => distance.to_string()]);
@@ -197,13 +191,12 @@ impl SectionInitializer for LeavesSectionInitializer {
 
         for state in palette {
             if leaves_to_id().contains_key(state.name) {
-                let persistent = state.properties.get("decayable").copied() == Some("false");
+                let persistent =
+                    state.get_property("decayable") == Some(JavaStr::from_str("false"));
 
                 state.properties.clear();
-                state
-                    .properties
-                    .insert("persistent", if persistent { "true" } else { "false" });
-                state.properties.insert("distance", "7");
+                state.set_property("persistent", if persistent { "true" } else { "false" });
+                state.set_property("distance", "7");
 
                 skippable = false;
             } else if logs().contains(state.name) {

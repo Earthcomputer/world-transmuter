@@ -1,7 +1,8 @@
 use crate::helpers::rename::{rename_advancement, rename_recipe, simple_rename};
 use crate::types;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::{convert_map_in_map, data_walker, DataWalkerMapListPaths};
+use world_transmuter_engine::{
+    convert_map_in_map, data_walker, DataWalkerMapListPaths, JList, JValue,
+};
 
 const VERSION: u32 = 2100;
 
@@ -34,7 +35,7 @@ pub(crate) fn register() {
         VERSION,
         "minecraft:beehive",
         data_walker(move |data, from_version, to_version| {
-            if let Some(Value::List(List::Compound(bees))) = data.get_mut("Bees") {
+            if let Some(JValue::List(JList::Compound(bees))) = data.get_mut("Bees") {
                 for bee in bees {
                     convert_map_in_map(
                         types::entity_ref(),

@@ -1,8 +1,7 @@
 use crate::types;
 use ahash::AHashMap;
 use std::sync::OnceLock;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 1344;
 
@@ -136,7 +135,7 @@ pub(crate) fn register() {
                 if !key.starts_with("key_") {
                     continue;
                 }
-                let Some(Value::String(code)) = data.get(key) else {
+                let Some(JValue::String(code)) = data.get(&key[..]) else {
                     continue;
                 };
                 let Ok(code) = code.parse::<i32>() else {

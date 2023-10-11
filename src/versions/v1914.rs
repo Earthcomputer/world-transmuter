@@ -1,6 +1,6 @@
 use crate::types;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use java_string::JavaString;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 1914;
 
@@ -9,9 +9,9 @@ pub(crate) fn register() {
         "minecraft:chest",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            if let Some(Value::String(loot_table)) = data.get_mut("LootTable") {
+            if let Some(JValue::String(loot_table)) = data.get_mut("LootTable") {
                 if loot_table == "minecraft:chests/village_blacksmith" {
-                    *loot_table = "minecraft:chests/village/village_weaponsmith".to_owned();
+                    *loot_table = JavaString::from("minecraft:chests/village/village_weaponsmith");
                 }
             }
         }),

@@ -1,7 +1,7 @@
 use crate::helpers::json_parser;
 use crate::types;
-use valence_nbt::Value;
-use world_transmuter_engine::map_data_converter_func;
+use java_string::JavaString;
+use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 1948;
 
@@ -10,18 +10,18 @@ pub(crate) fn register() {
         "minecraft:white_banner",
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+            let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
                 return;
             };
-            let Some(Value::Compound(display)) = tag.get_mut("display") else {
+            let Some(JValue::Compound(display)) = tag.get_mut("display") else {
                 return;
             };
-            let Some(Value::String(name)) = display.get_mut("Name") else {
+            let Some(JValue::String(name)) = display.get_mut("Name") else {
                 return;
             };
             if let Ok(mut json) = json_parser::parse_compound(name, true) {
-                if let Some(Value::String(translate)) = json.get_mut("translate") {
-                    *translate = "block.minecraft.ominous_banner".to_owned();
+                if let Some(JValue::String(translate)) = json.get_mut("translate") {
+                    *translate = JavaString::from("block.minecraft.ominous_banner");
                     *name = json_parser::stringify_compound(json, true, false);
                 }
             }

@@ -1,25 +1,31 @@
-use nom::Slice;
+use java_string::{JavaStr, JavaString};
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub(crate) struct ResourceLocation {
-    pub(crate) namespace: String,
-    pub(crate) path: String,
+    pub(crate) namespace: JavaString,
+    pub(crate) path: JavaString,
 }
 
 impl ResourceLocation {
-    pub(crate) fn new(namespace: impl Into<String>, path: impl Into<String>) -> Self {
+    pub(crate) fn new(namespace: impl Into<JavaString>, path: impl Into<JavaString>) -> Self {
         Self {
             namespace: namespace.into(),
             path: path.into(),
         }
     }
 
-    pub(crate) fn parse_with_separator(s: &str, sep: char) -> Result<Self, ResourceLocationError> {
+    pub(crate) fn parse(s: &JavaStr) -> Result<Self, ResourceLocationError> {
+        Self::parse_with_separator(s, ':')
+    }
+
+    pub(crate) fn parse_with_separator(
+        s: &JavaStr,
+        sep: char,
+    ) -> Result<Self, ResourceLocationError> {
         if let Some(index) = s.find(sep) {
             let (namespace, path) = s.split_at(index);
-            let path = path.slice(1..);
+            let path = &path[1..];
             Self::validate_namespace(namespace)?;
             Self::validate_path(path)?;
             Ok(Self::new(namespace, path))
@@ -29,11 +35,10 @@ impl ResourceLocation {
         }
     }
 
-    fn validate_namespace(namespace: &str) -> Result<(), ResourceLocationError> {
-        if namespace
-            .chars()
-            .all(|c| matches!(c, 'a'..='z' | '0'..='9' | '_' | '.' | '-'))
-        {
+    fn validate_namespace(namespace: &JavaStr) -> Result<(), ResourceLocationError> {
+        if namespace.chars().all(|c| {
+            c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '.' || c == '-'
+        }) {
             Ok(())
         } else {
             Err(ResourceLocationError::Namespace {
@@ -42,17 +47,28 @@ impl ResourceLocation {
         }
     }
 
-    fn validate_path(path: &str) -> Result<(), ResourceLocationError> {
-        if path
-            .chars()
-            .all(|c| matches!(c, 'a'..='z' | '0'..='9' | '/' | '_' | '.' | '-'))
-        {
+    fn validate_path(path: &JavaStr) -> Result<(), ResourceLocationError> {
+        if path.chars().all(|c| {
+            c.is_ascii_lowercase()
+                || c.is_ascii_digit()
+                || c == '/'
+                || c == '_'
+                || c == '.'
+                || c == '-'
+        }) {
             Ok(())
         } else {
             Err(ResourceLocationError::Path {
                 path: path.to_owned(),
             })
         }
+    }
+
+    pub fn to_java_string(&self) -> JavaString {
+        let mut result = self.namespace.clone();
+        result.push(':');
+        result.push_java_str(&self.path);
+        result
     }
 }
 
@@ -62,18 +78,10 @@ impl Display for ResourceLocation {
     }
 }
 
-impl FromStr for ResourceLocation {
-    type Err = ResourceLocationError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::parse_with_separator(s, ':')
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ResourceLocationError {
-    Namespace { namespace: String },
-    Path { path: String },
+    Namespace { namespace: JavaString },
+    Path { path: JavaString },
 }
 
 impl Display for ResourceLocationError {

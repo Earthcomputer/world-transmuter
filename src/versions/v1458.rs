@@ -1,6 +1,6 @@
 use crate::types;
-use valence_nbt::{Compound, Value};
-use world_transmuter_engine::map_data_converter_func;
+use java_string::format_java;
+use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 1458;
 
@@ -14,7 +14,7 @@ pub(crate) fn register() {
     );
 
     types::entity_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        if !matches!(data.get("id"), Some(Value::String(str)) if str == "minecraft:commandblock_minecart") {
+        if !matches!(data.get("id"), Some(JValue::String(str)) if str == "minecraft:commandblock_minecart") {
             update_custom_name(data);
         }
     }));
@@ -22,15 +22,15 @@ pub(crate) fn register() {
     types::item_stack_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            if let Some(Value::Compound(tag)) = data.get_mut("tag") {
-                if let Some(Value::Compound(display)) = tag.get_mut("display") {
-                    if let Some(Value::String(name)) = display.get_mut("Name") {
-                        let new_name = format!(
+            if let Some(JValue::Compound(tag)) = data.get_mut("tag") {
+                if let Some(JValue::Compound(display)) = tag.get_mut("display") {
+                    if let Some(JValue::String(name)) = display.get_mut("Name") {
+                        let new_name = format_java!(
                             "{{\"text\":\"{}\"}}",
                             name.replace('\\', "\\\\").replace('"', "\\\"")
                         );
                         *name = new_name;
-                    } else if let Some(Value::String(loc_name)) = display.get("LocName") {
+                    } else if let Some(JValue::String(loc_name)) = display.get("LocName") {
                         let new_name = format!(
                             "{{\"translate\":\"{}\"}}",
                             loc_name.replace('\\', "\\\\").replace('"', "\\\"")
@@ -44,18 +44,18 @@ pub(crate) fn register() {
     );
 
     types::tile_entity_mut().add_structure_converter(VERSION, map_data_converter_func(|data, _from_version, _to_version| {
-        if !matches!(data.get("id"), Some(Value::String(str)) if str == "minecraft:command_block") {
+        if !matches!(data.get("id"), Some(JValue::String(str)) if str == "minecraft:command_block") {
             update_custom_name(data);
         }
     }));
 }
 
-pub(super) fn update_custom_name(data: &mut Compound) {
-    if let Some(Value::String(custom_name)) = data.get_mut("CustomName") {
+pub(super) fn update_custom_name(data: &mut JCompound) {
+    if let Some(JValue::String(custom_name)) = data.get_mut("CustomName") {
         if custom_name.is_empty() {
             data.remove("CustomName");
         } else {
-            let new_name = format!(
+            let new_name = format_java!(
                 "{{\"text\":\"{}\"}}",
                 custom_name.replace('\\', "\\\\").replace('"', "\\\"")
             );

@@ -1,6 +1,7 @@
 use crate::types;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::{convert_object_in_map, convert_object_list_in_map, data_walker};
+use world_transmuter_engine::{
+    convert_object_in_map, convert_object_list_in_map, data_walker, JList, JValue,
+};
 
 const VERSION: u32 = 2551;
 
@@ -8,19 +9,19 @@ pub(crate) fn register() {
     types::world_gen_settings_mut().add_structure_walker(
         VERSION,
         data_walker(move |data, from_version, to_version| {
-            let Some(Value::Compound(dimensions)) = data.get_mut("dimensions") else {
+            let Some(JValue::Compound(dimensions)) = data.get_mut("dimensions") else {
                 return;
             };
             for dimension in dimensions.values_mut() {
-                let Value::Compound(dimension) = dimension else {
+                let JValue::Compound(dimension) = dimension else {
                     continue;
                 };
-                let Some(Value::Compound(generator)) = dimension.get_mut("generator") else {
+                let Some(JValue::Compound(generator)) = dimension.get_mut("generator") else {
                     continue;
                 };
                 match generator.get("type") {
-                    Some(Value::String(str)) if str == "minecraft:flat" => {
-                        let Some(Value::Compound(settings)) = generator.get_mut("settings") else {
+                    Some(JValue::String(str)) if str == "minecraft:flat" => {
+                        let Some(JValue::Compound(settings)) = generator.get_mut("settings") else {
                             continue;
                         };
                         convert_object_in_map(
@@ -30,7 +31,7 @@ pub(crate) fn register() {
                             from_version,
                             to_version,
                         );
-                        if let Some(Value::List(List::Compound(layers))) =
+                        if let Some(JValue::List(JList::Compound(layers))) =
                             settings.get_mut("layers")
                         {
                             for layer in layers {
@@ -44,8 +45,8 @@ pub(crate) fn register() {
                             }
                         }
                     }
-                    Some(Value::String(str)) if str == "minecraft:noise" => {
-                        if let Some(Value::Compound(settings)) = generator.get_mut("settings") {
+                    Some(JValue::String(str)) if str == "minecraft:noise" => {
+                        if let Some(JValue::Compound(settings)) = generator.get_mut("settings") {
                             convert_object_in_map(
                                 types::block_name_ref(),
                                 settings,
@@ -61,11 +62,11 @@ pub(crate) fn register() {
                                 to_version,
                             );
                         }
-                        if let Some(Value::Compound(biome_source)) =
+                        if let Some(JValue::Compound(biome_source)) =
                             generator.get_mut("biome_source")
                         {
                             match biome_source.get("type") {
-                                Some(Value::String(str)) if str == "minecraft:fixed" => {
+                                Some(JValue::String(str)) if str == "minecraft:fixed" => {
                                     convert_object_in_map(
                                         types::biome_ref(),
                                         biome_source,
@@ -74,12 +75,12 @@ pub(crate) fn register() {
                                         to_version,
                                     );
                                 }
-                                Some(Value::String(str)) if str == "minecraft:multi_noise" => {
+                                Some(JValue::String(str)) if str == "minecraft:multi_noise" => {
                                     // Vanilla's schema is wrong. It should be DSL.fields("biomes", DSL.list(DSL.fields("biome")))
                                     // But it just contains the list part. That obviously can never be the case, because
                                     // the root object is a compound, not a list.
 
-                                    if let Some(Value::List(List::Compound(biomes))) =
+                                    if let Some(JValue::List(JList::Compound(biomes))) =
                                         biome_source.get_mut("biomes")
                                     {
                                         for biome in biomes {
@@ -93,7 +94,7 @@ pub(crate) fn register() {
                                         }
                                     }
                                 }
-                                Some(Value::String(str)) if str == "minecraft:checkerboard" => {
+                                Some(JValue::String(str)) if str == "minecraft:checkerboard" => {
                                     convert_object_list_in_map(
                                         types::biome_ref(),
                                         biome_source,

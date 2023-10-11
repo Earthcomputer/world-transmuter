@@ -1,208 +1,194 @@
 use crate::helpers::hooks::DataHookEnforceNamespacedId;
-use crate::helpers::mc_namespace_map::McNamespaceMap;
-use crate::types;
+use crate::{static_string_map, static_string_mc_map, types};
+use java_string::{JavaStr, JavaString};
 use log::warn;
-use std::collections::BTreeMap;
-use std::sync::OnceLock;
-use valence_nbt::Value;
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_walker,
     get_mut_multi, map_data_converter_func, AbstractMapDataType, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, DataWalkerObjectTypePaths,
+    DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JValue,
 };
 
 const VERSION: u32 = 704;
 
-static ITEM_ID_TO_TILE_ENTITY_ID: OnceLock<McNamespaceMap<&'static str>> = OnceLock::new();
-
-fn item_id_to_tile_entity_id() -> &'static McNamespaceMap<'static, &'static str> {
-    ITEM_ID_TO_TILE_ENTITY_ID.get_or_init(|| {
-        let mut map = McNamespaceMap::new();
-        map.insert_mc("furnace", "minecraft:furnace");
-        map.insert_mc("lit_furnace", "minecraft:furnace");
-        map.insert_mc("chest", "minecraft:chest");
-        map.insert_mc("trapped_chest", "minecraft:chest");
-        map.insert_mc("ender_chest", "minecraft:ender_chest");
-        map.insert_mc("jukebox", "minecraft:jukebox");
-        map.insert_mc("dispenser", "minecraft:dispenser");
-        map.insert_mc("dropper", "minecraft:dropper");
-        map.insert_mc("sign", "minecraft:sign");
-        map.insert_mc("mob_spawner", "minecraft:mob_spawner");
-        map.insert_mc("spawner", "minecraft:mob_spawner");
-        map.insert_mc("noteblock", "minecraft:noteblock");
-        map.insert_mc("brewing_stand", "minecraft:brewing_stand");
-        map.insert_mc("enhanting_table", "minecraft:enchanting_table");
-        map.insert_mc("command_block", "minecraft:command_block");
-        map.insert_mc("beacon", "minecraft:beacon");
-        map.insert_mc("skull", "minecraft:skull");
-        map.insert_mc("daylight_detector", "minecraft:daylight_detector");
-        map.insert_mc("hopper", "minecraft:hopper");
-        map.insert_mc("banner", "minecraft:banner");
-        map.insert_mc("flower_pot", "minecraft:flower_pot");
-        map.insert_mc("repeating_command_block", "minecraft:command_block");
-        map.insert_mc("chain_command_block", "minecraft:command_block");
-        map.insert_mc("shulker_box", "minecraft:shulker_box");
-        map.insert_mc("white_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("orange_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("magenta_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("light_blue_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("yellow_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("lime_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("pink_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("gray_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("silver_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("cyan_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("purple_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("blue_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("brown_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("green_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("red_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("black_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("bed", "minecraft:bed");
-        map.insert_mc("light_gray_shulker_box", "minecraft:shulker_box");
-        map.insert_mc("white_banner", "minecraft:banner");
-        map.insert_mc("orange_banner", "minecraft:banner");
-        map.insert_mc("magenta_banner", "minecraft:banner");
-        map.insert_mc("light_blue_banner", "minecraft:banner");
-        map.insert_mc("yellow_banner", "minecraft:banner");
-        map.insert_mc("lime_banner", "minecraft:banner");
-        map.insert_mc("pink_banner", "minecraft:banner");
-        map.insert_mc("gray_banner", "minecraft:banner");
-        map.insert_mc("silver_banner", "minecraft:banner");
-        map.insert_mc("cyan_banner", "minecraft:banner");
-        map.insert_mc("purple_banner", "minecraft:banner");
-        map.insert_mc("blue_banner", "minecraft:banner");
-        map.insert_mc("brown_banner", "minecraft:banner");
-        map.insert_mc("green_banner", "minecraft:banner");
-        map.insert_mc("red_banner", "minecraft:banner");
-        map.insert_mc("black_banner", "minecraft:banner");
-        map.insert_mc("standing_sign", "minecraft:sign");
-        map.insert_mc("wall_sign", "minecraft:sign");
-        map.insert_mc("piston_head", "minecraft:piston");
-        map.insert_mc("daylight_detector_inverted", "minecraft:daylight_detector");
-        map.insert_mc("unpowered_comparator", "minecraft:comparator");
-        map.insert_mc("powered_comparator", "minecraft:comparator");
-        map.insert_mc("wall_banner", "minecraft:banner");
-        map.insert_mc("standing_banner", "minecraft:banner");
-        map.insert_mc("structure_block", "minecraft:structure_block");
-        map.insert_mc("end_portal", "minecraft:end_portal");
-        map.insert_mc("end_gateway", "minecraft:end_gateway");
-        map.insert_mc("shield", "minecraft:banner");
-        map.insert_mc("white_bed", "minecraft:bed");
-        map.insert_mc("orange_bed", "minecraft:bed");
-        map.insert_mc("magenta_bed", "minecraft:bed");
-        map.insert_mc("light_blue_bed", "minecraft:bed");
-        map.insert_mc("yellow_bed", "minecraft:bed");
-        map.insert_mc("lime_bed", "minecraft:bed");
-        map.insert_mc("pink_bed", "minecraft:bed");
-        map.insert_mc("gray_bed", "minecraft:bed");
-        map.insert_mc("silver_bed", "minecraft:bed");
-        map.insert_mc("cyan_bed", "minecraft:bed");
-        map.insert_mc("purple_bed", "minecraft:bed");
-        map.insert_mc("blue_bed", "minecraft:bed");
-        map.insert_mc("brown_bed", "minecraft:bed");
-        map.insert_mc("green_bed", "minecraft:bed");
-        map.insert_mc("red_bed", "minecraft:bed");
-        map.insert_mc("black_bed", "minecraft:bed");
-        map.insert_mc("oak_sign", "minecraft:sign");
-        map.insert_mc("spruce_sign", "minecraft:sign");
-        map.insert_mc("birch_sign", "minecraft:sign");
-        map.insert_mc("jungle_sign", "minecraft:sign");
-        map.insert_mc("acacia_sign", "minecraft:sign");
-        map.insert_mc("dark_oak_sign", "minecraft:sign");
-        map.insert_mc("crimson_sign", "minecraft:sign");
-        map.insert_mc("warped_sign", "minecraft:sign");
-        map.insert_mc("skeleton_skull", "minecraft:skull");
-        map.insert_mc("wither_skeleton_skull", "minecraft:skull");
-        map.insert_mc("zombie_head", "minecraft:skull");
-        map.insert_mc("player_head", "minecraft:skull");
-        map.insert_mc("creeper_head", "minecraft:skull");
-        map.insert_mc("dragon_head", "minecraft:skull");
-        map.insert_mc("barrel", "minecraft:barrel");
-        map.insert_mc("conduit", "minecraft:conduit");
-        map.insert_mc("smoker", "minecraft:smoker");
-        map.insert_mc("blast_furnace", "minecraft:blast_furnace");
-        map.insert_mc("lectern", "minecraft:lectern");
-        map.insert_mc("bell", "minecraft:bell");
-        map.insert_mc("jigsaw", "minecraft:jigsaw");
-        map.insert_mc("campfire", "minecraft:campfire");
-        map.insert_mc("bee_nest", "minecraft:beehive");
-        map.insert_mc("beehive", "minecraft:beehive");
-        map.insert_mc("sculk_sensor", "minecraft:sculk_sensor");
-        map.insert_mc("decorated_pot", "minecraft:decorated_pot");
+static_string_mc_map! {
+    ITEM_ID_TO_TILE_ENTITY_ID, item_id_to_tile_entity_id, {
+        "furnace" => "minecraft:furnace",
+        "lit_furnace" => "minecraft:furnace",
+        "chest" => "minecraft:chest",
+        "trapped_chest" => "minecraft:chest",
+        "ender_chest" => "minecraft:ender_chest",
+        "jukebox" => "minecraft:jukebox",
+        "dispenser" => "minecraft:dispenser",
+        "dropper" => "minecraft:dropper",
+        "sign" => "minecraft:sign",
+        "mob_spawner" => "minecraft:mob_spawner",
+        "spawner" => "minecraft:mob_spawner",
+        "noteblock" => "minecraft:noteblock",
+        "brewing_stand" => "minecraft:brewing_stand",
+        "enhanting_table" => "minecraft:enchanting_table",
+        "command_block" => "minecraft:command_block",
+        "beacon" => "minecraft:beacon",
+        "skull" => "minecraft:skull",
+        "daylight_detector" => "minecraft:daylight_detector",
+        "hopper" => "minecraft:hopper",
+        "banner" => "minecraft:banner",
+        "flower_pot" => "minecraft:flower_pot",
+        "repeating_command_block" => "minecraft:command_block",
+        "chain_command_block" => "minecraft:command_block",
+        "shulker_box" => "minecraft:shulker_box",
+        "white_shulker_box" => "minecraft:shulker_box",
+        "orange_shulker_box" => "minecraft:shulker_box",
+        "magenta_shulker_box" => "minecraft:shulker_box",
+        "light_blue_shulker_box" => "minecraft:shulker_box",
+        "yellow_shulker_box" => "minecraft:shulker_box",
+        "lime_shulker_box" => "minecraft:shulker_box",
+        "pink_shulker_box" => "minecraft:shulker_box",
+        "gray_shulker_box" => "minecraft:shulker_box",
+        "silver_shulker_box" => "minecraft:shulker_box",
+        "cyan_shulker_box" => "minecraft:shulker_box",
+        "purple_shulker_box" => "minecraft:shulker_box",
+        "blue_shulker_box" => "minecraft:shulker_box",
+        "brown_shulker_box" => "minecraft:shulker_box",
+        "green_shulker_box" => "minecraft:shulker_box",
+        "red_shulker_box" => "minecraft:shulker_box",
+        "black_shulker_box" => "minecraft:shulker_box",
+        "bed" => "minecraft:bed",
+        "light_gray_shulker_box" => "minecraft:shulker_box",
+        "white_banner" => "minecraft:banner",
+        "orange_banner" => "minecraft:banner",
+        "magenta_banner" => "minecraft:banner",
+        "light_blue_banner" => "minecraft:banner",
+        "yellow_banner" => "minecraft:banner",
+        "lime_banner" => "minecraft:banner",
+        "pink_banner" => "minecraft:banner",
+        "gray_banner" => "minecraft:banner",
+        "silver_banner" => "minecraft:banner",
+        "cyan_banner" => "minecraft:banner",
+        "purple_banner" => "minecraft:banner",
+        "blue_banner" => "minecraft:banner",
+        "brown_banner" => "minecraft:banner",
+        "green_banner" => "minecraft:banner",
+        "red_banner" => "minecraft:banner",
+        "black_banner" => "minecraft:banner",
+        "standing_sign" => "minecraft:sign",
+        "wall_sign" => "minecraft:sign",
+        "piston_head" => "minecraft:piston",
+        "daylight_detector_inverted" => "minecraft:daylight_detector",
+        "unpowered_comparator" => "minecraft:comparator",
+        "powered_comparator" => "minecraft:comparator",
+        "wall_banner" => "minecraft:banner",
+        "standing_banner" => "minecraft:banner",
+        "structure_block" => "minecraft:structure_block",
+        "end_portal" => "minecraft:end_portal",
+        "end_gateway" => "minecraft:end_gateway",
+        "shield" => "minecraft:banner",
+        "white_bed" => "minecraft:bed",
+        "orange_bed" => "minecraft:bed",
+        "magenta_bed" => "minecraft:bed",
+        "light_blue_bed" => "minecraft:bed",
+        "yellow_bed" => "minecraft:bed",
+        "lime_bed" => "minecraft:bed",
+        "pink_bed" => "minecraft:bed",
+        "gray_bed" => "minecraft:bed",
+        "silver_bed" => "minecraft:bed",
+        "cyan_bed" => "minecraft:bed",
+        "purple_bed" => "minecraft:bed",
+        "blue_bed" => "minecraft:bed",
+        "brown_bed" => "minecraft:bed",
+        "green_bed" => "minecraft:bed",
+        "red_bed" => "minecraft:bed",
+        "black_bed" => "minecraft:bed",
+        "oak_sign" => "minecraft:sign",
+        "spruce_sign" => "minecraft:sign",
+        "birch_sign" => "minecraft:sign",
+        "jungle_sign" => "minecraft:sign",
+        "acacia_sign" => "minecraft:sign",
+        "dark_oak_sign" => "minecraft:sign",
+        "crimson_sign" => "minecraft:sign",
+        "warped_sign" => "minecraft:sign",
+        "skeleton_skull" => "minecraft:skull",
+        "wither_skeleton_skull" => "minecraft:skull",
+        "zombie_head" => "minecraft:skull",
+        "player_head" => "minecraft:skull",
+        "creeper_head" => "minecraft:skull",
+        "dragon_head" => "minecraft:skull",
+        "barrel" => "minecraft:barrel",
+        "conduit" => "minecraft:conduit",
+        "smoker" => "minecraft:smoker",
+        "blast_furnace" => "minecraft:blast_furnace",
+        "lectern" => "minecraft:lectern",
+        "bell" => "minecraft:bell",
+        "jigsaw" => "minecraft:jigsaw",
+        "campfire" => "minecraft:campfire",
+        "bee_nest" => "minecraft:beehive",
+        "beehive" => "minecraft:beehive",
+        "sculk_sensor" => "minecraft:sculk_sensor",
+        "decorated_pot" => "minecraft:decorated_pot",
 
         // These are missing from Vanilla (TODO check on update)
         // Can also use the test below to make sure we're synced with Paper's Java version
-        map.insert_mc("enchanting_table", "minecraft:enchanting_table");
-        map.insert_mc("comparator", "minecraft:comparator");
-        map.insert_mc("light_gray_bed", "minecraft:bed");
-        map.insert_mc("light_gray_banner", "minecraft:banner");
-        map.insert_mc("soul_campfire", "minecraft:campfire");
-        map.insert_mc("sculk_catalyst", "minecraft:sculk_catalyst");
-        map.insert_mc("mangrove_sign", "minecraft:sign");
-        map.insert_mc("sculk_shrieker", "minecraft:sculk_shrieker");
-        map.insert_mc("chiseled_bookshelf", "minecraft:chiseled_bookshelf");
-        map.insert_mc("bamboo_sign", "minecraft:sign");
-        map.insert_mc("oak_hanging_sign", "minecraft:sign");
-        map.insert_mc("spruce_hanging_sign", "minecraft:sign");
-        map.insert_mc("birch_hanging_sign", "minecraft:sign");
-        map.insert_mc("jungle_hanging_sign", "minecraft:sign");
-        map.insert_mc("acacia_hanging_sign", "minecraft:sign");
-        map.insert_mc("dark_oak_hanging_sign", "minecraft:sign");
-        map.insert_mc("mangrove_hanging_sign", "minecraft:sign");
-        map.insert_mc("bamboo_hanging_sign", "minecraft:sign");
-        map.insert_mc("crimson_hanging_sign", "minecraft:sign");
-        map.insert_mc("warped_hanging_sign", "minecraft:sign");
-        map.insert_mc("piglin_head", "minecraft:skull");
-        map.insert_mc("suspicious_sand", "minecraft:brushable_block"); // note: this was renamed in the past, see special case in the itemstack walker
-        map.insert_mc("cherry_sign", "minecraft:sign");
-        map.insert_mc("cherry_hanging_sign", "minecraft:sign");
-        map.insert_mc("suspicious_gravel", "minecraft:brushable_block");
-        map.insert_mc(
-            "calibrated_sculk_sensor",
-            "minecraft:calibrated_sculk_sensor",
-        );
-        map
-    })
+        "enchanting_table" => "minecraft:enchanting_table",
+        "comparator" => "minecraft:comparator",
+        "light_gray_bed" => "minecraft:bed",
+        "light_gray_banner" => "minecraft:banner",
+        "soul_campfire" => "minecraft:campfire",
+        "sculk_catalyst" => "minecraft:sculk_catalyst",
+        "mangrove_sign" => "minecraft:sign",
+        "sculk_shrieker" => "minecraft:sculk_shrieker",
+        "chiseled_bookshelf" => "minecraft:chiseled_bookshelf",
+        "bamboo_sign" => "minecraft:sign",
+        "oak_hanging_sign" => "minecraft:sign",
+        "spruce_hanging_sign" => "minecraft:sign",
+        "birch_hanging_sign" => "minecraft:sign",
+        "jungle_hanging_sign" => "minecraft:sign",
+        "acacia_hanging_sign" => "minecraft:sign",
+        "dark_oak_hanging_sign" => "minecraft:sign",
+        "mangrove_hanging_sign" => "minecraft:sign",
+        "bamboo_hanging_sign" => "minecraft:sign",
+        "crimson_hanging_sign" => "minecraft:sign",
+        "warped_hanging_sign" => "minecraft:sign",
+        "piglin_head" => "minecraft:skull",
+        "suspicious_sand" => "minecraft:brushable_block", // note: this was renamed in the past, see special case in the itemstack walker
+        "cherry_sign" => "minecraft:sign",
+        "cherry_hanging_sign" => "minecraft:sign",
+        "suspicious_gravel" => "minecraft:brushable_block",
+        "calibrated_sculk_sensor" => "minecraft:calibrated_sculk_sensor",
+    }
 }
 
-static TILE_ID_UPDATE: OnceLock<BTreeMap<&'static str, &'static str>> = OnceLock::new();
-
-fn tile_id_update() -> &'static BTreeMap<&'static str, &'static str> {
-    TILE_ID_UPDATE.get_or_init(|| {
-        let mut map = BTreeMap::new();
-        map.insert("Airportal", "minecraft:end_portal");
-        map.insert("Banner", "minecraft:banner");
-        map.insert("Beacon", "minecraft:beacon");
-        map.insert("Cauldron", "minecraft:brewing_stand");
-        map.insert("Chest", "minecraft:chest");
-        map.insert("Comparator", "minecraft:comparator");
-        map.insert("Control", "minecraft:command_block");
-        map.insert("DLDetector", "minecraft:daylight_detector");
-        map.insert("Dropper", "minecraft:dropper");
-        map.insert("EnchantTable", "minecraft:enchanting_table");
-        map.insert("EndGateway", "minecraft:end_gateway");
-        map.insert("EnderChest", "minecraft:ender_chest");
-        map.insert("FlowerPot", "minecraft:flower_pot");
-        map.insert("Furnace", "minecraft:furnace");
-        map.insert("Hopper", "minecraft:hopper");
-        map.insert("MobSpawner", "minecraft:mob_spawner");
-        map.insert("Music", "minecraft:noteblock");
-        map.insert("Piston", "minecraft:piston");
-        map.insert("RecordPlayer", "minecraft:jukebox");
-        map.insert("Sign", "minecraft:sign");
-        map.insert("Skull", "minecraft:skull");
-        map.insert("Structure", "minecraft:structure_block");
-        map.insert("Trap", "minecraft:dispenser");
-        map
-    })
+static_string_map! {
+    TILE_ID_UPDATE, tile_id_update, {
+        "Airportal" => "minecraft:end_portal",
+        "Banner" => "minecraft:banner",
+        "Beacon" => "minecraft:beacon",
+        "Cauldron" => "minecraft:brewing_stand",
+        "Chest" => "minecraft:chest",
+        "Comparator" => "minecraft:comparator",
+        "Control" => "minecraft:command_block",
+        "DLDetector" => "minecraft:daylight_detector",
+        "Dropper" => "minecraft:dropper",
+        "EnchantTable" => "minecraft:enchanting_table",
+        "EndGateway" => "minecraft:end_gateway",
+        "EnderChest" => "minecraft:ender_chest",
+        "FlowerPot" => "minecraft:flower_pot",
+        "Furnace" => "minecraft:furnace",
+        "Hopper" => "minecraft:hopper",
+        "MobSpawner" => "minecraft:mob_spawner",
+        "Music" => "minecraft:noteblock",
+        "Piston" => "minecraft:piston",
+        "RecordPlayer" => "minecraft:jukebox",
+        "Sign" => "minecraft:sign",
+        "Skull" => "minecraft:skull",
+        "Structure" => "minecraft:structure_block",
+        "Trap" => "minecraft:dispenser",
+    }
 }
 
 pub(crate) fn register() {
     types::tile_entity_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            if let Some(Value::String(id)) = data.get_mut("id") {
+            if let Some(JValue::String(id)) = data.get_mut("id") {
                 if let Some(new_id) = tile_id_update().get(&id[..]).copied() {
                     *id = new_id.to_owned();
                 }
@@ -241,12 +227,12 @@ pub(crate) fn register() {
             let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
             let item_id = item_id.map(|v| &*v);
 
-            let Some(Value::Compound(tag)) = tag else {
+            let Some(JValue::Compound(tag)) = tag else {
                 return;
             };
 
             let item_id_str = match item_id {
-                Some(Value::String(item_id_str)) => Some(&item_id_str[..]),
+                Some(JValue::String(item_id_str)) => Some(&item_id_str[..]),
                 _ => None,
             };
 
@@ -260,50 +246,55 @@ pub(crate) fn register() {
                 to_version,
             );
 
-            if let Some(Value::Compound(entity_tag)) = tag.get_mut("EntityTag") {
-                let entity_id = match item_id_str {
+            if let Some(JValue::Compound(entity_tag)) = tag.get_mut("EntityTag") {
+                let entity_id = match item_id_str.map(JavaStr::as_bytes) {
                     // The check for version id is removed here. For whatever reason, the legacy
                     // data converters used entity id "minecraft:armor_stand" when version was greater-than 514,
                     // but entity ids were not namespaced until V705! So somebody fucked up the legacy converters.
                     // DFU agrees with my analysis here, it will only set the entityId here to the namespaced variant
                     // with the V705 schema.
-                    Some("minecraft:armor_stand") => Some(if from_version.get_version() < 705 {
-                        "ArmorStand"
+                    Some(b"minecraft:armor_stand") => Some(if from_version.get_version() < 705 {
+                        JavaStr::from_str("ArmorStand")
                     } else {
-                        "minecraft:armor_stand"
+                        JavaStr::from_str("minecraft:armor_stand")
                     }),
                     // add missing item_frame entity id
                     // version check is same for armorstand, as both were namespaced at the same time
-                    Some("minecraft:item_frame") => Some(if from_version.get_version() < 705 {
-                        "ItemFrame"
+                    Some(b"minecraft:item_frame") => Some(if from_version.get_version() < 705 {
+                        JavaStr::from_str("ItemFrame")
                     } else {
-                        "minecraft:item_frame"
+                        JavaStr::from_str("minecraft:item_frame")
                     }),
                     // add missing glow_item_frame entity id
-                    Some("minecraft:glow_item_frame") => Some("minecraft:glow_item_frame"),
+                    Some(b"minecraft:glow_item_frame") => {
+                        Some(JavaStr::from_str("minecraft:glow_item_frame"))
+                    }
                     // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
                     // bothered to write in logic to set the sub entity id, so we have to.
                     // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
-                    Some(item_id_str) => item_id_str.strip_suffix("_spawn_egg").or_else(|| {
-                        match entity_tag.get("id") {
-                            Some(Value::String(id)) => Some(id),
-                            _ => None,
-                        }
-                    }),
+                    Some(_) => {
+                        item_id_str
+                            .unwrap()
+                            .strip_suffix("_spawn_egg")
+                            .or_else(|| match entity_tag.get("id") {
+                                Some(JValue::String(id)) => Some(id),
+                                _ => None,
+                            })
+                    }
                     None => match entity_tag.get("id") {
-                        Some(Value::String(id)) => Some(&id[..]),
+                        Some(JValue::String(id)) => Some(&id[..]),
                         _ => None,
                     },
                 };
 
                 let remove_id = if let Some(entity_id) = entity_id {
-                    let remove_id = !matches!(entity_tag.get("id"), Some(Value::String(_)));
+                    let remove_id = !matches!(entity_tag.get("id"), Some(JValue::String(_)));
                     if remove_id {
                         entity_tag.insert("id", entity_id.to_owned());
                     }
                     remove_id
                 } else {
-                    if item_id_str != Some("minecraft:air") {
+                    if item_id_str != Some(JavaStr::from_str("minecraft:air")) {
                         warn!(
                             "Unable to resolve Entity for ItemStack (V704): {:?}",
                             item_id
@@ -319,16 +310,16 @@ pub(crate) fn register() {
                 }
             }
 
-            if let Some(Value::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
+            if let Some(JValue::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
                 let entity_id =
                     item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id).copied());
 
                 let remove_id = if let Some(entity_id) = entity_id {
-                    let remove_id = !matches!(block_entity_tag.get("id"), Some(Value::String(_)));
+                    let remove_id = !matches!(block_entity_tag.get("id"), Some(JValue::String(_)));
                     block_entity_tag.insert("id", entity_id);
                     remove_id
                 } else {
-                    if item_id_str != Some("minecraft:air") {
+                    if item_id_str != Some(JavaStr::from_str("minecraft:air")) {
                         warn!(
                             "Unable to resolve BlockEntity for ItemStack (V704): {:?}",
                             item_id
@@ -365,7 +356,7 @@ pub(crate) fn register() {
     types::tile_entity_mut().add_structure_hook(VERSION, DataHookEnforceNamespacedId::id());
 }
 
-fn register_inventory(id: impl Into<String>) {
+fn register_inventory(id: impl Into<JavaString>) {
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
         id,
@@ -375,6 +366,7 @@ fn register_inventory(id: impl Into<String>) {
 
 #[cfg(test)]
 mod test {
+    use java_string::{format_java, JavaString};
     use std::collections::BTreeMap;
 
     #[test]
@@ -394,8 +386,8 @@ mod test {
             let line = line.expect("Failed to download V704.java");
             if let Some(captures) = regex.captures(&line) {
                 paper_map.insert(
-                    captures.get(1).unwrap().as_str().to_owned(),
-                    captures.get(2).unwrap().as_str().to_owned(),
+                    JavaString::from(captures.get(1).unwrap().as_str()),
+                    JavaString::from(captures.get(2).unwrap().as_str()),
                 );
             }
         }
@@ -406,7 +398,7 @@ mod test {
         let mut missing_from_paper = Vec::new();
         let mut different = Vec::new();
         for (our_key, our_val) in our_map.iter_mc_to_value() {
-            let our_key = format!("minecraft:{our_key}");
+            let our_key = format_java!("minecraft:{our_key}");
             match paper_map.get(&our_key) {
                 Some(paper_val) => {
                     if paper_val != our_val {

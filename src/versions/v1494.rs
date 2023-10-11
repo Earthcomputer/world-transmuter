@@ -1,8 +1,7 @@
 use crate::types;
 use ahash::AHashMap;
 use std::sync::OnceLock;
-use valence_nbt::{List, Value};
-use world_transmuter_engine::map_data_converter_func;
+use world_transmuter_engine::{map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 1494;
 
@@ -53,11 +52,11 @@ pub(crate) fn register() {
     types::item_stack_mut().add_structure_converter(
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
-            let Some(Value::Compound(tag)) = data.get_mut("tag") else {
+            let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
                 return;
             };
 
-            if let Some(Value::List(List::Compound(mut ench))) = tag.remove("ench") {
+            if let Some(JValue::List(JList::Compound(mut ench))) = tag.remove("ench") {
                 for ench in &mut ench {
                     let new_id = ench
                         .get("id")
@@ -68,10 +67,10 @@ pub(crate) fn register() {
                     ench.insert("id", new_id);
                 }
 
-                tag.insert("Enchantments", List::Compound(ench));
+                tag.insert("Enchantments", JList::Compound(ench));
             }
 
-            if let Some(Value::List(List::Compound(stored_enchants))) =
+            if let Some(JValue::List(JList::Compound(stored_enchants))) =
                 tag.get_mut("StoredEnchantments")
             {
                 for ench in stored_enchants {
