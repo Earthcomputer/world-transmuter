@@ -131,33 +131,38 @@ fn block_state_data() -> &'static BlockStateData {
 
 macro_rules! register {
     ($registrar:ident, $id:literal, $new_name:literal $([$($new_prop_name:literal = $new_prop_value:literal),+])? $(, $($old_name:literal $([$($old_prop_name:literal = $old_prop_value:literal),+])?),+)?) => {
-        $registrar($id, BlockState {
-            name: JavaStr::from_str(concat!("minecraft:", $new_name)),
-            properties: {
-                #[allow(unused_mut)]
-                let mut map = BTreeMap::new();
-                $(
-                    $(
-                        map.insert(JavaStr::from_str($new_prop_name), JavaStr::from_str($new_prop_value));
-                    )+
-                )?
-                map
-            }
-        }, vec![$($(
-            BlockState {
-                name: JavaStr::from_str(concat!("minecraft:", $old_name)),
-                properties: {
-                    #[allow(unused_mut)]
-                    let mut map = BTreeMap::new();
-                    $(
+        {
+            fn do_register(registrar: &mut impl FnMut(u16, BlockState<'static>, Vec<BlockState<'static>>)) {
+                registrar($id, BlockState {
+                    name: JavaStr::from_str(concat!("minecraft:", $new_name)),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
                         $(
-                            map.insert(JavaStr::from_str($old_prop_name), JavaStr::from_str($old_prop_value));
-                        )+
-                    )?
-                    map
-                }
-            },
-        )+)?])
+                            $(
+                                map.insert(JavaStr::from_str($new_prop_name), JavaStr::from_str($new_prop_value));
+                            )+
+                        )?
+                        map
+                    }
+                }, vec![$($(
+                    BlockState {
+                        name: JavaStr::from_str(concat!("minecraft:", $old_name)),
+                        properties: {
+                            #[allow(unused_mut)]
+                            let mut map = BTreeMap::new();
+                            $(
+                                $(
+                                    map.insert(JavaStr::from_str($old_prop_name), JavaStr::from_str($old_prop_value));
+                                )+
+                            )?
+                            map
+                        }
+                    },
+                )+)?])
+            }
+            do_register(&mut $registrar);
+        }
     }
 }
 
