@@ -877,6 +877,10 @@ fn pad_carving_masks(level: &mut JCompound, new_size: usize, offset: usize) {
 }
 
 fn i8_slice_to_i64_le(i8_slice: &[i8], i64_slice: &mut [i64], offset: usize) {
+    if i8_slice.is_empty() {
+        return;
+    }
+
     let u8_slice =
         unsafe { std::slice::from_raw_parts(i8_slice.as_ptr() as *const u8, i8_slice.len()) };
     let rem = u8_slice.len() % 8;
