@@ -13,7 +13,7 @@ pub(crate) fn register() {
             };
             if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") {
                 for section in sections.iter_mut() {
-                    if let Some(JValue::Compound(palette)) = section.get("Palette") {
+                    if let Some(JValue::List(palette)) = section.get("Palette") {
                         let bits = 4.max(ceil_log2(palette.len() as u32));
                         if bits.is_power_of_two() {
                             // fits perfectly
