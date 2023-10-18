@@ -43,7 +43,7 @@ struct TrappedChestSectionInitializer;
 
 impl SectionInitializer for TrappedChestSectionInitializer {
     fn init_skippable(&mut self, palette: &mut [BlockState], _section_y: i32) -> bool {
-        palette
+        !palette
             .iter()
             .any(|block| block.name == "minecraft:trapped_chest")
     }
