@@ -844,7 +844,7 @@ impl<'a> UpgradeChunk<'a> {
             );
 
             // find the existing section with the y coordinate, and write to it
-            if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Section") {
+            if let Some(JValue::List(JList::Compound(sections))) = level.get_mut("Sections") {
                 if let Some(existing_section) = sections
                     .iter_mut()
                     .find(|sec| sec.get("Y").and_then(|v| v.as_i32()) == Some(section.y))
