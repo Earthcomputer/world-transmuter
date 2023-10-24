@@ -470,6 +470,7 @@ impl MapDataConverterFunc for ConverterFlattenChunk {
     }
 }
 
+#[derive(Debug)]
 struct UpgradeChunk<'a> {
     sides: u8,
     sections: [Option<Section>; 16],
@@ -919,6 +920,7 @@ impl<'a> UpgradeChunk<'a> {
     }
 }
 
+#[derive(Debug)]
 struct Section {
     palette: AHashMap<BlockStateOwned, u16>,
     palette_states: Vec<BlockStateOwned>,
@@ -988,7 +990,7 @@ impl Section {
 
                     let mut state = block_flattening_v1450::get_state_for_id_raw(state_id)
                         .unwrap_or_else(|| air());
-                    if state.name == "minecraft::%%FILTER_ME%%" {
+                    if state.name == "minecraft:%%FILTER_ME%%" {
                         state = air();
                     }
                     let next_palette_index = palette.len() as u16;

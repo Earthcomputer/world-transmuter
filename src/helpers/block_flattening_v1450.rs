@@ -8,10 +8,8 @@ use world_transmuter_engine::JCompound;
 pub(crate) fn flatten_nbt(nbt: &JCompound) -> Option<JCompound> {
     if let Some(state) = BlockState::from_nbt(nbt) {
         let data = block_state_data();
-        if let Some(id) = data.id_by_old_nbt.get(&state) {
-            if let Some(ret) = get_state_for_id_raw(*id) {
-                return Some(ret.to_nbt());
-            }
+        if let Some(index) = data.index_by_old_nbt.get(&state) {
+            return Some(data.states[*index as usize].to_nbt());
         }
     }
 
@@ -21,10 +19,8 @@ pub(crate) fn flatten_nbt(nbt: &JCompound) -> Option<JCompound> {
 pub(crate) fn get_new_block_name(old: &impl AsRef<JavaStr>) -> &JavaStr {
     let old = old.as_ref();
     let data = block_state_data();
-    if let Some(id) = data.id_by_old_name.get(old) {
-        if let Some(ret) = get_state_for_id_raw(*id) {
-            return ret.name;
-        }
+    if let Some(index) = data.index_by_old_name.get(old) {
+        return data.states[*index as usize].name
     }
 
     old
@@ -57,8 +53,8 @@ struct BlockStateData {
     states: Vec<BlockState<'static>>,
     flattened_by_id: [Option<u16>; 4096],
     block_defaults: [Option<u16>; 256],
-    id_by_old_nbt: AHashMap<BlockState<'static>, u16>,
-    id_by_old_name: AHashMap<&'static JavaStr, u16>,
+    index_by_old_nbt: AHashMap<BlockState<'static>, u16>,
+    index_by_old_name: AHashMap<&'static JavaStr, u16>,
 }
 
 static BLOCK_STATE_DATA: OnceLock<BlockStateData> = OnceLock::new();
@@ -70,8 +66,8 @@ fn block_state_data() -> &'static BlockStateData {
         const NONE: Option<u16> = None;
         let mut flattened_by_id = [NONE; 4096];
         let mut block_defaults = [NONE; 256];
-        let mut id_by_old_nbt = AHashMap::new();
-        let mut id_by_old_name = AHashMap::new();
+        let mut index_by_old_nbt = AHashMap::new();
+        let mut index_by_old_name = AHashMap::new();
 
         let registrar = |id: u16, new: BlockState<'static>, olds: Vec<BlockState<'static>>| {
             let next_state_index = state_indexes.len();
@@ -80,14 +76,16 @@ fn block_state_data() -> &'static BlockStateData {
                 states.push(new);
                 next_state_index as u16
             });
-            let next_state_index = state_indexes.len();
+            let mut next_state_index = state_indexes.len();
             let old_ids: Vec<_> = olds
                 .iter()
                 .map(|old| {
                     *state_indexes.entry(old.clone()).or_insert_with(|| {
                         debug_assert!(next_state_index < u16::MAX as usize);
                         states.push(old.clone());
-                        next_state_index as u16
+                        let ret = next_state_index as u16;
+                        next_state_index += 1;
+                        ret
                     })
                 })
                 .collect();
@@ -106,8 +104,8 @@ fn block_state_data() -> &'static BlockStateData {
             block_defaults[block as usize].get_or_insert(new);
 
             for (old, old_id) in olds.iter().zip(old_ids) {
-                id_by_old_name.entry(old.name).or_insert(old_id);
-                id_by_old_nbt.insert(old.clone(), old_id);
+                index_by_old_name.entry(old.name).or_insert(old_id);
+                index_by_old_nbt.insert(old.clone(), old_id);
             }
         };
 
@@ -123,8 +121,8 @@ fn block_state_data() -> &'static BlockStateData {
             states,
             flattened_by_id,
             block_defaults,
-            id_by_old_nbt,
-            id_by_old_name,
+            index_by_old_nbt,
+            index_by_old_name,
         }
     })
 }
