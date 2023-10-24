@@ -11,7 +11,7 @@ use std::sync::OnceLock;
 use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, data_walker,
-    map_data_converter_func, rename_key, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
+    map_data_converter_func, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
     DataWalkerMapTypePaths, JCompound, JList, JValue, MapDataConverterFunc, MapDataHook,
 };
 
@@ -418,6 +418,9 @@ pub(crate) fn register() {
         "minecraft:filled_map",
         DataVersion::new(VERSION, 3),
         map_data_converter_func(|data, _from_version, _to_version| {
+            let Some(damage) = data.get("Damage").cloned() else {
+                return;
+            };
             if !matches!(data.get("tag"), Some(JValue::Compound(_))) {
                 data.insert("tag", JCompound::new());
             }
@@ -427,7 +430,7 @@ pub(crate) fn register() {
 
             if tag.get("map").map(|v| v.is_number()) != Some(true) {
                 // This if is from CB. as usual, no documentation from CB. I'm guessing it just wants to avoid possibly overwriting it. seems fine.
-                rename_key(tag, "Damage", "map");
+                tag.insert("map", damage);
             }
         }),
     );

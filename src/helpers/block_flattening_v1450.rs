@@ -20,7 +20,7 @@ pub(crate) fn get_new_block_name(old: &impl AsRef<JavaStr>) -> &JavaStr {
     let old = old.as_ref();
     let data = block_state_data();
     if let Some(index) = data.index_by_old_name.get(old) {
-        return data.states[*index as usize].name
+        return data.states[*index as usize].name;
     }
 
     old
