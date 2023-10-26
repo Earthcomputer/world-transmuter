@@ -13,7 +13,7 @@ nom = "7.1.1"
 strength_reduce = "0.2.3"
 uuid = "1"
 valence_nbt = { version = "0.8", features = ["java_string"] }
-world-transmuter-engine = "0.6.0"
+world-transmuter-engine = "0.6.1"
 
 [dev-dependencies]
 
