@@ -273,23 +273,32 @@ pub(crate) struct ObjectiveConverter;
 
 impl MapDataConverterFunc for ObjectiveConverter {
     fn convert(&self, data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion) {
-        let Some(JValue::String(criteria_name)) = data.get_mut("CriteriaName") else {
-            return;
-        };
-
-        if special_objective_criteria().contains(&criteria_name[..]) {
-            return;
+        if let Some(JValue::String(criteria_name)) = data.get_mut("CriteriaName") {
+            convert_objective_criteria_name(criteria_name);
         }
-
-        let converted = convert_legacy_key(criteria_name);
-        *criteria_name = converted
-            .map(|converted| {
-                format_java!(
-                    "{}:{}",
-                    pack_with_dot(converted.category),
-                    pack_with_dot(&converted.key)
-                )
-            })
-            .unwrap_or_else(|| JavaString::from("dummy"));
+        if let Some(JValue::Compound(criteria_type)) = data.get_mut("CriteriaType") {
+            if matches!(criteria_type.get("type"), Some(JValue::String(str)) if str == "_special") {
+                if let Some(JValue::String(criteria_name)) = criteria_type.get_mut("id") {
+                    convert_objective_criteria_name(criteria_name);
+                }
+            }
+        }
     }
+}
+
+fn convert_objective_criteria_name(criteria_name: &mut JavaString) {
+    if special_objective_criteria().contains(&criteria_name[..]) {
+        return;
+    }
+
+    let converted = convert_legacy_key(criteria_name);
+    *criteria_name = converted
+        .map(|converted| {
+            format_java!(
+                "{}:{}",
+                pack_with_dot(converted.category),
+                pack_with_dot(&converted.key)
+            )
+        })
+        .unwrap_or_else(|| JavaString::from("dummy"));
 }
