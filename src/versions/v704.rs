@@ -1,7 +1,7 @@
 use crate::helpers::hooks::DataHookEnforceNamespacedId;
 use crate::{static_string_map, static_string_mc_map, types};
 use java_string::{JavaStr, JavaString};
-use log::warn;
+use tracing::warn;
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_walker,
     get_mut_multi, map_data_converter_func, AbstractMapDataType, DataWalkerMapListPaths,

@@ -8,9 +8,9 @@ use crate::{block_state, block_state_owned, make_bit_arr};
 use ahash::{AHashMap, AHashSet};
 use bitvec::prelude::*;
 use java_string::{JavaStr, JavaString};
-use log::{error, warn};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
+use tracing::{error, warn};
 use world_transmuter_engine::{DataVersion, JCompound, JList, JValue, MapDataConverterFunc};
 
 const VIRTUAL_SET: BitArray<[usize; bitset_size(256)]> = make_bit_arr![256;

@@ -2,7 +2,7 @@ use crate::helpers::bit_storage::{LocalPos, PackedBitStorage, Section, SectionIn
 use crate::helpers::block_state::BlockState;
 use crate::types;
 use ahash::AHashSet;
-use log::warn;
+use tracing::warn;
 use world_transmuter_engine::{get_mut_multi, map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 1624;

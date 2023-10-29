@@ -1,7 +1,7 @@
 use crate::helpers::item_name_v102;
 use crate::types;
 use java_string::JavaStr;
-use log::warn;
+use tracing::warn;
 use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 102;

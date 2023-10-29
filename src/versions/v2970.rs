@@ -1,9 +1,9 @@
 use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::types;
 use java_string::JavaStr;
-use log::error;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
+use tracing::error;
 use world_transmuter_engine::{get_mut_multi, map_data_converter_func, JCompound, JList, JValue};
 
 const VERSION: u32 = 2970;

@@ -1,5 +1,5 @@
 use crate::types;
-use log::error;
+use tracing::error;
 use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 2833;

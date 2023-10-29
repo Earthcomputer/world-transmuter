@@ -7,8 +7,8 @@ use ahash::{AHashMap, AHashSet};
 use bitvec::array::BitArray;
 use bitvec::order::Lsb0;
 use java_string::{JavaStr, JavaString};
-use log::error;
 use std::collections::BTreeSet;
+use tracing::error;
 use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,

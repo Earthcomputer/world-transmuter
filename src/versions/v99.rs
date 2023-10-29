@@ -1,7 +1,7 @@
 use crate::helpers::hooks::{DataHookEnforceNamespacedId, DataHookValueTypeEnforceNamespaced};
 use crate::{static_string_mc_map, types};
 use java_string::{JavaStr, JavaString};
-use log::warn;
+use tracing::warn;
 use world_transmuter_engine::*;
 
 const VERSION: u32 = 99;

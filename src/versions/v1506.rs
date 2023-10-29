@@ -2,7 +2,7 @@ use crate::helpers::gson_lenient_fix::{fix_gson_lenient, FixedGsonLenient, JsonT
 use crate::helpers::json_parser;
 use crate::{static_string_map, types};
 use java_string::{JavaStr, JavaString};
-use log::warn;
+use tracing::warn;
 use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue};
 
