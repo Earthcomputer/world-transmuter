@@ -122,6 +122,7 @@ versions! {
     mod v2531;
     mod v2533;
     mod v2535;
+    mod v2538;
     mod v2550;
     mod v2551;
     mod v2552;
@@ -194,4 +195,9 @@ versions! {
     mod v3565;
     mod v3566;
     mod v3568;
+    mod v3682;
+    mod v3683;
+    mod v3685;
+    mod v3689;
+    mod v3692;
 }

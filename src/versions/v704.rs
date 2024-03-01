@@ -124,6 +124,7 @@ static_string_mc_map! {
         "beehive" => "minecraft:beehive",
         "sculk_sensor" => "minecraft:sculk_sensor",
         "decorated_pot" => "minecraft:decorated_pot",
+        "crafter" => "minecraft:crafter",
 
         // These are missing from Vanilla (TODO check on update)
         // Can also use the test below to make sure we're synced with Paper's Java version
@@ -153,6 +154,7 @@ static_string_mc_map! {
         "cherry_hanging_sign" => "minecraft:sign",
         "suspicious_gravel" => "minecraft:brushable_block",
         "calibrated_sculk_sensor" => "minecraft:calibrated_sculk_sensor",
+        "trial_spawner" => "minecraft:trial-spawner",
     }
 }
 

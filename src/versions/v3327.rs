@@ -7,7 +7,10 @@ pub(crate) fn register() {
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:decorated_pot",
-        DataWalkerObjectListPaths::new(types::item_name_ref(), "shards"),
+        DataWalkerObjectListPaths::new_multi(
+            types::item_name_ref(),
+            vec!["item".into(), "shards".into()],
+        ),
     );
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
