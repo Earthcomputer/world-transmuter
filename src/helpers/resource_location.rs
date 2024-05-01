@@ -15,6 +15,10 @@ impl ResourceLocation {
         }
     }
 
+    pub(crate) fn minecraft(path: impl Into<JavaString>) -> Self {
+        Self::new("minecraft", path)
+    }
+
     pub(crate) fn parse(s: &JavaStr) -> Result<Self, ResourceLocationError> {
         Self::parse_with_separator(s, ':')
     }
