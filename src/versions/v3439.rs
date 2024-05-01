@@ -1,3 +1,4 @@
+use crate::helpers::components::EMPTY_COMPONENT;
 use crate::types;
 use java_string::{JavaStr, JavaString};
 use valence_nbt::{compound, jcompound};
@@ -5,7 +6,6 @@ use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue}
 
 const VERSION: u32 = 3439;
 
-const BLANK_TEXT_LINE: &JavaStr = JavaStr::from_str("{\"text\":\"\"}");
 const DEFAULT_COLOR: &JavaStr = JavaStr::from_str("black");
 
 fn get_line_opt(root: &JCompound, key: &str) -> Option<JavaString> {
@@ -16,7 +16,7 @@ fn get_line_opt(root: &JCompound, key: &str) -> Option<JavaString> {
 }
 
 fn get_line(root: &JCompound, key: &str) -> JavaString {
-    get_line_opt(root, key).unwrap_or_else(|| BLANK_TEXT_LINE.to_owned())
+    get_line_opt(root, key).unwrap_or_else(|| EMPTY_COMPONENT.to_owned())
 }
 
 pub(crate) fn register() {
@@ -51,8 +51,8 @@ pub(crate) fn register() {
             data.insert("front_text", front_text);
 
             let back_text = jcompound! {
-                "messages" => JList::String(vec![BLANK_TEXT_LINE.to_owned(); 4]),
-                "filtered_messages" => JList::String(vec![BLANK_TEXT_LINE.to_owned(); 4]),
+                "messages" => JList::String(vec![EMPTY_COMPONENT.to_owned(); 4]),
+                "filtered_messages" => JList::String(vec![EMPTY_COMPONENT.to_owned(); 4]),
                 "color" => DEFAULT_COLOR,
                 "has_glowing_text" => false,
             };

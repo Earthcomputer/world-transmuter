@@ -1,17 +1,11 @@
 use crate::types;
-use world_transmuter_engine::{DataWalkerMapListPaths, DataWalkerMapTypePaths};
+use crate::versions::v100;
+use world_transmuter_engine::DataWalkerMapTypePaths;
 
 const VERSION: u32 = 2688;
 
 pub(crate) fn register() {
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        "minecraft:glow_squid",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, "minecraft:glow_squid");
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:glow_item_frame",

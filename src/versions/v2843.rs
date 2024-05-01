@@ -2,7 +2,7 @@ use crate::types;
 use java_string::JavaString;
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
-    convert_values_in_map, data_walker, map_data_converter_func, value_data_converter_func,
+    convert_values_in_map, map_data_converter_func, map_data_walker, value_data_converter_func,
     JCompound, JList, JValue, JValueMut,
 };
 
@@ -70,7 +70,7 @@ pub(crate) fn register() {
     // DFU is missing schema for UpgradeData block names
     types::chunk_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             convert_map_list_in_map(
                 types::entity_ref(),
                 data,

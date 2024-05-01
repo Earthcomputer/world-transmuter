@@ -4,15 +4,29 @@ use world_transmuter_engine::*;
 
 const VERSION: u32 = 100;
 
-fn register_mob(id: impl Into<JavaString>) {
+pub(crate) fn register_equipment(
+    version: impl Into<DataVersion>,
+    entity_id: impl Into<JavaString>,
+) {
+    let version = version.into();
+    let entity_id = entity_id.into();
     types::entity_mut().add_walker_for_id(
-        VERSION,
-        id,
+        version,
+        &entity_id,
         DataWalkerMapListPaths::new_multi(
             types::item_stack_ref(),
             vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
         ),
     );
+    types::entity_mut().add_walker_for_id(
+        version,
+        entity_id,
+        DataWalkerMapTypePaths::new(types::item_stack_ref(), "body_armor_item"),
+    );
+}
+
+fn register_mob(id: impl Into<JavaString>) {
+    register_equipment(VERSION, id);
 }
 
 pub(crate) fn register() {
@@ -130,7 +144,7 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "Villager",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
                 if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
                     for recipe in recipes {
@@ -179,7 +193,7 @@ pub(crate) fn register() {
 
     types::structure_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::List(JList::Compound(entities))) = data.get_mut("entities") {
                 for entity in entities {
                     convert_map_in_map(

@@ -1,7 +1,7 @@
 use crate::types;
 use java_string::JavaString;
 use world_transmuter_engine::{
-    convert_map_in_map, data_walker, map_data_converter_func, JCompound, JList, JValue,
+    convert_map_in_map, map_data_converter_func, map_data_walker, JCompound, JList, JValue,
 };
 
 const VERSION: u32 = 106;
@@ -50,7 +50,7 @@ pub(crate) fn register() {
 
     types::untagged_spawner_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::List(JList::Compound(spawn_potentials))) =
                 data.get_mut("SpawnPotentials")
             {

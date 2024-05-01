@@ -521,6 +521,31 @@ fn version_data() -> &'static VersionData {
         v("1.20.3", 3698, VersionType::Release);
         v("1.20.4-rc1", 3699, VersionType::Snapshot);
         v("1.20.4", 3700, VersionType::Release);
+        v("23w51a", 3801, VersionType::Snapshot);
+        v("23w51b", 3802, VersionType::Snapshot);
+        v("24w03a", 3804, VersionType::Snapshot);
+        v("24w03b", 3805, VersionType::Snapshot);
+        v("24w04a", 3806, VersionType::Snapshot);
+        v("24w05a", 3809, VersionType::Snapshot);
+        v("24w05b", 3811, VersionType::Snapshot);
+        v("24w06a", 3815, VersionType::Snapshot);
+        v("24w07a", 3817, VersionType::Snapshot);
+        v("24w09a", 3819, VersionType::Snapshot);
+        v("24w10a", 3821, VersionType::Snapshot);
+        v("24w11a", 3823, VersionType::Snapshot);
+        v("24w14potato", 3824, VersionType::Snapshot);
+        v("24w13a", 3826, VersionType::Snapshot);
+        v("24w14a", 3827, VersionType::Snapshot);
+        v("1.20.5-pre1", 3829, VersionType::Snapshot);
+        v("1.20.5-pre2", 3830, VersionType::Snapshot);
+        v("1.20.5-pre3", 3831, VersionType::Snapshot);
+        v("1.20.5-pre4", 3832, VersionType::Snapshot);
+        v("1.20.5-rc1", 3834, VersionType::Snapshot);
+        v("1.20.5-rc2", 3835, VersionType::Snapshot);
+        v("1.20.5-rc3", 3836, VersionType::Snapshot);
+        v("1.20.5", 3837, VersionType::Release);
+        v("1.20.6-rc1", 3838, VersionType::Snapshot);
+        v("1.20.6", 3839, VersionType::Release);
 
         data
     })
@@ -611,10 +636,10 @@ mod tests {
                 .json()
                 .expect("json error in manifest");
 
-        let time_1_20_4 = datetime!(2023-12-07 0:00 UTC);
+        let time_1_20_6 = datetime!(2024-04-29 0:00 UTC);
         manifest
             .versions
-            .retain(|version| version.release_time >= time_1_20_4);
+            .retain(|version| version.release_time >= time_1_20_6);
 
         let mut missing_versions = Vec::new();
 

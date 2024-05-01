@@ -12,8 +12,8 @@ use tracing::error;
 use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
-    convert_values_in_map, data_walker, get_mut_multi, map_data_converter_func, JCompound, JList,
-    JValue,
+    convert_values_in_map, get_mut_multi, map_data_converter_func, map_data_walker, JCompound,
+    JList, JValue,
 };
 
 const VERSION: u32 = 2832;
@@ -498,7 +498,7 @@ pub(crate) fn register() {
 
     types::world_gen_settings_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(dimensions)) = data.get_mut("dimensions") else {
                 return;
             };
@@ -624,7 +624,7 @@ pub(crate) fn register() {
 
     types::chunk_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };

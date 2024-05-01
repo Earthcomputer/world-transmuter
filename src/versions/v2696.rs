@@ -1,4 +1,4 @@
-use crate::helpers::rename::{rename_block_and_fix_jigsaw, rename_item};
+use crate::helpers::rename::{rename_block, rename_item};
 use crate::static_string_mc_map;
 
 const VERSION: u32 = 2696;
@@ -29,7 +29,7 @@ pub(crate) fn register() {
     rename_item(VERSION, |name| {
         renames().get(name).map(|&str| str.to_owned())
     });
-    rename_block_and_fix_jigsaw(VERSION, |name| {
+    rename_block(VERSION, |name| {
         renames().get(name).map(|&str| str.to_owned())
     });
 }

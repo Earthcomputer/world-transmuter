@@ -1,20 +1,12 @@
 use crate::helpers::rename::{rename_advancement, rename_recipe, simple_rename};
 use crate::types;
-use world_transmuter_engine::{
-    convert_map_in_map, data_walker, DataWalkerMapListPaths, JList, JValue,
-};
+use crate::versions::v100;
+use world_transmuter_engine::{convert_map_in_map, map_data_walker, JList, JValue};
 
 const VERSION: u32 = 2100;
 
 fn register_mob(id: &str) {
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        id,
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, id);
 }
 
 pub(crate) fn register() {
@@ -34,7 +26,7 @@ pub(crate) fn register() {
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:beehive",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::List(JList::Compound(bees))) = data.get_mut("Bees") {
                 for bee in bees {
                     convert_map_in_map(

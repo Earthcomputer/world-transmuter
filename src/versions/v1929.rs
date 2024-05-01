@@ -1,6 +1,7 @@
 use crate::types;
+use crate::versions::v100;
 use world_transmuter_engine::{
-    convert_map_in_map, convert_map_list_in_map, data_walker, JList, JValue,
+    convert_map_in_map, convert_map_list_in_map, map_data_walker, JValue,
 };
 
 const VERSION: u32 = 1929;
@@ -9,7 +10,7 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:wandering_trader",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             convert_map_list_in_map(
                 types::item_stack_ref(),
                 data,
@@ -19,53 +20,21 @@ pub(crate) fn register() {
             );
 
             if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
-                if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
-                    for recipe in recipes {
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "buy",
-                            from_version,
-                            to_version,
-                        );
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "buyB",
-                            from_version,
-                            to_version,
-                        );
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "sell",
-                            from_version,
-                            to_version,
-                        );
-                    }
-                }
+                convert_map_list_in_map(
+                    types::villager_trade_ref(),
+                    offers,
+                    "Recipes",
+                    from_version,
+                    to_version,
+                );
             }
-
-            convert_map_list_in_map(
-                types::item_stack_ref(),
-                data,
-                "ArmorItems",
-                from_version,
-                to_version,
-            );
-            convert_map_list_in_map(
-                types::item_stack_ref(),
-                data,
-                "HandItems",
-                from_version,
-                to_version,
-            );
         }),
     );
+    v100::register_equipment(VERSION, "minecraft:wandering_trader");
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:trader_llama",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             convert_map_in_map(
                 types::item_stack_ref(),
                 data,
@@ -88,20 +57,7 @@ pub(crate) fn register() {
                 from_version,
                 to_version,
             );
-            convert_map_list_in_map(
-                types::item_stack_ref(),
-                data,
-                "ArmorItems",
-                from_version,
-                to_version,
-            );
-            convert_map_list_in_map(
-                types::item_stack_ref(),
-                data,
-                "HandItems",
-                from_version,
-                to_version,
-            );
         }),
     );
+    v100::register_equipment(VERSION, "minecraft:trader_llama");
 }

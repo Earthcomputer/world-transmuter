@@ -1,6 +1,7 @@
 use crate::types;
 use world_transmuter_engine::{
-    convert_map_in_map, data_walker, map_data_converter_func, DataWalkerMapListPaths, JList, JValue,
+    convert_map_in_map, map_data_converter_func, map_data_walker, DataWalkerMapListPaths, JList,
+    JValue,
 };
 
 const VERSION: u32 = 135;
@@ -30,7 +31,7 @@ pub(crate) fn register() {
     );
     types::player_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::Compound(root_vehicle)) = data.get_mut("RootVehicle") {
                 convert_map_in_map(
                     types::entity_ref(),

@@ -3,7 +3,7 @@ use crate::types;
 use java_string::JavaStr;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use tracing::error;
+use tracing::{error, warn};
 use world_transmuter_engine::{get_mut_multi, map_data_converter_func, JCompound, JList, JValue};
 
 const VERSION: u32 = 2970;
@@ -186,6 +186,7 @@ pub(crate) fn register() {
                     }
 
                     let Some(remapped) = get_structure_converted(&key[..], &biome_counts) else {
+                        warn!("Encountered unknown structure in dataconverter: {key}");
                         continue;
                     };
                     value.insert("id", remapped.to_owned());
@@ -208,6 +209,7 @@ pub(crate) fn register() {
                     }
 
                     let Some(remapped) = get_structure_converted(&key[..], &biome_counts) else {
+                        warn!("Encountered unknown structure reference in dataconverter: {key}");
                         continue;
                     };
                     new_references.insert(remapped, value);

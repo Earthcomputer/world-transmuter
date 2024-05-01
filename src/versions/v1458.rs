@@ -1,5 +1,5 @@
+use crate::helpers::components::make_literal_component;
 use crate::types;
-use java_string::format_java;
 use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 1458;
@@ -25,19 +25,17 @@ pub(crate) fn register() {
             if let Some(JValue::Compound(tag)) = data.get_mut("tag") {
                 if let Some(JValue::Compound(display)) = tag.get_mut("display") {
                     if let Some(JValue::String(name)) = display.get_mut("Name") {
-                        let new_name = format_java!(
-                            "{{\"text\":\"{}\"}}",
-                            name.replace('\\', "\\\\").replace('"', "\\\"")
-                        );
-                        *name = new_name;
-                    } else if let Some(JValue::String(loc_name)) = display.get("LocName") {
+                        *name = make_literal_component(name);
+                    }
+                    /* In 1.20.5, Mojang removed this branch (ItemCustomNameToComponentFix) */
+                    /* else if let Some(JValue::String(loc_name)) = display.get("LocName") {
                         let new_name = format!(
                             "{{\"translate\":\"{}\"}}",
                             loc_name.replace('\\', "\\\\").replace('"', "\\\"")
                         );
                         display.remove("LocName");
                         display.insert("Name", new_name);
-                    }
+                    } */
                 }
             }
         }),
@@ -55,11 +53,7 @@ pub(super) fn update_custom_name(data: &mut JCompound) {
         if custom_name.is_empty() {
             data.remove("CustomName");
         } else {
-            let new_name = format_java!(
-                "{{\"text\":\"{}\"}}",
-                custom_name.replace('\\', "\\\\").replace('"', "\\\"")
-            );
-            *custom_name = new_name;
+            *custom_name = make_literal_component(custom_name);
         }
     }
 }

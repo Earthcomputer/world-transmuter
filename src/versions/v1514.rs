@@ -1,5 +1,5 @@
+use crate::helpers::components::make_literal_component;
 use crate::types;
-use java_string::format_java;
 use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 1514;
@@ -9,11 +9,7 @@ pub(crate) fn register() {
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(JValue::String(display_name)) = data.get_mut("DisplayName") {
-                let update = format_java!(
-                    "{{\"text\":\"{}\"}}",
-                    display_name.replace('\\', "\\\\").replace('"', "\\\"")
-                );
-                *display_name = update;
+                *display_name = make_literal_component(display_name);
             }
 
             if !matches!(data.get("RenderType"), Some(JValue::String(_))) {
@@ -30,11 +26,7 @@ pub(crate) fn register() {
         VERSION,
         map_data_converter_func(|data, _from_version, _to_version| {
             if let Some(JValue::String(display_name)) = data.get_mut("DisplayName") {
-                let update = format_java!(
-                    "{{\"text\":\"{}\"}}",
-                    display_name.replace('\\', "\\\\").replace('"', "\\\"")
-                );
-                *display_name = update;
+                *display_name = make_literal_component(display_name);
             }
         }),
     );

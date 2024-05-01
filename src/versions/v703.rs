@@ -1,4 +1,5 @@
 use crate::types;
+use crate::versions::v100;
 use world_transmuter_engine::{
     map_data_converter_func, DataWalkerMapListPaths, DataWalkerMapTypePaths,
 };
@@ -28,14 +29,7 @@ pub(crate) fn register() {
             vec!["ArmorItem".to_owned(), "SaddleItem".to_owned()],
         ),
     );
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        "Horse",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, "Horse");
 
     types::entity_mut().add_walker_for_id(
         VERSION,
@@ -45,15 +39,9 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "Donkey",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec![
-                "Items".to_owned(),
-                "ArmorItems".to_owned(),
-                "HandItems".to_owned(),
-            ],
-        ),
+        DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
     );
+    v100::register_equipment(VERSION, "Donkey");
 
     types::entity_mut().add_walker_for_id(
         VERSION,
@@ -63,41 +51,21 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "Mule",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec![
-                "Items".to_owned(),
-                "ArmorItems".to_owned(),
-                "HandItems".to_owned(),
-            ],
-        ),
+        DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
     );
+    v100::register_equipment(VERSION, "Mule");
 
     types::entity_mut().add_walker_for_id(
         VERSION,
         "ZombieHorse",
         DataWalkerMapTypePaths::new(types::item_stack_ref(), "SaddleItem"),
     );
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        "ZombieHorse",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, "ZombieHorse");
 
     types::entity_mut().add_walker_for_id(
         VERSION,
         "SkeletonHorse",
         DataWalkerMapTypePaths::new(types::item_stack_ref(), "SaddleItem"),
     );
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        "SkeletonHorse",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, "SkeletonHorse");
 }

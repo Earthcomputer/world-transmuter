@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 use world_transmuter_engine::{
-    convert_object_in_map, DataVersion, DataWalker, JCompound, JValue, ObjectDataType,
+    convert_object_in_map, DataVersion, JCompound, JValue, MapDataWalker, ObjectDataType,
 };
 
 pub(crate) struct GameEventListenerWalker<'a> {
@@ -13,7 +13,7 @@ impl<'a> GameEventListenerWalker<'a> {
     }
 }
 
-impl<'a> DataWalker for GameEventListenerWalker<'a> {
+impl<'a> MapDataWalker for GameEventListenerWalker<'a> {
     fn walk(&self, data: &mut JCompound, from_version: DataVersion, to_version: DataVersion) {
         if let Some(JValue::Compound(listener)) = data.get_mut("listener") {
             if let Some(JValue::Compound(event)) = listener.get_mut("event") {

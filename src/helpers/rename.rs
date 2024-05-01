@@ -1,5 +1,5 @@
 use crate::types;
-use java_string::{JavaCodePoint, JavaStr, JavaString};
+use java_string::{JavaStr, JavaString};
 use world_transmuter_engine::{
     map_data_converter_func, value_data_converter_func, AbstractValueDataType, DataVersion,
     JCompound, JList, JValue, JValueMut,
@@ -74,33 +74,22 @@ pub(crate) fn rename_block(
             }
         }),
     );
-}
-
-pub(crate) fn rename_block_and_fix_jigsaw(
-    version: impl Into<DataVersion>,
-    renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
-) {
-    let version = version.into();
-    rename_block(version, renamer);
-
-    types::tile_entity_mut().add_converter_for_id(
-        "minecraft:jigsaw",
+    types::flat_block_state_mut().add_structure_converter(
         version,
-        map_data_converter_func(move |data, _from_version, _to_version| {
-            if let Some(JValue::String(final_state)) = data.get_mut("final_state") {
-                if !final_state.is_empty() {
-                    let state_name_end = if let Some(nbt_start) = final_state[1..]
-                        .find(&[JavaCodePoint::from_char('['), JavaCodePoint::from_char('{')][..])
-                    {
-                        nbt_start + 1
-                    } else {
-                        final_state.len()
-                    };
-
-                    if let Some(mut converted) = renamer(&final_state[..state_name_end]) {
-                        converted.push_java_str(&final_state[state_name_end..]);
-                        *final_state = converted;
-                    }
+        value_data_converter_func(move |data, _from_version, _to_version| {
+            let JValueMut::String(string) = data else {
+                return;
+            };
+            if string.is_empty() {
+                return;
+            }
+            if let Some(nbt_index) = string.find(['[', '{'].as_slice()) {
+                if let Some(new_name) = renamer(&string[..nbt_index]) {
+                    string.replace_range_java(..nbt_index, &new_name);
+                }
+            } else {
+                if let Some(new_name) = renamer(string) {
+                    **string = new_name;
                 }
             }
         }),
@@ -131,6 +120,48 @@ pub(crate) fn rename_advancement(
         version,
         map_data_converter_func(move |data, _from_version, _to_version| {
             world_transmuter_engine::rename_keys(data, renamer);
+        }),
+    );
+}
+
+pub(crate) fn rename_attribute(
+    version: impl Into<DataVersion>,
+    renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
+) {
+    let version = version.into();
+
+    let entity_converter =
+        move |data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion| {
+            if let Some(JValue::List(JList::Compound(attributes))) = data.get_mut("Attributes") {
+                for attribute in attributes {
+                    if let Some(JValue::String(name)) = attribute.get_mut("Name") {
+                        if let Some(new_name) = renamer(name) {
+                            *name = new_name;
+                        }
+                    }
+                }
+            }
+        };
+
+    types::entity_mut().add_structure_converter(version, map_data_converter_func(entity_converter));
+    types::player_mut().add_structure_converter(version, map_data_converter_func(entity_converter));
+
+    types::item_stack_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            if let Some(JValue::List(JList::Compound(attribute_modifiers))) =
+                data.get_mut("AttributeModifiers")
+            {
+                for attribute_modifier in attribute_modifiers {
+                    if let Some(JValue::String(attribute_name)) =
+                        attribute_modifier.get_mut("AttributeName")
+                    {
+                        if let Some(new_name) = renamer(attribute_name) {
+                            *attribute_name = new_name;
+                        }
+                    }
+                }
+            }
         }),
     );
 }

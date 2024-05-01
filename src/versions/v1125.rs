@@ -2,7 +2,9 @@ use crate::helpers::hooks::DataHookValueTypeEnforceNamespaced;
 use crate::helpers::rename::rename_keys_in_map;
 use crate::types;
 use valence_nbt::{compound, jcompound};
-use world_transmuter_engine::{data_walker, get_mut_multi, map_data_converter_func, JList, JValue};
+use world_transmuter_engine::{
+    get_mut_multi, map_data_converter_func, map_data_walker, JList, JValue,
+};
 
 const VERSION: u32 = 1125;
 const BED_BLOCK_ID: i8 = 26;
@@ -69,7 +71,7 @@ pub(crate) fn register() {
 
     types::advancements_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::Compound(adventuring_time)) =
                 data.get_mut("minecraft:adventure/adventuring_time")
             {

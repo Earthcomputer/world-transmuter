@@ -1,11 +1,14 @@
 use crate::helpers::hooks::DataHookEnforceNamespacedId;
+use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::{static_string_map, static_string_mc_map, types};
 use java_string::{JavaStr, JavaString};
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
 use tracing::warn;
 use world_transmuter_engine::{
-    convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map, data_walker,
-    get_mut_multi, map_data_converter_func, AbstractMapDataType, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JValue,
+    convert_map_in_map, convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
+    get_mut_multi, map_data_converter_func, map_data_walker, AbstractMapDataType, DataVersion,
+    DataWalkerMapListPaths, DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JValue,
 };
 
 const VERSION: u32 = 704;
@@ -158,6 +161,61 @@ static_string_mc_map! {
     }
 }
 
+static ITEM_ID_TO_ENTITY_ID: OnceLock<McNamespaceMap<BTreeMap<DataVersion, &JavaStr>>> =
+    OnceLock::new();
+
+fn item_id_to_entity_id(
+) -> &'static McNamespaceMap<'static, BTreeMap<DataVersion, &'static JavaStr>> {
+    ITEM_ID_TO_ENTITY_ID.get_or_init(|| {
+        macro_rules! make_map {
+            ($($item_id:literal => {$($version:expr => $entity_id:literal),* $(,)*}),* $(,)?) => {
+                let mut map = McNamespaceMap::new();
+                $(
+                    map.insert_mc(JavaStr::from_str($item_id), {
+                        let mut value = BTreeMap::new();
+                        $(
+                            value.insert($version.into(), JavaStr::from_str($entity_id));
+                        )*
+                        value
+                    });
+                )*
+                map
+            };
+        }
+
+        make_map! {
+            "armor_stand" => {99 => "ArmorStand", 705 => "minecraft:armor_stand"},
+            "painting" => {99 => "Painting", 705 => "minecraft:painting"},
+            "boat" => {99 => "Boat", 705 => "minecraft:boat"},
+            "oak_boat" => {705 => "minecraft:boat"},
+            "oak_chest_boat" => {705 => "minecraft:chest_boat"},
+            "spruce_boat" => {705 => "minecraft:boat"},
+            "spruce_chest_boat" => {705 => "minecraft:chest_boat"},
+            "birch_boat" => {705 => "minecraft:boat"},
+            "birch_chest_boat" => {705 => "minecraft:chest_boat"},
+            "jungle_boat" => {705 => "minecraft:boat"},
+            "jungle_chest_boat" => {705 => "minecraft:chest_boat"},
+            "acacia_boat" => {705 => "minecraft:boat"},
+            "acacia_chest_boat" => {705 => "minecraft:chest_boat"},
+            "cherry_boat" => {705 => "minecraft:boat"},
+            "cherry_chest_boat" => {705 => "minecraft:chest_boat"},
+            "dark_oak_boat" => {705 => "minecraft:boat"},
+            "dark_oak_chest_boat" => {705 => "minecraft:chest_boat"},
+            "mangrove_boat" => {705 => "minecraft:boat"},
+            "mangrove_chest_boat" => {705 => "minecraft:chest_boat"},
+            "bamboo_raft" => {705 => "minecraft:boat"},
+            "bamboo_chest_raft" => {705 => "minecraft:chest_boat"},
+            "minecart" => {99 => "MinecartRideable", 705 => "minecraft:minecart"},
+            "chest_minecart" => {99 => "MinecartChest", 705 => "minecraft:chest_minecart"},
+            "furnace_minecart" => {99 => "MinecartFurnace", 705 => "minecraft:furnace_minecart"},
+            "tnt_minecart" => {99 => "MinecartTNT", 705 => "minecraft:tnt_minecart"},
+            "hopper_minecart" => {99 => "MinecartHopper", 705 => "minecraft:hopper_minecart"},
+            "item_frame" => {99 => "ItemFrame", 705 => "minecraft:item_frame"},
+            "glow_item_frame" => {705 => "minecraft:glow_item_frame"},
+        }
+    })
+}
+
 static_string_map! {
     TILE_ID_UPDATE, tile_id_update, {
         "Airportal" => "minecraft:end_portal",
@@ -198,6 +256,18 @@ pub(crate) fn register() {
         }),
     );
 
+    types::tile_entity_mut().add_structure_walker(
+        VERSION,
+        map_data_walker(move |data, from_version, to_version| {
+            convert_map_in_map(
+                types::data_components_ref(),
+                data,
+                "components",
+                from_version,
+                to_version,
+            );
+        }),
+    );
     register_inventory("minecraft:furnace");
     register_inventory("minecraft:chest");
     types::tile_entity_mut().add_walker_for_id(
@@ -210,7 +280,7 @@ pub(crate) fn register() {
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:mob_spawner",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             types::untagged_spawner().convert(data, from_version, to_version);
         }),
     );
@@ -224,7 +294,7 @@ pub(crate) fn register() {
 
     types::item_stack_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             convert_object_in_map(types::item_name_ref(), data, "id", from_version, to_version);
             let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
             let item_id = item_id.map(|v| &*v);
@@ -247,54 +317,43 @@ pub(crate) fn register() {
                 from_version,
                 to_version,
             );
+            convert_map_list_in_map(
+                types::item_stack_ref(),
+                tag,
+                "ChargedProjectiles",
+                from_version,
+                to_version,
+            );
 
             if let Some(JValue::Compound(entity_tag)) = tag.get_mut("EntityTag") {
-                let entity_id = match item_id_str.map(JavaStr::as_bytes) {
-                    // The check for version id is removed here. For whatever reason, the legacy
-                    // data converters used entity id "minecraft:armor_stand" when version was greater-than 514,
-                    // but entity ids were not namespaced until V705! So somebody fucked up the legacy converters.
-                    // DFU agrees with my analysis here, it will only set the entityId here to the namespaced variant
-                    // with the V705 schema.
-                    Some(b"minecraft:armor_stand") => Some(if from_version.get_version() < 705 {
-                        JavaStr::from_str("ArmorStand")
-                    } else {
-                        JavaStr::from_str("minecraft:armor_stand")
-                    }),
-                    // add missing item_frame entity id
-                    // version check is same for armorstand, as both were namespaced at the same time
-                    Some(b"minecraft:item_frame") => Some(if from_version.get_version() < 705 {
-                        JavaStr::from_str("ItemFrame")
-                    } else {
-                        JavaStr::from_str("minecraft:item_frame")
-                    }),
-                    // add missing glow_item_frame entity id
-                    Some(b"minecraft:glow_item_frame") => {
-                        Some(JavaStr::from_str("minecraft:glow_item_frame"))
-                    }
-                    // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
-                    // bothered to write in logic to set the sub entity id, so we have to.
-                    // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
-                    Some(_) => {
-                        item_id_str
-                            .unwrap()
-                            .strip_suffix("_spawn_egg")
-                            .or_else(|| match entity_tag.get("id") {
+                let entity_id = match item_id_str {
+                    Some(item_id_str) if item_id_str.contains("_spawn_egg") => {
+                        // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
+                        // bothered to write in logic to set the sub entity id, so we have to.
+                        // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
+                        item_id_str.strip_suffix("_spawn_egg").or_else(|| {
+                            match entity_tag.get("id") {
                                 Some(JValue::String(id)) => Some(id),
                                 _ => None,
-                            })
+                            }
+                        })
                     }
-                    None => match entity_tag.get("id") {
+                    Some(item_id_str) => item_id_to_entity_id()
+                        .get(item_id_str)
+                        .and_then(|mapping_by_version| {
+                            mapping_by_version.range(..=from_version).next_back()
+                        })
+                        .map(|(_, mapped)| *mapped),
+                    _ => match entity_tag.get("id") {
                         Some(JValue::String(id)) => Some(&id[..]),
                         _ => None,
                     },
                 };
 
-                let remove_id = if let Some(entity_id) = entity_id {
-                    let remove_id = !matches!(entity_tag.get("id"), Some(JValue::String(_)));
-                    if remove_id {
+                if let Some(entity_id) = entity_id {
+                    if !matches!(entity_tag.get("id"), Some(JValue::String(_))) {
                         entity_tag.insert("id", entity_id.to_owned());
                     }
-                    remove_id
                 } else {
                     if item_id_str != Some(JavaStr::from_str("minecraft:air")) {
                         warn!(
@@ -302,24 +361,19 @@ pub(crate) fn register() {
                             item_id
                         );
                     }
-                    false
-                };
+                }
 
                 types::entity().convert(entity_tag, from_version, to_version);
-
-                if remove_id {
-                    entity_tag.remove("id");
-                }
             }
 
             if let Some(JValue::Compound(block_entity_tag)) = tag.get_mut("BlockEntityTag") {
                 let entity_id =
                     item_id_str.and_then(|id| item_id_to_tile_entity_id().get(id).copied());
 
-                let remove_id = if let Some(entity_id) = entity_id {
-                    let remove_id = !matches!(block_entity_tag.get("id"), Some(JValue::String(_)));
-                    block_entity_tag.insert("id", entity_id);
-                    remove_id
+                if let Some(entity_id) = entity_id {
+                    if !matches!(block_entity_tag.get("id"), Some(JValue::String(_))) {
+                        block_entity_tag.insert("id", entity_id);
+                    }
                 } else {
                     if item_id_str != Some(JavaStr::from_str("minecraft:air")) {
                         warn!(
@@ -327,14 +381,9 @@ pub(crate) fn register() {
                             item_id
                         );
                     }
-                    false
-                };
+                }
 
                 types::tile_entity().convert(block_entity_tag, from_version, to_version);
-
-                if remove_id {
-                    block_entity_tag.remove("id");
-                }
             }
 
             convert_object_list_in_map(

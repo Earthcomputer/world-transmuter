@@ -5,13 +5,14 @@ use crate::helpers::mc_namespace_map::McNamespaceMap;
 use crate::helpers::rename::rename_keys_in_map;
 use crate::helpers::resource_location::ResourceLocation;
 use crate::helpers::{block_flattening_v1450, flatten_item_stack_v1451, item_name_v102};
+use crate::versions::v100;
 use crate::{static_string_mc_map, types};
 use java_string::{format_java, JavaStr, JavaString};
 use std::sync::OnceLock;
 use valence_nbt::{compound, jcompound};
 use world_transmuter_engine::{
-    convert_map_in_map, convert_map_list_in_map, convert_object_in_map, data_walker,
-    map_data_converter_func, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
+    convert_map_in_map, convert_map_list_in_map, convert_object_in_map, map_data_converter_func,
+    map_data_walker, AbstractMapDataType, DataVersion, DataWalkerMapListPaths,
     DataWalkerMapTypePaths, JCompound, JList, JValue, MapDataConverterFunc, MapDataHook,
 };
 
@@ -343,7 +344,7 @@ pub(crate) fn register() {
 
     types::chunk_mut().add_structure_walker(
         DataVersion::new(VERSION, 1),
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
@@ -445,14 +446,7 @@ pub(crate) fn register() {
         "minecraft:arrow",
         DataWalkerMapTypePaths::new(types::block_state_ref(), "inBlockState"),
     );
-    types::entity_mut().add_walker_for_id(
-        DataVersion::new(VERSION, 3),
-        "minecraft:enderman",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(DataVersion::new(VERSION, 3), "minecraft:enderman");
     types::entity_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:enderman",
@@ -521,7 +515,7 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         DataVersion::new(VERSION, 3),
         "minecraft:spawner_minecart",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             types::untagged_spawner().convert(data, from_version, to_version);
         }),
     );
@@ -736,7 +730,7 @@ pub(crate) fn register() {
 
     types::stats_mut().add_structure_walker(
         DataVersion::new(VERSION, 6),
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::Compound(stats)) = data.get_mut("stats") {
                 rename_keys_in_map(
                     types::block_name_ref(),
@@ -861,7 +855,7 @@ pub(crate) fn register() {
 
     types::objective_mut().add_structure_walker(
         DataVersion::new(VERSION, 6),
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(criteria_type)) = data.get_mut("CriteriaType") else {
                 return;
             };
@@ -964,7 +958,7 @@ pub(crate) fn register() {
 
     types::structure_feature_mut().add_structure_walker(
         DataVersion::new(VERSION, 7),
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::List(JList::Compound(children))) = data.get_mut("Children") {
                 for child in children {
                     convert_map_in_map(

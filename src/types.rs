@@ -1,7 +1,7 @@
 use std::cell::Cell;
 use std::mem::MaybeUninit;
 use std::sync::{Once, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError};
-use world_transmuter_engine::{IdDataType, MapDataType, ObjectDataType};
+use world_transmuter_engine::{DynamicDataType, IdDataType, MapDataType, ObjectDataType};
 
 static mut TYPES: MaybeUninit<MinecraftTypes> = MaybeUninit::uninit();
 thread_local! {
@@ -95,6 +95,10 @@ define_minecraft_types! {
     tile_entity tile_entity_mut tile_entity_ref: IdDataType("TileEntity"),
     item_stack item_stack_mut item_stack_ref: IdDataType("ItemStack"),
     block_state block_state_mut block_state_ref: MapDataType("BlockName"),
+    flat_block_state flat_block_state_mut flat_block_state_ref: ObjectDataType("FlatBlockState"),
+    data_components data_components_mut data_components_ref: MapDataType("DataComponents"),
+    villager_trade villager_trade_mut villager_trade_ref: MapDataType("VillagerTrade"),
+    particle particle_mut particle_ref: DynamicDataType("Particle"),
     entity_name entity_name_mut entity_name_ref: ObjectDataType("EntityName"),
     entity entity_mut entity_ref: IdDataType("Entity"),
     block_name block_name_mut block_name_ref: ObjectDataType("BlockName"),
@@ -115,4 +119,7 @@ define_minecraft_types! {
     saved_data_structure_feature_indices saved_data_structure_feature_indices_mut saved_data_structure_feature_indices_ref: MapDataType("SavedData/StructureFeatureIndices"),
     saved_data_map_data saved_data_map_data_mut saved_data_map_data_ref: MapDataType("SavedData/MapData"),
     saved_data_raids saved_data_raids_mut saved_data_raids_ref: MapDataType("SavedData/Raids"),
+    saved_data_command_storage saved_data_command_strage_mut saved_data_command_storage_ref: MapDataType("SavedData/CommandStorage"),
+    saved_data_forced_chunks saved_data_forced_chunks_mut saved_data_forced_chunks_ref: MapDataType("SavedData/Chunks"),
+    saved_data_map_index saved_data_map_index_mut saved_data_map_index_ref: MapDataType("SavedData/IdCounts"),
 }

@@ -1,7 +1,7 @@
 use crate::types;
 use world_transmuter_engine::{
     convert_map_in_map, convert_map_list_in_map, convert_object_in_map, convert_values_in_map,
-    data_walker, map_data_converter_func, JList, JValue,
+    map_data_converter_func, map_data_walker, JList, JValue,
 };
 
 const VERSION: u32 = 1466;
@@ -86,7 +86,7 @@ pub(crate) fn register() {
 
     types::chunk_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
@@ -143,7 +143,7 @@ pub(crate) fn register() {
     );
     types::structure_feature_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::List(JList::Compound(children))) = data.get_mut("Children") {
                 for child in children {
                     convert_map_in_map(

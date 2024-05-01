@@ -1,5 +1,6 @@
 use crate::types;
-use world_transmuter_engine::{map_data_converter_func, DataWalkerMapListPaths};
+use crate::versions::v100;
+use world_transmuter_engine::map_data_converter_func;
 
 const VERSION: u32 = 2707;
 
@@ -13,12 +14,5 @@ pub(crate) fn register() {
         }),
     );
 
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        "minecraft:marker",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    ); // ?????????????
+    v100::register_equipment(VERSION, "minecraft:marker");
 }

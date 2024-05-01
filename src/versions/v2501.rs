@@ -1,7 +1,7 @@
 use crate::helpers::rename::rename_keys_in_map;
 use crate::types;
 use world_transmuter_engine::{
-    convert_map_list_in_map, data_walker, map_data_converter_func, JCompound, JValue,
+    convert_map_list_in_map, map_data_converter_func, map_data_walker, JCompound, JValue,
 };
 
 const VERSION: u32 = 2501;
@@ -44,7 +44,7 @@ fn register_furnace(id: &str) {
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
         id,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             convert_map_list_in_map(
                 types::item_stack_ref(),
                 data,

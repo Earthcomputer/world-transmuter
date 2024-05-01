@@ -1,5 +1,5 @@
+use crate::helpers::components::make_literal_component;
 use crate::types;
-use java_string::format_java;
 use world_transmuter_engine::{map_data_converter_func, JList, JValue};
 
 const VERSION: u32 = 1803;
@@ -18,11 +18,7 @@ pub(crate) fn register() {
                 return;
             };
             for lore in lore {
-                let new_lore = format_java!(
-                    "{{\"text\":\"{}\"}}",
-                    lore.replace('\\', "\\\\").replace('"', "\\\"")
-                );
-                *lore = new_lore;
+                *lore = make_literal_component(lore);
             }
         }),
     );

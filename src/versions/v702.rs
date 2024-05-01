@@ -1,6 +1,9 @@
 use crate::types;
+use crate::versions::v100;
 use java_string::JavaString;
-use world_transmuter_engine::{map_data_converter_func, DataWalkerMapListPaths};
+use world_transmuter_engine::{
+    convert_map_list_in_map, map_data_converter_func, map_data_walker, JValue,
+};
 
 const VERSION: u32 = 702;
 
@@ -25,16 +28,24 @@ pub(crate) fn register() {
     );
 
     register_mob("ZombieVillager");
+    types::entity_mut().add_walker_for_id(
+        VERSION,
+        "ZombieVillager",
+        map_data_walker(move |data, from_version, to_version| {
+            if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
+                convert_map_list_in_map(
+                    types::villager_trade_ref(),
+                    offers,
+                    "Recipes",
+                    from_version,
+                    to_version,
+                );
+            }
+        }),
+    );
     register_mob("Husk");
 }
 
 fn register_mob(id: impl Into<JavaString>) {
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        id,
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, id);
 }

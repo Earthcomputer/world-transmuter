@@ -1,10 +1,11 @@
 use crate::helpers::hooks::{DataHookEnforceNamespacedId, DataHookValueTypeEnforceNamespaced};
 use crate::helpers::rename::rename_entity;
+use crate::versions::v100;
 use crate::{static_string_map, types};
 use java_string::JavaString;
 use world_transmuter_engine::{
-    convert_map_in_map, data_walker, AbstractMapDataType, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JList, JValue,
+    convert_map_list_in_map, map_data_walker, AbstractMapDataType, DataWalkerMapListPaths,
+    DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JValue,
 };
 
 const VERSION: u32 = 705;
@@ -94,6 +95,11 @@ pub(crate) fn register() {
         entity_id_update().get(id).copied().map(|id| id.to_owned())
     });
 
+    types::entity_mut().add_walker_for_id(
+        VERSION,
+        "minecraft:area_effect_cloud",
+        DataWalkerObjectTypePaths::new(types::particle_ref(), "Particle"),
+    );
     register_mob("minecraft:armor_stand");
     register_throwable_projectile("minecraft:arrow");
     register_mob("minecraft:bat");
@@ -114,15 +120,9 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:donkey",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec![
-                "Items".to_owned(),
-                "ArmorItems".to_owned(),
-                "HandItems".to_owned(),
-            ],
-        ),
+        DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
     );
+    v100::register_equipment(VERSION, "minecraft:donkey");
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:donkey",
@@ -173,14 +173,7 @@ pub(crate) fn register() {
         "minecraft:hopper_minecart",
         DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
     );
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        "minecraft:horse",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, "minecraft:horse");
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:horse",
@@ -210,15 +203,9 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:mule",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec![
-                "Items".to_owned(),
-                "ArmorItems".to_owned(),
-                "HandItems".to_owned(),
-            ],
-        ),
+        DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
     );
+    v100::register_equipment(VERSION, "minecraft:mule");
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:mule",
@@ -263,7 +250,7 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:spawner_minecart",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             types::untagged_spawner().convert(data, from_version, to_version);
         }),
     );
@@ -291,36 +278,19 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:villager",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
-                if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
-                    for recipe in recipes {
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "buy",
-                            from_version,
-                            to_version,
-                        );
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "buyB",
-                            from_version,
-                            to_version,
-                        );
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "sell",
-                            from_version,
-                            to_version,
-                        );
-                    }
-                }
+                convert_map_list_in_map(
+                    types::villager_trade_ref(),
+                    offers,
+                    "Recipes",
+                    from_version,
+                    to_version,
+                );
             }
         }),
     );
+    v100::register_equipment(VERSION, "minecraft:villager");
     register_mob("minecraft:villager_golem");
     register_mob("minecraft:witch");
     register_mob("minecraft:wither");
@@ -329,14 +299,7 @@ pub(crate) fn register() {
     register_mob("minecraft:wolf");
     register_throwable_projectile("minecraft:xp_bottle");
     register_mob("minecraft:zombie");
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        "minecraft:zombie_horse",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, "minecraft:zombie_horse");
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:zombie_horse",
@@ -348,15 +311,9 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:llama",
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec![
-                "Items".to_owned(),
-                "ArmorItems".to_owned(),
-                "HandItems".to_owned(),
-            ],
-        ),
+        DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
     );
+    v100::register_equipment(VERSION, "minecraft:llama");
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:llama",
@@ -376,14 +333,7 @@ pub(crate) fn register() {
 }
 
 fn register_mob(id: impl Into<JavaString>) {
-    types::entity_mut().add_walker_for_id(
-        VERSION,
-        id,
-        DataWalkerMapListPaths::new_multi(
-            types::item_stack_ref(),
-            vec!["ArmorItems".to_owned(), "HandItems".to_owned()],
-        ),
-    );
+    v100::register_equipment(VERSION, id);
 }
 
 fn register_throwable_projectile(id: impl Into<JavaString>) {

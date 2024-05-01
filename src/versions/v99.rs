@@ -127,7 +127,7 @@ pub(crate) fn register() {
         types::entity_mut().add_walker_for_id(
             VERSION,
             minecart_type,
-            data_walker(move |data, from_version, to_version| {
+            map_data_walker(move |data, from_version, to_version| {
                 types::untagged_spawner().convert(data, from_version, to_version);
             }),
         );
@@ -195,39 +195,38 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "Villager",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             if let Some(JValue::Compound(offers)) = data.get_mut("Offers") {
-                if let Some(JValue::List(JList::Compound(recipes))) = offers.get_mut("Recipes") {
-                    for recipe in recipes {
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "buy",
-                            from_version,
-                            to_version,
-                        );
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "buyB",
-                            from_version,
-                            to_version,
-                        );
-                        convert_map_in_map(
-                            types::item_stack_ref(),
-                            recipe,
-                            "sell",
-                            from_version,
-                            to_version,
-                        );
-                    }
-                }
+                convert_map_list_in_map(
+                    types::villager_trade_ref(),
+                    offers,
+                    "Recipes",
+                    from_version,
+                    to_version,
+                );
             }
         }),
     );
     register_mob("Shulker");
+    types::entity_mut().add_walker_for_id(
+        VERSION,
+        "AreaEffectCloud",
+        DataWalkerObjectTypePaths::new(types::particle_ref(), "Particle"),
+    );
 
     // tile entities
+    types::tile_entity_mut().add_structure_walker(
+        VERSION,
+        map_data_walker(move |data, from_version, to_version| {
+            convert_map_in_map(
+                types::data_components_ref(),
+                data,
+                "components",
+                from_version,
+                to_version,
+            );
+        }),
+    );
 
     // inventories
     register_inventory("Furnace");
@@ -242,7 +241,7 @@ pub(crate) fn register() {
     types::tile_entity_mut().add_walker_for_id(
         VERSION,
         "MobSpawner",
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             types::untagged_spawner().convert(data, from_version, to_version);
         }),
     );
@@ -259,7 +258,7 @@ pub(crate) fn register() {
 
     types::item_stack_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             convert_object_in_map(types::item_name_ref(), data, "id", from_version, to_version);
             let [item_id, tag] = get_mut_multi(data, ["id", "tag"]);
             let item_id = item_id.map(|v| &*v);
@@ -277,6 +276,13 @@ pub(crate) fn register() {
                 from_version,
                 to_version,
             );
+            convert_map_list_in_map(
+                types::item_stack_ref(),
+                tag,
+                "ChargedProjectiles",
+                from_version,
+                to_version,
+            );
 
             if let Some(JValue::Compound(entity_tag)) = tag.get_mut("EntityTag") {
                 let item_id_str = item_id.and_then(get_string_id);
@@ -289,6 +295,7 @@ pub(crate) fn register() {
                     Some(b"minecraft:armor_stand") => Some(JavaStr::from_str("ArmorStand")),
                     // add missing item_frame entity id
                     Some(b"minecraft:item_frame") => Some(JavaStr::from_str("ItemFrame")),
+                    Some(b"minecraft:painting") => Some(JavaStr::from_str("Painting")),
                     _ => match entity_tag.get("id") {
                         Some(JValue::String(id)) => Some(&id[..]),
                         _ => None,
@@ -372,7 +379,7 @@ pub(crate) fn register() {
 
     types::chunk_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(level)) = data.get_mut("Level") else {
                 return;
             };
@@ -412,7 +419,7 @@ pub(crate) fn register() {
 
     types::saved_data_scoreboard_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(data)) = data.get_mut("data") else {
                 return;
             };
@@ -429,7 +436,7 @@ pub(crate) fn register() {
     );
     types::saved_data_structure_feature_indices_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             let Some(JValue::Compound(data)) = data.get_mut("data") else {
                 return;
             };
@@ -437,6 +444,33 @@ pub(crate) fn register() {
                 types::structure_feature_ref(),
                 data,
                 "Features",
+                from_version,
+                to_version,
+            );
+        }),
+    );
+
+    types::villager_trade_mut().add_structure_walker(
+        VERSION,
+        map_data_walker(move |data, from_version, to_version| {
+            convert_map_in_map(
+                types::item_stack_ref(),
+                data,
+                "buy",
+                from_version,
+                to_version,
+            );
+            convert_map_in_map(
+                types::item_stack_ref(),
+                data,
+                "buyB",
+                from_version,
+                to_version,
+            );
+            convert_map_in_map(
+                types::item_stack_ref(),
+                data,
+                "sell",
                 from_version,
                 to_version,
             );

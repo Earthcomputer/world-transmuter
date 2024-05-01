@@ -1,7 +1,7 @@
 use crate::types;
 use world_transmuter_engine::{
     convert_map_list_in_map, convert_object_in_map, convert_object_list_in_map,
-    convert_values_in_map, data_walker, map_data_converter_func, rename_key, JList, JValue,
+    convert_values_in_map, map_data_converter_func, map_data_walker, rename_key, JList, JValue,
 };
 
 const VERSION: u32 = 2842;
@@ -35,7 +35,7 @@ pub(crate) fn register() {
 
     types::chunk_mut().add_structure_walker(
         VERSION,
-        data_walker(move |data, from_version, to_version| {
+        map_data_walker(move |data, from_version, to_version| {
             convert_map_list_in_map(
                 types::entity_ref(),
                 data,

@@ -1,4 +1,5 @@
 use crate::types;
+use crate::versions::v3807;
 use world_transmuter_engine::{map_data_converter_func, JCompound, JValue};
 
 const VERSION: u32 = 3459;
@@ -19,13 +20,13 @@ pub(crate) fn register() {
                 return;
             };
 
-            data.insert(
-                "DragonFight",
-                match end_data.get("DragonFight") {
-                    Some(JValue::Compound(dragon_fight)) => dragon_fight.clone(),
-                    _ => JCompound::new(),
-                },
-            );
+            let mut dragon_fight = match end_data.get("DragonFight") {
+                Some(JValue::Compound(dragon_fight)) => dragon_fight.clone(),
+                _ => JCompound::new(),
+            };
+            v3807::flatten_block_pos(&mut dragon_fight, "ExitPortalLocation");
+
+            data.insert("DragonFight", dragon_fight);
         }),
     );
 }
