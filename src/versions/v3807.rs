@@ -44,7 +44,7 @@ pub(crate) fn register() {
     );
 
     // Step 1
-    types::saved_data_map_data().add_structure_converter(
+    types::saved_data_map_data_mut().add_structure_converter(
         DataVersion::new(VERSION, 1),
         map_data_converter_func(|data, _from_version, _to_version| {
             let Some(JValue::Compound(data)) = data.get_mut("data") else {
