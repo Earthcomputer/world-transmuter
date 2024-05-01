@@ -185,6 +185,40 @@ pub(crate) fn rename_criteria(
     );
 }
 
+pub(crate) fn rename_enchantment(
+    version: impl Into<DataVersion>,
+    renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
+) {
+    types::item_stack_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            let Some(JValue::Compound(tag)) = data.get_mut("tag") else {
+                return;
+            };
+            if let Some(JValue::List(JList::Compound(enchantments))) = tag.get_mut("Enchantments") {
+                for enchantment in enchantments {
+                    if let Some(JValue::String(id)) = enchantment.get_mut("id") {
+                        if let Some(new_id) = renamer(id) {
+                            *id = new_id;
+                        }
+                    }
+                }
+            }
+            if let Some(JValue::List(JList::Compound(enchantments))) =
+                tag.get_mut("StoredEnchantments")
+            {
+                for enchantment in enchantments {
+                    if let Some(JValue::String(id)) = enchantment.get_mut("id") {
+                        if let Some(new_id) = renamer(id) {
+                            *id = new_id;
+                        }
+                    }
+                }
+            }
+        }),
+    );
+}
+
 pub(crate) fn rename_recipe(
     version: impl Into<DataVersion>,
     renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
