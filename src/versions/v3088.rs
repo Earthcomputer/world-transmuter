@@ -42,16 +42,14 @@ impl MapDataConverterFunc for ConverterAddBlendingData {
         let Some(JValue::String(status)) = data.get("Status") else {
             return;
         };
-        let status = ResourceLocation::parse(status)
-            .map_or_else(|_| status.clone(), |rl| rl.to_java_string());
+        let status = ResourceLocation::make_correct(status);
 
         if !statuses_to_skip_blending().contains(&status[..]) {
             data.insert("blending_data", create_blending_data(384, -64));
         } else if let Some(JValue::Compound(below_zero_retrogen)) = data.get("below_zero_retrogen")
         {
             if let Some(JValue::String(real_status)) = below_zero_retrogen.get("target_status") {
-                let real_status = ResourceLocation::parse(real_status)
-                    .map_or_else(|_| real_status.clone(), |rl| rl.to_java_string());
+                let real_status = ResourceLocation::make_correct(real_status);
                 if !statuses_to_skip_blending().contains(&real_status[..]) {
                     data.insert("blending_data", create_blending_data(256, 0));
                 }

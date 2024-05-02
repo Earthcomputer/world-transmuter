@@ -4,8 +4,8 @@ use crate::versions::v100;
 use crate::{static_string_map, types};
 use java_string::JavaString;
 use world_transmuter_engine::{
-    convert_map_list_in_map, map_data_walker, AbstractMapDataType, DataWalkerMapListPaths,
-    DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JValue,
+    convert_map_list_in_map, map_data_walker, AbstractMapDataType, DataWalkerDynamicTypePaths,
+    DataWalkerMapListPaths, DataWalkerMapTypePaths, DataWalkerObjectTypePaths, JValue,
 };
 
 const VERSION: u32 = 705;
@@ -98,7 +98,7 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "minecraft:area_effect_cloud",
-        DataWalkerObjectTypePaths::new(types::particle_ref(), "Particle"),
+        DataWalkerDynamicTypePaths::new(types::particle_ref(), "Particle"),
     );
     register_mob("minecraft:armor_stand");
     register_throwable_projectile("minecraft:arrow");

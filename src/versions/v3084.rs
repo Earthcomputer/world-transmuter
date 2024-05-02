@@ -29,8 +29,7 @@ pub(crate) fn register() {
         VERSION,
         value_data_converter_func(|data, _from_version, _to_version| {
             if let JValueMut::String(data) = data {
-                let corrected_data = ResourceLocation::parse(data)
-                    .map_or_else(|_| (*data).clone(), |rl| rl.to_java_string());
+                let corrected_data = ResourceLocation::make_correct(data);
                 if let Some(new_name) = game_event_renames().get(&corrected_data[..]).copied() {
                     **data = new_name.to_owned();
                 }

@@ -11,6 +11,7 @@ pub(crate) mod item_name_v102;
 pub(crate) mod json_parser;
 pub(crate) mod macros;
 pub(crate) mod mc_namespace_map;
+pub(crate) mod particle_to_nbt_fix;
 pub(crate) mod remove_feature_flag;
 pub(crate) mod rename;
 pub(crate) mod resource_location;

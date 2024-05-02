@@ -211,7 +211,7 @@ pub(crate) fn register() {
     types::entity_mut().add_walker_for_id(
         VERSION,
         "AreaEffectCloud",
-        DataWalkerObjectTypePaths::new(types::particle_ref(), "Particle"),
+        DataWalkerDynamicTypePaths::new(types::particle_ref(), "Particle"),
     );
 
     // tile entities

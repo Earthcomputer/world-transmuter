@@ -13,8 +13,7 @@ pub(crate) fn register() {
         VERSION,
         value_data_converter_func(|data, _from_version, _to_version| {
             if let JValueMut::String(data) = data {
-                let corrected_name = ResourceLocation::parse(data)
-                    .map_or_else(|_| (*data).clone(), |rl| rl.to_java_string());
+                let corrected_name = ResourceLocation::make_correct(data);
                 if corrected_name == "minecraft:overworld_update_1_20" {
                     **data = JavaString::from("minecraft:overworld");
                 }

@@ -74,6 +74,11 @@ impl ResourceLocation {
         result.push_java_str(&self.path);
         result
     }
+
+    pub fn make_correct(str: &(impl AsRef<JavaStr> + ?Sized)) -> JavaString {
+        let str = str.as_ref();
+        Self::parse(str).map_or_else(|_| str.to_owned(), |rl| rl.to_java_string())
+    }
 }
 
 impl Display for ResourceLocation {
