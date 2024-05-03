@@ -1,4 +1,4 @@
-use crate::helpers::particle_to_nbt_fix;
+use crate::helpers::{item_stack_to_data_components_fix, particle_to_nbt_fix};
 use crate::{static_string_map, types};
 use java_string::JavaStr;
 use world_transmuter_engine::{
@@ -29,7 +29,7 @@ const BANNER_COLORS: [&JavaStr; 16] = [
     JavaStr::from_str("black"),
 ];
 
-fn get_banner_color(id: i32) -> &'static JavaStr {
+pub(crate) fn get_banner_color(id: i32) -> &'static JavaStr {
     BANNER_COLORS
         .get(id as usize)
         .copied()
@@ -336,7 +336,7 @@ pub(crate) fn register() {
     types::item_stack_mut().add_structure_converter(
         DataVersion::new(VERSION, 5),
         map_data_converter_func(|data, _from_version, _to_version| {
-            todo!("ConverterItemStackToDataComponents")
+            *data = item_stack_to_data_components_fix::convert_item(std::mem::take(data))
         }),
     );
     types::item_stack_mut().add_structure_walker(

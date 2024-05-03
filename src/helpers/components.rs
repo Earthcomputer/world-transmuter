@@ -11,6 +11,13 @@ pub(crate) fn make_literal_component(value: &JavaStr) -> JavaString {
     )
 }
 
+pub(crate) fn make_translatable_component(value: &JavaStr) -> JavaString {
+    format_java!(
+        "{{\"translate\":\"{}\"}}",
+        value.replace('\\', "\\\\").replace('"', "\\\"")
+    )
+}
+
 pub(crate) fn convert_component_from_lenient(lenient_component: &JavaStr) -> JavaString {
     if (lenient_component.starts_with('"') && lenient_component.ends_with('"'))
         || (lenient_component.starts_with('{') && lenient_component.ends_with('}'))

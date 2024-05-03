@@ -8,6 +8,7 @@ pub(crate) mod flatten_stats_v1451;
 pub(crate) mod gson_lenient_fix;
 pub(crate) mod hooks;
 pub(crate) mod item_name_v102;
+pub(crate) mod item_stack_to_data_components_fix;
 pub(crate) mod json_parser;
 pub(crate) mod macros;
 pub(crate) mod mc_namespace_map;
