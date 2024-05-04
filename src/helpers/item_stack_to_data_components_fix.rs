@@ -471,7 +471,7 @@ fn convert_attribute(input: JValue) -> JCompound {
         ret.insert("amount", amount);
     }
 
-    if let Some(mut operation) = input.remove("Operation") {
+    if let Some(operation) = input.remove("Operation") {
         let operation = match operation.as_i32().unwrap_or(0) {
             1 => "add_multiplied_base",
             2 => "add_multiplied_total",
@@ -843,7 +843,7 @@ fn convert_properties(properties: JCompound) -> Vec<JCompound> {
         .collect()
 }
 
-fn convert_profile(input: JValue) -> JCompound {
+pub(crate) fn convert_profile(input: JValue) -> JCompound {
     match input {
         JValue::String(name) => {
             if is_valid_player_name(&name) {
