@@ -485,10 +485,7 @@ fn convert_attribute(input: JValue) -> JCompound {
 
 fn convert_attributes(item: &mut TransientItemStack, flags: i32) {
     let attributes = match item.tag.remove("AttributeModifiers") {
-        Some(JValue::List(attributes)) => attributes
-            .into_iter()
-            .map(|attr| convert_attribute(attr))
-            .collect(),
+        Some(JValue::List(attributes)) => attributes.into_iter().map(convert_attribute).collect(),
         _ => Vec::new(),
     };
 
@@ -525,7 +522,7 @@ fn convert_map(item: &mut TransientItemStack) {
                         Some(JValue::String(id)) => Some(id),
                         _ => None,
                     })
-                    .unwrap_or_else(|| JavaString::new());
+                    .unwrap_or_else(JavaString::new);
 
                 let type_id = decoration
                     .as_ref()
@@ -1069,7 +1066,7 @@ impl TransientItemStack {
                 JValue::Compound(tag) => Some(tag),
                 _ => None,
             })
-            .unwrap_or_else(|| JCompound::new());
+            .unwrap_or_default();
 
         Self {
             id,

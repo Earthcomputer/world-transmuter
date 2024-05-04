@@ -79,7 +79,7 @@ pub(crate) fn register() {
                         *comp = JValue::Compound(JCompound::new())
                     }
                 })
-                .or_insert_with(|| JCompound::new())
+                .or_insert_with(JCompound::new)
             else {
                 unreachable!()
             };

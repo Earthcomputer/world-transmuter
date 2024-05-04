@@ -559,7 +559,7 @@ pub fn get_version_by_name(name: &str) -> Option<Version> {
     version_data().versions_by_name.get(name).copied()
 }
 
-pub fn get_versions() -> impl Iterator<Item = Version> + DoubleEndedIterator {
+pub fn get_versions() -> impl DoubleEndedIterator<Item = Version> {
     version_data().versions_by_id.values().copied()
 }
 

@@ -1,5 +1,5 @@
 use crate::helpers::resource_location::ResourceLocation;
-use java_string::{JavaStr, JavaString};
+use java_string::{JavaCodePoint, JavaStr, JavaString};
 use std::borrow::Cow;
 use std::fmt::Display;
 use std::str::FromStr;
@@ -266,7 +266,7 @@ pub(crate) fn convert(flat: &JavaStr) -> JCompound {
 /// A function to read a float that matches brigadier's functions to read numbers
 fn read_number<T: FromStr>(input: &JavaStr) -> Option<(T, &JavaStr)> {
     let end_index = input
-        .find(|char| !('0'..='9').contains(&char) && char != '.' && char != '-')
+        .find(|char: JavaCodePoint| !char.is_ascii_digit() && char != '.' && char != '-')
         .unwrap_or_else(|| input.len());
     Some((input[..end_index].parse().ok()?, &input[end_index..]))
 }
@@ -277,9 +277,7 @@ fn read_string(input: &JavaStr) -> Option<(Cow<JavaStr>, &JavaStr)> {
         input = &input[1..];
 
         // check if there is any need to allocate a new string
-        let Some(end_quote_index) = input.find(quote) else {
-            return None;
-        };
+        let end_quote_index = input.find(quote)?;
         if !input
             .find('\\')
             .is_some_and(|backslash_index| backslash_index < end_quote_index)
@@ -318,10 +316,8 @@ fn read_string(input: &JavaStr) -> Option<(Cow<JavaStr>, &JavaStr)> {
         read_quoted_string(input, '\'')
     } else {
         let end_index = input
-            .find(|char| {
-                !('0'..='9').contains(&char)
-                    && !('A'..='Z').contains(&char)
-                    && !('a'..='z').contains(&char)
+            .find(|char: JavaCodePoint| {
+                !char.is_ascii_alphanumeric()
                     && char != '_'
                     && char != '-'
                     && char != '.'

@@ -5,7 +5,7 @@ use world_transmuter_engine::{DynamicDataType, IdDataType, MapDataType, ObjectDa
 
 static mut TYPES: MaybeUninit<MinecraftTypes> = MaybeUninit::uninit();
 thread_local! {
-    static IS_INITIALIZING_ON_THIS_THREAD: Cell<bool> = Cell::new(false);
+    static IS_INITIALIZING_ON_THIS_THREAD: Cell<bool> = const { Cell::new(false) };
 }
 static TYPES_INITIALIZER: Once = Once::new();
 
