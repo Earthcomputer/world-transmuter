@@ -11,6 +11,22 @@ use std::fmt::{Display, Formatter, Write};
 use std::str::FromStr;
 use world_transmuter_engine::{JCompound, JList, JValue, JValueRef};
 
+const ROUND_TRIP_FALSE: i8 = 0;
+const ROUND_TRIP_TRUE: i8 = 1;
+const ROUND_TRIP_NULL: i8 = 2;
+
+pub fn is_round_trip_false<'a>(value: impl Into<JValueRef<'a>>) -> bool {
+    matches!(value.into(), JValueRef::ByteArray([ROUND_TRIP_FALSE]))
+}
+
+pub fn is_round_trip_true<'a>(value: impl Into<JValueRef<'a>>) -> bool {
+    matches!(value.into(), JValueRef::ByteArray([ROUND_TRIP_TRUE]))
+}
+
+pub fn is_round_trip_null<'a>(value: impl Into<JValueRef<'a>>) -> bool {
+    matches!(value.into(), JValueRef::ByteArray([ROUND_TRIP_NULL]))
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ParseError(Error<String>);
 
@@ -76,35 +92,29 @@ fn stringify(
         JValueRef::Long(l) => write!(str, "{}", l)?,
         JValueRef::Float(f) => write!(str, "{}", f)?,
         JValueRef::Double(d) => write!(str, "{}", d)?,
+        JValueRef::ByteArray([ROUND_TRIP_FALSE]) if round_trip => str.push_str("false"),
+        JValueRef::ByteArray([ROUND_TRIP_TRUE]) if round_trip => str.push_str("true"),
+        JValueRef::ByteArray([ROUND_TRIP_NULL]) if round_trip => str.push_str("null"),
         JValueRef::ByteArray(arr) => {
-            if round_trip && arr.len() == 1 && arr[0] <= 2 {
-                match arr[0] {
-                    0 => str.push_str("false"),
-                    1 => str.push_str("true"),
-                    2 => str.push_str("null"),
-                    _ => unreachable!(),
-                }
-            } else {
-                str.push('[');
-                if pretty {
-                    indent.indent();
-                    write!(str, "\n{indent}")?;
-                }
-                for (i, &b) in <&[i8]>::into_iter(arr).enumerate() {
-                    if i != 0 {
-                        str.push(',');
-                        if pretty {
-                            write!(str, "\n{indent}")?;
-                        }
-                    }
-                    write!(str, "{}", b)?;
-                }
-                if pretty {
-                    indent.dedent();
-                    write!(str, "\n{indent}")?;
-                }
-                str.push(']');
+            str.push('[');
+            if pretty {
+                indent.indent();
+                write!(str, "\n{indent}")?;
             }
+            for (i, &b) in <&[i8]>::into_iter(arr).enumerate() {
+                if i != 0 {
+                    str.push(',');
+                    if pretty {
+                        write!(str, "\n{indent}")?;
+                    }
+                }
+                write!(str, "{}", b)?;
+            }
+            if pretty {
+                indent.dedent();
+                write!(str, "\n{indent}")?;
+            }
+            str.push(']');
         }
         JValueRef::IntArray(arr) => {
             str.push('[');
@@ -222,6 +232,8 @@ fn stringify_string(input: &JavaStr, output: &mut JavaString) {
 }
 
 /// If `round_trip` is true, encodes `false`, `true` and `null` as `[0]`, `[1]` and `[2]` byte arrays respectively.
+///
+/// Use [`is_round_trip_false`], [`is_round_trip_true`] and [`is_round_trip_null`] if you need to check for these values.
 pub fn parse_compound(json: &JavaStr, round_trip: bool) -> Result<JCompound, ParseError> {
     preceded(space, |i| object(i, round_trip))(json.as_bytes())
         .finish()
@@ -254,21 +266,21 @@ fn any(i: &[u8], round_trip: bool) -> IResult<&[u8], JValue> {
         }),
         map(pair(tag(b"false"), space), |_| {
             if round_trip {
-                JValue::ByteArray(vec![0])
+                JValue::ByteArray(vec![ROUND_TRIP_FALSE])
             } else {
                 JValue::Byte(0)
             }
         }),
         map(pair(tag(b"true"), space), |_| {
             if round_trip {
-                JValue::ByteArray(vec![1])
+                JValue::ByteArray(vec![ROUND_TRIP_TRUE])
             } else {
                 JValue::Byte(1)
             }
         }),
         map(pair(tag(b"null"), space), |_| {
             if round_trip {
-                JValue::ByteArray(vec![2])
+                JValue::ByteArray(vec![ROUND_TRIP_NULL])
             } else {
                 JValue::Byte(0)
             }

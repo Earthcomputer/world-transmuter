@@ -1,6 +1,8 @@
 use crate::helpers::gson_lenient_fix::{fix_gson_lenient, FixedGsonLenient, JsonType};
+use crate::helpers::json_parser;
 use java_string::{format_java, JavaStr, JavaString};
 use std::borrow::{Borrow, Cow};
+use world_transmuter_engine::JValue;
 
 pub(crate) const EMPTY_COMPONENT: &JavaStr = JavaStr::from_str("{\"text\":\"\"}");
 
@@ -16,6 +18,30 @@ pub(crate) fn make_translatable_component(value: &JavaStr) -> JavaString {
         "{{\"translate\":\"{}\"}}",
         value.replace('\\', "\\\\").replace('"', "\\\"")
     )
+}
+
+pub(crate) fn retrieve_translation_string(possible_json: &JavaStr) -> Option<JavaString> {
+    json_parser::parse_compound(possible_json, true)
+        .ok()
+        .and_then(|mut json| match json.remove("translate") {
+            Some(JValue::String(value)) => Some(value),
+            Some(value @ (JValue::Float(_) | JValue::Double(_))) => {
+                Some(JavaString::from(value.as_f64().unwrap().to_string()))
+            }
+            Some(value) if value.is_number() => {
+                Some(JavaString::from(value.as_i64().unwrap().to_string()))
+            }
+            Some(value) if json_parser::is_round_trip_false(&value) => {
+                Some(JavaString::from("false"))
+            }
+            Some(value) if json_parser::is_round_trip_true(&value) => {
+                Some(JavaString::from("true"))
+            }
+            Some(value) if json_parser::is_round_trip_null(&value) => {
+                Some(JavaString::from("null"))
+            }
+            _ => None,
+        })
 }
 
 pub(crate) fn convert_component_from_lenient(lenient_component: &JavaStr) -> JavaString {
