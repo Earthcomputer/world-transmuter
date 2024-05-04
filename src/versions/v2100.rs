@@ -12,7 +12,7 @@ fn register_mob(id: &str) {
 pub(crate) fn register() {
     rename_recipe(
         VERSION,
-        simple_rename("minecraft:sugar", "sugar_from_sugar_cane"),
+        simple_rename("minecraft:sugar", "minecraft:sugar_from_sugar_cane"),
     );
     rename_advancement(
         VERSION,
