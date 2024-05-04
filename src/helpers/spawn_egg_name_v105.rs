@@ -37,8 +37,6 @@ fn spawn_egg_names() -> &'static AHashMap<u8, &'static str> {
         map.insert(46, "MinecartHopper");
         map.insert(47, "MinecartSpawner");
         map.insert(40, "MinecartCommandBlock");
-        map.insert(48, "Mob");
-        map.insert(49, "Monster");
         map.insert(50, "Creeper");
         map.insert(51, "Skeleton");
         map.insert(52, "Spider");

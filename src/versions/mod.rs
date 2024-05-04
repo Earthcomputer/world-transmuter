@@ -215,4 +215,5 @@ versions! {
     mod v3820;
     mod v3825;
     mod v3828;
+    mod v3833;
 }

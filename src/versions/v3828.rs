@@ -1,3 +1,4 @@
+use crate::helpers::resource_location::ResourceLocation;
 use crate::types;
 use world_transmuter_engine::{map_data_converter_func, JValue};
 
@@ -11,8 +12,8 @@ pub(crate) fn register() {
                 return;
             };
 
-            let is_air =
-                matches!(buy_b.get("id"), Some(JValue::String(id)) if id == "minecraft:air");
+            let id = buy_b.get("id");
+            let is_air = id.is_none() || matches!(id, Some(JValue::String(id)) if ResourceLocation::make_correct(id) == "minecraft:air");
             if is_air || buy_b.get("count").and_then(|o| o.as_i32()).unwrap_or(0) <= 0 {
                 data.remove("buyB");
             }
