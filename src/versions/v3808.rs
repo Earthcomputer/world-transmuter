@@ -39,6 +39,24 @@ pub(crate) fn register() {
         DataWalkerMapTypePaths::new(types::item_stack_ref(), "SaddleItem"),
     );
     v100::register_equipment(DataVersion::new(VERSION, 1), "minecraft:llama");
+
+    // Step 2
+    types::entity_mut().add_converter_for_id(
+        "minecraft:trader_llama",
+        DataVersion::new(VERSION, 2),
+        BodyArmorConverter::new("DecorItem", false),
+    );
+    types::entity_mut().add_walker_for_id(
+        DataVersion::new(VERSION, 2),
+        "minecraft:trader_llama",
+        DataWalkerMapListPaths::new(types::item_stack_ref(), "Items"),
+    );
+    types::entity_mut().add_walker_for_id(
+        DataVersion::new(VERSION, 2),
+        "minecraft:trader_llama",
+        DataWalkerMapTypePaths::new(types::item_stack_ref(), "SaddleItem"),
+    );
+    v100::register_equipment(DataVersion::new(VERSION, 200), "minecraft:trader_llama");
 }
 
 struct BodyArmorConverter {

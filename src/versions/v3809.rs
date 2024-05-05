@@ -5,6 +5,7 @@ const VERSION: u32 = 3809;
 
 pub(crate) fn register() {
     types::entity_mut().add_converter_for_id("minecraft:llama", VERSION, SlotConverter);
+    types::entity_mut().add_converter_for_id("minecraft:trader_llama", VERSION, SlotConverter);
     types::entity_mut().add_converter_for_id("minecraft:mule", VERSION, SlotConverter);
     types::entity_mut().add_converter_for_id("minecraft:donkey", VERSION, SlotConverter);
 }
