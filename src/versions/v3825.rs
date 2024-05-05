@@ -3,7 +3,8 @@ use crate::{static_string_set, types};
 use java_string::JavaStr;
 use std::collections::BTreeSet;
 use world_transmuter_engine::{
-    get_mut_multi, map_data_converter_func, rename_key, DataWalkerMapTypePaths, JCompound, JValue,
+    convert_map_in_map, get_mut_multi, map_data_converter_func, map_data_walker, rename_key,
+    DataVersion, DataWalkerMapTypePaths, JCompound, JList, JValue,
 };
 
 const VERSION: u32 = 3825;
@@ -85,6 +86,50 @@ pub(crate) fn register() {
             };
             components.insert("minecraft:item_name", custom_name);
             components.insert("minecraft:hide_additional_tooltip", JCompound::new());
+        }),
+    );
+    types::tile_entity_mut().add_walker_for_id(
+        VERSION,
+        "minecraft:trial_spawner",
+        map_data_walker(|data, from_version, to_version| {
+            fn convert_config(
+                config: &mut JCompound,
+                from_version: DataVersion,
+                to_version: DataVersion,
+            ) {
+                if let Some(JValue::List(JList::Compound(spawn_potentials))) =
+                    config.get_mut("spawn_potentials")
+                {
+                    for spawn_potential in spawn_potentials {
+                        if let Some(JValue::Compound(data)) = spawn_potential.get_mut("data") {
+                            convert_map_in_map(
+                                types::entity_ref(),
+                                data,
+                                "entity",
+                                from_version,
+                                to_version,
+                            );
+                        }
+                    }
+                }
+            }
+
+            if let Some(JValue::Compound(normal_config)) = data.get_mut("normal_config") {
+                convert_config(normal_config, from_version, to_version);
+            }
+            if let Some(JValue::Compound(ominous_config)) = data.get_mut("ominous_config") {
+                convert_config(ominous_config, from_version, to_version);
+            }
+
+            if let Some(JValue::Compound(spawn_data)) = data.get_mut("spawn_data") {
+                convert_map_in_map(
+                    types::entity_ref(),
+                    spawn_data,
+                    "entity",
+                    from_version,
+                    to_version,
+                );
+            }
         }),
     );
     types::tile_entity_mut().add_converter_for_id(
