@@ -30,13 +30,15 @@ pub(crate) fn register() {
                     }
                 }
 
-                convert_map_in_map(
-                    types::entity_ref(),
-                    data,
-                    "spawn_data",
-                    from_version,
-                    to_version,
-                );
+                if let Some(JValue::Compound(spawn_data)) = data.get_mut("spawn_data") {
+                    convert_map_in_map(
+                        types::entity_ref(),
+                        spawn_data,
+                        "entity",
+                        from_version,
+                        to_version,
+                    );
+                }
             }
         }),
     );
