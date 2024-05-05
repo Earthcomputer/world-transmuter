@@ -207,6 +207,27 @@ pub(crate) fn register() {
     types::data_components_mut().add_structure_walker(
         DataVersion::new(VERSION, 3),
         map_data_walker(|data, from_version, to_version| {
+            fn walk_block_predicates(
+                predicate: &mut JCompound,
+                from_version: DataVersion,
+                to_version: DataVersion,
+            ) {
+                match predicate.get_mut("blocks") {
+                    Some(JValue::String(blocks)) => types::block_name().convert(
+                        &mut JValueMut::String(blocks),
+                        from_version,
+                        to_version,
+                    ),
+                    Some(JValue::List(blocks)) => convert_object_list(
+                        types::block_name_ref(),
+                        blocks,
+                        from_version,
+                        to_version,
+                    ),
+                    _ => {}
+                }
+            }
+
             if let Some(JValue::List(JList::Compound(bees))) = data.get_mut("minecraft:bees") {
                 for bee in bees {
                     convert_map_in_map(
@@ -240,22 +261,10 @@ pub(crate) fn register() {
                         component.get_mut("predicates")
                     {
                         for predicate in predicates {
-                            match predicate.get_mut("blocks") {
-                                Some(JValue::String(blocks)) => types::block_name().convert(
-                                    &mut JValueMut::String(blocks),
-                                    from_version,
-                                    to_version,
-                                ),
-                                Some(JValue::List(blocks)) => convert_object_list(
-                                    types::block_name_ref(),
-                                    blocks,
-                                    from_version,
-                                    to_version,
-                                ),
-                                _ => {}
-                            }
+                            walk_block_predicates(predicate, from_version, to_version);
                         }
                     }
+                    walk_block_predicates(component, from_version, to_version);
                 }
             }
 
