@@ -37,7 +37,7 @@ pub(crate) fn get_banner_color(id: i32) -> &'static JavaStr {
 }
 
 static_string_map! {
-    PATTERN_UPDATE, pattern_update, {
+    pattern_update = {
         "b" => "minecraft:base",
         "bl" => "minecraft:square_bottom_left",
         "br" => "minecraft:square_bottom_right",

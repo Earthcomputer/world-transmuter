@@ -14,7 +14,7 @@ use world_transmuter_engine::{
 const VERSION: u32 = 704;
 
 static_string_mc_map! {
-    ITEM_ID_TO_TILE_ENTITY_ID, item_id_to_tile_entity_id, {
+    item_id_to_tile_entity_id = {
         "furnace" => "minecraft:furnace",
         "lit_furnace" => "minecraft:furnace",
         "chest" => "minecraft:chest",
@@ -161,11 +161,10 @@ static_string_mc_map! {
     }
 }
 
-static ITEM_ID_TO_ENTITY_ID: OnceLock<McNamespaceMap<BTreeMap<DataVersion, &JavaStr>>> =
-    OnceLock::new();
-
 fn item_id_to_entity_id(
 ) -> &'static McNamespaceMap<'static, BTreeMap<DataVersion, &'static JavaStr>> {
+    static ITEM_ID_TO_ENTITY_ID: OnceLock<McNamespaceMap<BTreeMap<DataVersion, &JavaStr>>> =
+        OnceLock::new();
     ITEM_ID_TO_ENTITY_ID.get_or_init(|| {
         macro_rules! make_map {
             ($($item_id:literal => {$($version:expr => $entity_id:literal),* $(,)*}),* $(,)?) => {
@@ -217,7 +216,7 @@ fn item_id_to_entity_id(
 }
 
 static_string_map! {
-    TILE_ID_UPDATE, tile_id_update, {
+    tile_id_update = {
         "Airportal" => "minecraft:end_portal",
         "Banner" => "minecraft:banner",
         "Beacon" => "minecraft:beacon",

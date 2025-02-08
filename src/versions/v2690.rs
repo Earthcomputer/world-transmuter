@@ -4,7 +4,7 @@ use crate::static_string_mc_map;
 const VERSION: u32 = 2690;
 
 static_string_mc_map! {
-    RENAMES, renames, {
+    renames = {
         "weathered_copper_block" => "minecraft:oxidized_copper_block",
         "semi_weathered_copper_block" => "minecraft:weathered_copper_block",
         "lightly_weathered_copper_block" => "minecraft:exposed_copper_block",

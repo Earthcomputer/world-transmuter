@@ -5,7 +5,7 @@ use java_string::{format_java, JavaStr, JavaString};
 use world_transmuter_engine::{DataVersion, JCompound, JValue, MapDataConverterFunc};
 
 static_string_set! {
-    SPECIAL_OBJECTIVE_CRITERIA, special_objective_criteria, {
+    special_objective_criteria = {
         "dummy",
         "trigger",
         "deathCount",
@@ -53,7 +53,7 @@ static_string_set! {
 }
 
 static_string_set! {
-    SKIP_STATS, skip_stats, {
+    skip_stats = {
         "stat.craftItem.minecraft.spawn_egg",
         "stat.useItem.minecraft.spawn_egg",
         "stat.breakItem.minecraft.spawn_egg",
@@ -63,7 +63,7 @@ static_string_set! {
 }
 
 static_string_map! {
-    CUSTOM_STATS, custom_stats, {
+    custom_stats = {
         "stat.leaveGame" => "minecraft:leave_game",
         "stat.playOneMinute" => "minecraft:play_one_minute",
         "stat.timeSinceDeath" => "minecraft:time_since_death",
@@ -118,7 +118,7 @@ static_string_map! {
 }
 
 static_string_map! {
-    ITEM_STATS, item_stats, {
+    item_stats = {
         "stat.craftItem" => "minecraft:crafted",
         "stat.useItem" => "minecraft:used",
         "stat.breakItem" => "minecraft:broken",
@@ -128,14 +128,14 @@ static_string_map! {
 }
 
 static_string_map! {
-    ENTITY_STATS, entity_stats, {
+    entity_stats = {
         "stat.entityKilledBy" => "minecraft:killed_by",
         "stat.killEntity" => "minecraft:killed",
     }
 }
 
 static_string_map! {
-    ENTITY_MAP, entity_map, {
+    entity_map = {
         "Bat" => "minecraft:bat",
         "Blaze" => "minecraft:blaze",
         "CaveSpider" => "minecraft:cave_spider",

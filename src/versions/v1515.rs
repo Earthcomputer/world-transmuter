@@ -4,7 +4,7 @@ use crate::static_string_mc_map;
 const VERSION: u32 = 1515;
 
 static_string_mc_map! {
-    RENAMED_BLOCK_IDS, renamed_block_ids, {
+    renamed_block_ids = {
         "tube_coral_fan" => "minecraft:tube_coral_wall_fan",
         "brain_coral_fan" => "minecraft:brain_coral_wall_fan",
         "bubble_coral_fan" => "minecraft:bubble_coral_wall_fan",

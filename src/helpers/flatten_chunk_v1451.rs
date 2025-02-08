@@ -34,20 +34,20 @@ const IDS_NEEDING_FIX_SET: BitArray<[usize; bitset_size(256)]> = make_bit_arr![2
 
 struct OwnedStates;
 macro_rules! block_states {
-    ($(fn $fn_name:ident() -> $field_name:ident, $field_name_owned:ident = block_state!($($tokens:tt)*));* $(;)?) => {
+    ($(fn $fn_name:ident() = block_state!($($tokens:tt)*));* $(;)?) => {
         $(
-            static $field_name: OnceLock<BlockState<'static>> = OnceLock::new();
             #[allow(unused)]
             fn $fn_name() -> &'static BlockState<'static> {
-                $field_name.get_or_init(|| {
+                static STATE: OnceLock<BlockState<'static>> = OnceLock::new();
+                STATE.get_or_init(|| {
                     block_state!($($tokens)*)
                 })
             }
-            static $field_name_owned: OnceLock<BlockStateOwned> = OnceLock::new();
             impl OwnedStates {
                 #[allow(unused)]
                 fn $fn_name() -> &'static BlockStateOwned {
-                    $field_name_owned.get_or_init(|| {
+                    static STATE: OnceLock<BlockStateOwned> = OnceLock::new();
+                    STATE.get_or_init(|| {
                         $fn_name().to_owned()
                     })
                 }
@@ -57,17 +57,17 @@ macro_rules! block_states {
 }
 
 block_states! {
-    fn pumpkin() -> PUMPKIN, PUMPKIN_OWNED = block_state!("minecraft:pumpkin");
-    fn snowy_podzol() -> SNOWY_PODZOL, SNOWY_PODZOL_OWNED = block_state!("minecraft:podzol"["snowy" = "true"]);
-    fn snowy_grass() -> SNOWY_GRASS, SNOWY_GRASS_OWNED = block_state!("minecraft:grass"["snowy" = "true"]);
-    fn snowy_mycelium() -> SNOWY_MYCELIUM, SNOWY_MYCELIUM_OWNED = block_state!("minecraft:mycelium"["snowy" = "true"]);
-    fn upper_sunflower() -> UPPER_SUNFLOWER, UPPER_SUNFLOWER_OWNED = block_state!("minecraft:sunflower"["half" = "upper"]);
-    fn upper_lilac() -> UPPER_LILAC, UPPER_LILAC_OWNED = block_state!("minecraft:lilac"["half" = "upper"]);
-    fn upper_tall_grass() -> UPPER_TALL_GRASS, UPPER_TALL_GRASS_OWNED = block_state!("minecraft:tall_grass"["half" = "upper"]);
-    fn upper_large_fern() -> UPPER_LARGE_FERN, UPPER_LARGE_FERN_OWNED = block_state!("minecraft:large_fern"["half" = "upper"]);
-    fn upper_rose_bush() -> UPPER_ROSE_BUSH, UPPER_ROSE_BUSH_OWNED = block_state!("minecraft:rose_bush"["half" = "upper"]);
-    fn upper_peony() -> UPPER_PEONY, UPPER_PEONY_OWNED = block_state!("minecraft:peony"["half" = "upper"]);
-    fn air() -> AIR, AIR_OWNED = block_state!("minecraft:air");
+    fn pumpkin() = block_state!("minecraft:pumpkin");
+    fn snowy_podzol() = block_state!("minecraft:podzol"["snowy" = "true"]);
+    fn snowy_grass() = block_state!("minecraft:grass"["snowy" = "true"]);
+    fn snowy_mycelium() = block_state!("minecraft:mycelium"["snowy" = "true"]);
+    fn upper_sunflower() = block_state!("minecraft:sunflower"["half" = "upper"]);
+    fn upper_lilac() = block_state!("minecraft:lilac"["half" = "upper"]);
+    fn upper_tall_grass() = block_state!("minecraft:tall_grass"["half" = "upper"]);
+    fn upper_large_fern() = block_state!("minecraft:large_fern"["half" = "upper"]);
+    fn upper_rose_bush() = block_state!("minecraft:rose_bush"["half" = "upper"]);
+    fn upper_peony() = block_state!("minecraft:peony"["half" = "upper"]);
+    fn air() = block_state!("minecraft:air");
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -83,9 +83,9 @@ impl<'a> FlowerPotState<'a> {
         }
     }
 }
-static FLOWER_POT_MAP: OnceLock<BTreeMap<FlowerPotState<'static>, BlockState<'static>>> =
-    OnceLock::new();
 fn flower_pot_map() -> &'static BTreeMap<FlowerPotState<'static>, BlockState<'static>> {
+    static FLOWER_POT_MAP: OnceLock<BTreeMap<FlowerPotState<'static>, BlockState<'static>>> =
+        OnceLock::new();
     FLOWER_POT_MAP.get_or_init(|| {
         let mut map = BTreeMap::new();
         map.insert(
@@ -243,8 +243,8 @@ impl<'a> DoorState<'a> {
         }
     }
 }
-static DOOR_MAP: OnceLock<BTreeMap<DoorState<'static>, BlockStateOwned>> = OnceLock::new();
 fn door_map() -> &'static BTreeMap<DoorState<'static>, BlockStateOwned> {
+    static DOOR_MAP: OnceLock<BTreeMap<DoorState<'static>, BlockStateOwned>> = OnceLock::new();
     DOOR_MAP.get_or_init(|| {
         let mut map = BTreeMap::new();
         let mut map_door = |typ: &str, old_id: u16| {
@@ -349,7 +349,7 @@ fn note_block_map() -> &'static AHashMap<NoteBlockState, BlockState<'static>> {
     })
 }
 
-static DYE_COLOR_MAP: [&str; 16] = [
+const DYE_COLOR_MAP: [&str; 16] = [
     "white",
     "orange",
     "magenta",
@@ -390,8 +390,8 @@ impl<'a> BedState<'a> {
         }
     }
 }
-static BED_BLOCK_MAP: OnceLock<BTreeMap<BedState<'static>, BlockStateOwned>> = OnceLock::new();
 fn bed_block_map() -> &'static BTreeMap<BedState<'static>, BlockStateOwned> {
+    static BED_BLOCK_MAP: OnceLock<BTreeMap<BedState<'static>, BlockStateOwned>> = OnceLock::new();
     BED_BLOCK_MAP.get_or_init(|| {
         let mut map = BTreeMap::new();
         for (color_id, color_name) in DYE_COLOR_MAP.iter().enumerate() {

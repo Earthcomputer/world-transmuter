@@ -30,8 +30,8 @@ const BUCKETED_MOB_TAGS: [&JavaStr; 10] = [
     JavaStr::from_str("BucketVariantTag"),
 ];
 
-static_string_set!(
-    BOOLEAN_BLOCK_STATE_PROPERTIES, boolean_block_state_properties, {
+static_string_set! {
+    boolean_block_state_properties = {
         "attached",
         "bottom",
         "conditional",
@@ -80,7 +80,7 @@ static_string_set!(
         "cracked",
         "crafting",
     }
-);
+}
 
 const MAP_DECORATION_CONVERSION_TABLE: [&JavaStr; 34] = [
     JavaStr::from_str("player"),

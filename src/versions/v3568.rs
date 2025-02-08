@@ -47,7 +47,7 @@ fn get_effect_id(id: i32) -> Option<&'static str> {
 }
 
 static_string_mc_set! {
-    EFFECT_ITEMS, effect_items, {
+    effect_items = {
         "potion",
         "splash_potion",
         "lingering_potion",
@@ -67,7 +67,7 @@ fn convert_legacy_effect(data: &mut JCompound, legacy_path: &str, new_path: &str
     data.insert(new_path, new_id);
 }
 
-static MOB_EFFECT_RENAMES: [(&str, &str); 7] = [
+const MOB_EFFECT_RENAMES: [(&str, &str); 7] = [
     ("Ambient", "ambient"),
     ("Amplifier", "amplifier"),
     ("Duration", "duration"),

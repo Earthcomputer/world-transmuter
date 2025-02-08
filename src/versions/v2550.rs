@@ -8,9 +8,8 @@ use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue}
 
 const VERSION: u32 = 2550;
 
-static DEFAULTS: OnceLock<McNamespaceMap<StructureFeatureConfiguration>> = OnceLock::new();
-
 fn defaults() -> &'static McNamespaceMap<'static, StructureFeatureConfiguration> {
+    static DEFAULTS: OnceLock<McNamespaceMap<StructureFeatureConfiguration>> = OnceLock::new();
     DEFAULTS.get_or_init(|| {
         let mut map = McNamespaceMap::new();
         map.insert_mc(

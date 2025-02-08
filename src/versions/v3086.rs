@@ -20,7 +20,7 @@ const CAT_ID_CONVERSION: [&JavaStr; 11] = [
 ];
 
 static_string_map! {
-    CAT_ADVANCEMENTS_CONVERSION, cat_advancements_conversion, {
+    cat_advancements_conversion = {
         "textures/entity/cat/tabby.png" => "minecraft:tabby",
         "textures/entity/cat/black.png" => "minecraft:black",
         "textures/entity/cat/red.png" => "minecraft:red",

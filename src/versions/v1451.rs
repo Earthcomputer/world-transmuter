@@ -18,9 +18,8 @@ use world_transmuter_engine::{
 
 const VERSION: u32 = 1451;
 
-static BLOCK_NAME_TO_ID: OnceLock<McNamespaceMap<u8>> = OnceLock::new();
-
 fn block_name_to_id() -> &'static McNamespaceMap<'static, u8> {
+    static BLOCK_NAME_TO_ID: OnceLock<McNamespaceMap<u8>> = OnceLock::new();
     BLOCK_NAME_TO_ID.get_or_init(|| {
         let mut map = McNamespaceMap::new();
         map.insert_mc("air", 0);
@@ -282,7 +281,7 @@ fn block_name_to_id() -> &'static McNamespaceMap<'static, u8> {
 }
 
 static_string_mc_map! {
-    ENTITY_ID_TO_NEW_EGG_ID, entity_id_to_new_egg_id, {
+    entity_id_to_new_egg_id = {
         "bat" => "minecraft:bat_spawn_egg",
         "blaze" => "minecraft:blaze_spawn_egg",
         "cave_spider" => "minecraft:cave_spider_spawn_egg",

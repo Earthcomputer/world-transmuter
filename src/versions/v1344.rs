@@ -5,9 +5,8 @@ use world_transmuter_engine::{map_data_converter_func, JValue};
 
 const VERSION: u32 = 1344;
 
-static BUTTON_ID_TO_NAME: OnceLock<AHashMap<u8, &'static str>> = OnceLock::new();
-
 fn button_id_to_name() -> &'static AHashMap<u8, &'static str> {
+    static BUTTON_ID_TO_NAME: OnceLock<AHashMap<u8, &'static str>> = OnceLock::new();
     BUTTON_ID_TO_NAME.get_or_init(|| {
         let mut map = AHashMap::new();
         map.insert(0, "key.unknown");

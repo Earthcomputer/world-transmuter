@@ -6,7 +6,7 @@ use world_transmuter_engine::{DataVersion, JCompound, JValue, MapDataConverterFu
 const VERSION: u32 = 3088;
 
 static_string_mc_set! {
-    STATUSES_TO_SKIP_BLENDING, statuses_to_skip_blending, {
+    statuses_to_skip_blending = {
         "empty",
         "structure_starts",
         "structure_references",

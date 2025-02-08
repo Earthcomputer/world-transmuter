@@ -23,9 +23,9 @@ impl VersionData {
     }
 }
 
-static VERSION_DATA: OnceLock<VersionData> = OnceLock::new();
-
 fn version_data() -> &'static VersionData {
+    static VERSION_DATA: OnceLock<VersionData> = OnceLock::new();
+
     VERSION_DATA.get_or_init(|| {
         let mut data = VersionData {
             versions_by_id: BTreeMap::new(),

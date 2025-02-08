@@ -23,9 +23,8 @@ impl StructureRenames {
     }
 }
 
-static RENAMES: OnceLock<BTreeMap<&'static JavaStr, StructureRenames>> = OnceLock::new();
-
 fn renames() -> &'static BTreeMap<&'static JavaStr, StructureRenames> {
+    static RENAMES: OnceLock<BTreeMap<&'static JavaStr, StructureRenames>> = OnceLock::new();
     RENAMES.get_or_init(|| {
         let mut map = BTreeMap::new();
         map.insert(

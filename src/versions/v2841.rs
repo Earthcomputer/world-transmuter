@@ -9,7 +9,7 @@ use world_transmuter_engine::{map_data_converter_func, rename_key, JCompound, JL
 const VERSION: u32 = 2841;
 
 static_string_mc_set! {
-    ALWAYS_WATERLOGGED, always_waterlogged, {
+    always_waterlogged = {
         "bubble_column",
         "kelp",
         "kelp_plant",

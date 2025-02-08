@@ -132,7 +132,7 @@ const HEIGHTMAP_TYPES: [&str; 7] = [
 ];
 
 static_string_set! {
-    STATUS_IS_OR_AFTER_SURFACE, status_is_or_after_surface, {
+    status_is_or_after_surface = {
         "surface",
         "carvers",
         "liquid_carvers",
@@ -145,7 +145,7 @@ static_string_set! {
 }
 
 static_string_set! {
-    STATUS_IS_OR_AFTER_NOISE, status_is_or_after_noise, {
+    status_is_or_after_noise = {
         "noise",
         "surface",
         "carvers",
@@ -159,7 +159,7 @@ static_string_set! {
 }
 
 static_string_mc_set! {
-    BLOCKS_BEFORE_FEATURE_STATUS, blocks_before_feature_status, {
+    blocks_before_feature_status = {
         "air",
         "basalt",
         "bedrock",

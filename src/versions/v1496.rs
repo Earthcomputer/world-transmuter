@@ -12,9 +12,8 @@ use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue}
 
 const VERSION: u32 = 1496;
 
-static LEAVES_TO_ID: OnceLock<McNamespaceMap<u8>> = OnceLock::new();
-
 fn leaves_to_id() -> &'static McNamespaceMap<'static, u8> {
+    static LEAVES_TO_ID: OnceLock<McNamespaceMap<u8>> = OnceLock::new();
     LEAVES_TO_ID.get_or_init(|| {
         let mut map = McNamespaceMap::new();
         map.insert_mc("acacia_leaves", 0);
@@ -28,7 +27,7 @@ fn leaves_to_id() -> &'static McNamespaceMap<'static, u8> {
 }
 
 static_string_set! {
-    LOGS, logs, {
+    logs = {
         "acacia_bark",
         "birch_bark",
         "dark_oak_bark",

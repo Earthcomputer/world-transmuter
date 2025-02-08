@@ -11,7 +11,7 @@ use world_transmuter_engine::{
 const VERSION: u32 = 705;
 
 static_string_map! {
-    ENTITY_ID_UPDATE, entity_id_update, {
+    entity_id_update = {
         "AreaEffectCloud" => "minecraft:area_effect_cloud",
         "ArmorStand" => "minecraft:armor_stand",
         "Arrow" => "minecraft:arrow",

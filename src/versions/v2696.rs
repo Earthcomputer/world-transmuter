@@ -4,7 +4,7 @@ use crate::static_string_mc_map;
 const VERSION: u32 = 2696;
 
 static_string_mc_map! {
-    RENAMES, renames, {
+    renames = {
         "grimstone" => "minecraft:deepslate",
         "grimstone_slab" => "minecraft:cobbled_deepslate_slab",
         "grimstone_stairs" => "minecraft:cobbled_deepslate_stairs",

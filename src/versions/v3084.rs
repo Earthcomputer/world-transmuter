@@ -5,7 +5,7 @@ use world_transmuter_engine::{value_data_converter_func, JValueMut};
 const VERSION: u32 = 3084;
 
 static_string_mc_map! {
-    GAME_EVENT_RENAMES, game_event_renames, {
+    game_event_renames = {
         "block_press" => "minecraft:block_activate",
         "block_switch" => "minecraft:block_activate",
         "block_unpress" => "minecraft:block_deactivate",

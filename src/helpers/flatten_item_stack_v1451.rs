@@ -17,9 +17,8 @@ struct ItemStackFlattenData {
     items_with_damage: McNamespaceSet<'static>,
 }
 
-static FLATTEN_DATA: OnceLock<ItemStackFlattenData> = OnceLock::new();
-
 fn flatten_data() -> &'static ItemStackFlattenData {
+    static FLATTEN_DATA: OnceLock<ItemStackFlattenData> = OnceLock::new();
     FLATTEN_DATA.get_or_init(|| {
         let mut flatten_data = ItemStackFlattenData::default();
 

@@ -4,7 +4,7 @@ use world_transmuter_engine::{map_data_converter_func, rename_keys, JValue};
 const VERSION: u32 = 3566;
 
 static_string_map! {
-    SLOT_RENAMES, slot_renames, {
+    slot_renames = {
         "slot_0" => "list",
         "slot_1" => "sidebar",
         "slot_2" => "below_name",

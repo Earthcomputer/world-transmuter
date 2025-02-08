@@ -2,9 +2,8 @@ use ahash::AHashMap;
 use java_string::JavaStr;
 use std::sync::OnceLock;
 
-static ITEM_NAMES: OnceLock<AHashMap<i32, &'static str>> = OnceLock::new();
-
 fn item_names() -> &'static AHashMap<i32, &'static str> {
+    static ITEM_NAMES: OnceLock<AHashMap<i32, &'static str>> = OnceLock::new();
     ITEM_NAMES.get_or_init(|| {
         let mut map = AHashMap::new();
         map.insert(0, "minecraft:air");

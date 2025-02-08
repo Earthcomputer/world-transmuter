@@ -5,9 +5,8 @@ use std::sync::OnceLock;
 
 const VERSION: u32 = 1501;
 
-static RENAMES: OnceLock<AHashMap<&'static JavaStr, &'static JavaStr>> = OnceLock::new();
-
 fn renames() -> &'static AHashMap<&'static JavaStr, &'static JavaStr> {
+    static RENAMES: OnceLock<AHashMap<&'static JavaStr, &'static JavaStr>> = OnceLock::new();
     RENAMES.get_or_init(|| {
         let mut map = AHashMap::new();
         map.insert(

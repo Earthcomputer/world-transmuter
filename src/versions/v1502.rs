@@ -4,7 +4,7 @@ use crate::static_string_mc_map;
 const VERSION: u32 = 1502;
 
 static_string_mc_map! {
-    RECIPES_UPDATES, recipes_updates, {
+    recipes_updates = {
         "acacia_wooden_slab" => "minecraft:acacia_slab",
         "birch_wooden_slab" => "minecraft:birch_slab",
         "black_stained_hardened_clay" => "minecraft:black_terracotta",

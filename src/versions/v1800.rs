@@ -6,7 +6,7 @@ use world_transmuter_engine::DataWalkerMapListPaths;
 const VERSION: u32 = 1800;
 
 static_string_mc_map! {
-    RENAMED_ITEM_IDS, renamed_item_ids, {
+    renamed_item_ids = {
         "cactus_green" => "minecraft:green_dye",
         "rose_red" => "minecraft:red_dye",
         "dandelion_yellow" => "minecraft:yellow_dye",

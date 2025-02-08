@@ -57,9 +57,8 @@ struct BlockStateData {
     index_by_old_name: AHashMap<&'static JavaStr, u16>,
 }
 
-static BLOCK_STATE_DATA: OnceLock<BlockStateData> = OnceLock::new();
-
 fn block_state_data() -> &'static BlockStateData {
+    static BLOCK_STATE_DATA: OnceLock<BlockStateData> = OnceLock::new();
     BLOCK_STATE_DATA.get_or_init(|| {
         let mut state_indexes = AHashMap::new();
         let mut states = Vec::new();

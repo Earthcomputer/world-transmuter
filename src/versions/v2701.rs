@@ -5,7 +5,7 @@ use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue,
 const VERSION: u32 = 2701;
 
 static_string_mc_set! {
-    PIECE_TYPE, piece_type, {
+    piece_type = {
         "jigsaw",
         "nvi",
         "pcp",
@@ -15,7 +15,7 @@ static_string_mc_set! {
 }
 
 static_string_mc_set! {
-    FEATURES, features, {
+    features = {
         "tree",
         "flower",
         "block_pile",

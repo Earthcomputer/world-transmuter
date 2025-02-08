@@ -4,7 +4,7 @@ use world_transmuter_engine::{value_data_converter_func, JValueMut};
 const VERSION: u32 = 2838;
 
 static_string_mc_map! {
-    BIOME_UPDATE, biome_update, {
+    biome_update = {
         "badlands_plateau" => "minecraft:badlands",
         "bamboo_jungle_hills" => "minecraft:bamboo_jungle",
         "birch_forest_hills" => "minecraft:birch_forest",

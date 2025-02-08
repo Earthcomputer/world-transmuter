@@ -4,7 +4,7 @@ use crate::static_string_map;
 const VERSION: u32 = 2523;
 
 static_string_map! {
-    RENAMES, renames, {
+    renames = {
         "generic.maxHealth" => "minecraft:generic.max_health",
         "Max Health" => "minecraft:generic.max_health",
         "zombie.spawnReinforcements" => "minecraft:zombie.spawn_reinforcements",

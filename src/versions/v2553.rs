@@ -4,7 +4,7 @@ use world_transmuter_engine::{value_data_converter_func, JValueMut};
 const VERSION: u32 = 2553;
 
 static_string_mc_map! {
-    BIOME_RENAMES, biome_renames, {
+    biome_renames = {
         "extreme_hills" => "minecraft:mountains",
         "swampland" => "minecraft:swamp",
         "hell" => "minecraft:nether_wastes",

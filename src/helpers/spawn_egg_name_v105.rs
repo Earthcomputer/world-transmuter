@@ -1,9 +1,8 @@
 use ahash::AHashMap;
 use std::sync::OnceLock;
 
-static SPAWN_EGG_NAMES: OnceLock<AHashMap<u8, &'static str>> = OnceLock::new();
-
 fn spawn_egg_names() -> &'static AHashMap<u8, &'static str> {
+    static SPAWN_EGG_NAMES: OnceLock<AHashMap<u8, &'static str>> = OnceLock::new();
     SPAWN_EGG_NAMES.get_or_init(|| {
         let mut map = AHashMap::new();
         map.insert(1, "Item");

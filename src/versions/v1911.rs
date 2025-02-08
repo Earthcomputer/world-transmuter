@@ -5,7 +5,7 @@ use world_transmuter_engine::{map_data_converter_func, JValue};
 const VERSION: u32 = 1911;
 
 static_string_map! {
-    CHUNK_STATUS_REMAP, chunk_status_remap, {
+    chunk_status_remap = {
         "structure_references" => "empty",
         "biomes" => "empty",
         "base" => "surface",

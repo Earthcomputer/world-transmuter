@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 const VERSION: u32 = 1510;
 
 static_string_mc_map! {
-    RENAMED_ENTITY_IDS, renamed_entity_ids, {
+    renamed_entity_ids = {
         "commandblock_minecart" => "minecraft:command_block_minecart",
         "ender_crystal" => "minecraft:end_crystal",
         "snowman" => "minecraft:snow_golem",
@@ -26,7 +26,7 @@ static_string_mc_map! {
 }
 
 static_string_mc_map! {
-    RENAMED_BLOCKS, renamed_blocks, {
+    renamed_blocks = {
         "portal" => "minecraft:nether_portal",
         "oak_bark" => "minecraft:oak_wood",
         "spruce_bark" => "minecraft:spruce_wood",
@@ -44,9 +44,8 @@ static_string_mc_map! {
     }
 }
 
-static RENAMED_ITEMS: OnceLock<McNamespaceMap<&'static JavaStr>> = OnceLock::new();
-
 fn renamed_items() -> &'static McNamespaceMap<'static, &'static JavaStr> {
+    static RENAMED_ITEMS: OnceLock<McNamespaceMap<&'static JavaStr>> = OnceLock::new();
     RENAMED_ITEMS.get_or_init(|| {
         let mut map = McNamespaceMap::new();
         for (&k, &v) in renamed_blocks().iter_mc_to_value() {
@@ -70,7 +69,7 @@ fn renamed_items() -> &'static McNamespaceMap<'static, &'static JavaStr> {
 }
 
 static_string_mc_map! {
-    RECIPES_UPDATES, recipes_updates, {
+    recipes_updates = {
         "acacia_bark" => "minecraft:acacia_wood",
         "birch_bark" => "minecraft:birch_wood",
         "dark_oak_bark" => "minecraft:dark_oak_wood",

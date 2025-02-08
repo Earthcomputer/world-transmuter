@@ -32,7 +32,8 @@ fn types() -> &'static MinecraftTypes {
     }
     unsafe {
         // SAFETY: this line cannot be reached without the initialization above. See the safety comment there for details.
-        #[allow(static_mut_refs)] // it's ok here because the static is local and therefore cannot be accessed mutably from elsewhere, or this function (see safety comment above)
+        // the warning is ok here because the static is local and therefore cannot be accessed mutably from elsewhere, or this function (see safety comment above)
+        #[allow(static_mut_refs)]
         TYPES.assume_init_ref()
     }
 }

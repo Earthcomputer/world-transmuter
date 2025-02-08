@@ -6,7 +6,7 @@ use world_transmuter_engine::{map_data_converter_func, JValue};
 const VERSION: u32 = 2503;
 
 static_string_mc_set! {
-    WALL_BLOCKS, wall_blocks, {
+    wall_blocks = {
         "andesite_wall",
         "brick_wall",
         "cobblestone_wall",

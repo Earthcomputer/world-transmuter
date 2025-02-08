@@ -9,14 +9,14 @@ use world_transmuter_engine::{
 
 const VERSION: u32 = 3825;
 
-static_string_set!(
-    BANNER_NAMES, banner_names, {
+static_string_set! {
+    banner_names = {
         "block.minecraft.ominous_banner",
     }
-);
+}
 
-static_string_set!(
-    MAP_NAMES, map_names, {
+static_string_set! {
+    map_names = {
         "filled_map.buried_treasure",
         "filled_map.explorer_jungle",
         "filled_map.explorer_swamp",
@@ -29,7 +29,7 @@ static_string_set!(
         "filled_map.village_snowy",
         "filled_map.village_taiga",
     }
-);
+}
 
 const TRIAL_SPAWNER_NORMAL_CONFIG_KEYS: [&JavaStr; 9] = [
     JavaStr::from_str("spawn_range"),

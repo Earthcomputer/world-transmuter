@@ -7,7 +7,7 @@ use world_transmuter_engine::*;
 const VERSION: u32 = 99;
 
 static_string_mc_map! {
-    ITEM_ID_TO_TILE_ENTITY_ID, item_id_to_tile_entity_id, {
+    item_id_to_tile_entity_id = {
         "furnace" => "Furnace",
         "lit_furnace" => "Furnace",
         "chest" => "Chest",

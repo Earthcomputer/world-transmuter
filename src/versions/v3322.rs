@@ -6,7 +6,7 @@ use world_transmuter_engine::{
 const VERSION: u32 = 3322;
 
 static_string_mc_set! {
-    EFFECT_ITEM_TYPES, effect_item_types, {
+    effect_item_types = {
         "potion",
         "splash_potion",
         "lingering_potion",

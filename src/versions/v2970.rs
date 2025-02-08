@@ -8,9 +8,8 @@ use world_transmuter_engine::{get_mut_multi, map_data_converter_func, JCompound,
 
 const VERSION: u32 = 2970;
 
-static CONVERSION_MAP: OnceLock<BTreeMap<&JavaStr, BiomeRemap>> = OnceLock::new();
-
 fn conversion_map() -> &'static BTreeMap<&'static JavaStr, BiomeRemap> {
+    static CONVERSION_MAP: OnceLock<BTreeMap<&JavaStr, BiomeRemap>> = OnceLock::new();
     CONVERSION_MAP.get_or_init(|| {
         let mut map = BTreeMap::new();
         map.insert(

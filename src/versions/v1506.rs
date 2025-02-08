@@ -9,7 +9,7 @@ use world_transmuter_engine::{map_data_converter_func, JCompound, JList, JValue}
 const VERSION: u32 = 1506;
 
 static_string_map! {
-    BIOME_MAP, biome_map, {
+    biome_map = {
         "0" => "minecraft:ocean",
         "1" => "minecraft:plains",
         "2" => "minecraft:desert",
