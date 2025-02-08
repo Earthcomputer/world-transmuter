@@ -1,5 +1,5 @@
 use crate::types;
-use java_string::{JavaStr, JavaString};
+use java_string::{format_java, JavaStr, JavaString};
 use world_transmuter_engine::{
     map_data_converter_func, value_data_converter_func, AbstractValueDataType, DataVersion,
     JCompound, JList, JValue, JValueMut,
@@ -124,7 +124,7 @@ pub(crate) fn rename_advancement(
     );
 }
 
-pub(crate) fn rename_attribute(
+pub(crate) fn rename_attribute_old(
     version: impl Into<DataVersion>,
     renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
 ) {
@@ -189,6 +189,22 @@ pub(crate) fn rename_enchantment(
     version: impl Into<DataVersion>,
     renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
 ) {
+    fn rename_enchantment_id(
+        enchantment: &mut JCompound,
+        renamer: impl FnOnce(&JavaStr) -> Option<JavaString>,
+    ) {
+        if let Some(JValue::String(id)) = enchantment.get_mut("id") {
+            let new_id = if id.contains(':') {
+                renamer(id)
+            } else {
+                renamer(&format_java!("minecraft:{id}"))
+            };
+            if let Some(new_id) = new_id {
+                *id = new_id;
+            }
+        }
+    }
+
     types::item_stack_mut().add_structure_converter(
         version,
         map_data_converter_func(move |data, _from_version, _to_version| {
@@ -197,11 +213,7 @@ pub(crate) fn rename_enchantment(
             };
             if let Some(JValue::List(JList::Compound(enchantments))) = tag.get_mut("Enchantments") {
                 for enchantment in enchantments {
-                    if let Some(JValue::String(id)) = enchantment.get_mut("id") {
-                        if let Some(new_id) = renamer(id) {
-                            *id = new_id;
-                        }
-                    }
+                    rename_enchantment_id(enchantment, renamer);
                 }
             }
             if let Some(JValue::List(JList::Compound(enchantments))) =
@@ -209,9 +221,7 @@ pub(crate) fn rename_enchantment(
             {
                 for enchantment in enchantments {
                     if let Some(JValue::String(id)) = enchantment.get_mut("id") {
-                        if let Some(new_id) = renamer(id) {
-                            *id = new_id;
-                        }
+                        rename_enchantment_id(enchantment, renamer);
                     }
                 }
             }

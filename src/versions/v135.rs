@@ -1,7 +1,7 @@
 use crate::types;
 use world_transmuter_engine::{
-    convert_map_in_map, map_data_converter_func, map_data_walker, DataWalkerMapListPaths, JList,
-    JValue,
+    convert_map_in_map, convert_map_list_in_map, map_data_converter_func, map_data_walker,
+    DataWalkerMapListPaths, JList, JValue,
 };
 
 const VERSION: u32 = 135;
@@ -41,6 +41,14 @@ pub(crate) fn register() {
                     to_version,
                 );
             }
+
+            convert_map_list_in_map(
+                types::entity_ref(),
+                data,
+                "ender_pearls",
+                from_version,
+                to_version,
+            );
         }),
     );
 

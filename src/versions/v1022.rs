@@ -21,6 +21,14 @@ pub(crate) fn register() {
             }
 
             convert_map_list_in_map(
+                types::entity_ref(),
+                data,
+                "ender_pearls",
+                from_version,
+                to_version,
+            );
+
+            convert_map_list_in_map(
                 types::item_stack_ref(),
                 data,
                 "Inventory",

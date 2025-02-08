@@ -1,4 +1,4 @@
-use crate::helpers::rename::rename_attribute;
+use crate::helpers::rename::rename_attribute_old;
 use crate::static_string_map;
 
 const VERSION: u32 = 2523;
@@ -27,7 +27,7 @@ static_string_map! {
 }
 
 pub(crate) fn register() {
-    rename_attribute(VERSION, |name| {
+    rename_attribute_old(VERSION, |name| {
         renames().get(name).copied().map(|o| o.to_owned())
     })
 }

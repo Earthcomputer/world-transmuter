@@ -303,6 +303,16 @@ pub(crate) fn register() {
                 from_version,
                 to_version,
             );
+
+            if let Some(JValue::Compound(food)) = data.get_mut("minecraft:food") {
+                convert_map_in_map(
+                    types::item_stack_ref(),
+                    food,
+                    "using_converts_to",
+                    from_version,
+                    to_version,
+                );
+            }
         }),
     );
 

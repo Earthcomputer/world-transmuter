@@ -15,6 +15,13 @@ pub(crate) fn register() {
             update_line(data, "Text4");
         }),
     );
+    types::entity_mut().add_converter_for_id(
+        "Villager",
+        VERSION,
+        map_data_converter_func(|data, _from_version, _to_version| {
+            data.insert("CanPickUpLoot", true);
+        }),
+    );
 }
 
 fn update_line(data: &mut JCompound, key: &str) {

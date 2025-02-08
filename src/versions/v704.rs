@@ -211,6 +211,14 @@ fn item_id_to_entity_id(
             "hopper_minecart" => {99 => "MinecartHopper", 705 => "minecraft:hopper_minecart"},
             "item_frame" => {99 => "ItemFrame", 705 => "minecraft:item_frame"},
             "glow_item_frame" => {705 => "minecraft:glow_item_frame"},
+
+            // Mojang missed these
+            "pufferfish_bucket" => {705 => "minecraft:pufferfish"},
+            "salmon_bucket" => {705 => "minecraft:salmon"},
+            "cod_bucket" => {705 => "minecraft:cod"},
+            "tropical_fish_bucket" => {705 => "minecraft:tropical_fish"},
+            "axolotl_bucket" => {705 => "minecraft:axolotl"},
+            "tadpole_bucket" => {705 => "minecraft:tadpole"},
         }
     })
 }

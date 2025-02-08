@@ -489,11 +489,11 @@ fn convert_attributes(item: &mut TransientItemStack, flags: i32) {
         _ => Vec::new(),
     };
 
-    let hide_modifiers = (flags & TOOLTIP_FLAG_HIDE_MODIFIERS) != 0;
-    if !attributes.is_empty() || hide_modifiers {
+    if !attributes.is_empty() {
         let mut modifiers = jcompound! {
             "modifiers" => JList::Compound(attributes),
         };
+        let hide_modifiers = (flags & TOOLTIP_FLAG_HIDE_MODIFIERS) != 0;
         if hide_modifiers {
             modifiers.insert("show_in_tooltip", false);
         }
