@@ -211,13 +211,10 @@ fn resize(
     let old_objects_per_value = 64 / old_bits_per_object;
     let new_objects_per_value = 64 / new_bits_per_object;
 
-    let items = 4096;
-    let mut ret = Vec::with_capacity(
-        (items + new_objects_per_value as usize - 1) / new_objects_per_value as usize,
-    );
+    let items = 4096usize;
+    let mut ret = Vec::with_capacity(items.div_ceil(new_objects_per_value as usize));
 
-    let expected_size =
-        (items + old_objects_per_value as usize - 1) / old_objects_per_value as usize;
+    let expected_size = items.div_ceil(old_objects_per_value as usize);
     if val.len() != expected_size {
         return Err(format!(
             "Expected size: {}, got: {}",
@@ -260,10 +257,7 @@ fn resize(
         ret.push(new_curr as i64);
     }
 
-    assert_eq!(
-        ret.len(),
-        (items + new_objects_per_value as usize - 1) / new_objects_per_value as usize
-    );
+    assert_eq!(ret.len(), items.div_ceil(new_objects_per_value as usize));
 
     Ok(ret)
 }
@@ -1034,8 +1028,7 @@ fn create_biome_section(biomes: &[i32], offset: usize, mask: usize) -> JCompound
 
     // manually create packed integer data
     let objects_per_value = 64 / bits_per_object;
-    let mut packed =
-        Vec::with_capacity((64 + objects_per_value as usize - 1) / objects_per_value as usize);
+    let mut packed = Vec::with_capacity(64usize.div_ceil(objects_per_value as usize));
 
     let mut shift = 0;
     let mut curr = 0;
@@ -1061,10 +1054,7 @@ fn create_biome_section(biomes: &[i32], offset: usize, mask: usize) -> JCompound
         packed.push(curr as i64);
     }
 
-    assert_eq!(
-        packed.len(),
-        (64 + objects_per_value as usize - 1) / objects_per_value as usize
-    );
+    assert_eq!(packed.len(), 64usize.div_ceil(objects_per_value as usize));
 
     wrap_palette(palette_string, Some(packed))
 }

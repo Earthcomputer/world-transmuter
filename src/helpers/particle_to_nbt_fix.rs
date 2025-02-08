@@ -278,9 +278,9 @@ fn read_string(input: &JavaStr) -> Option<(Cow<JavaStr>, &JavaStr)> {
 
         // check if there is any need to allocate a new string
         let end_quote_index = input.find(quote)?;
-        if !input
+        if input
             .find('\\')
-            .is_some_and(|backslash_index| backslash_index < end_quote_index)
+            .is_none_or(|backslash_index| backslash_index < end_quote_index)
         {
             return Some((
                 Cow::Borrowed(&input[..end_quote_index]),

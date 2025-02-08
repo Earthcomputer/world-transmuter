@@ -13,7 +13,7 @@ impl<'a> GameEventListenerWalker<'a> {
     }
 }
 
-impl<'a> MapDataWalker for GameEventListenerWalker<'a> {
+impl MapDataWalker for GameEventListenerWalker<'_> {
     fn walk(&self, data: &mut JCompound, from_version: DataVersion, to_version: DataVersion) {
         if let Some(JValue::Compound(listener)) = data.get_mut("listener") {
             if let Some(JValue::Compound(event)) = listener.get_mut("event") {

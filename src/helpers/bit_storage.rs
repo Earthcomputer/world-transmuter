@@ -4,8 +4,7 @@ use tracing::{error, warn};
 use world_transmuter_engine::{get_mut_multi, JCompound, JList, JValue};
 
 pub(crate) const fn bitset_size(size: usize) -> usize {
-    const USIZE_BITS: usize = std::mem::size_of::<usize>() * 8;
-    (size + USIZE_BITS - 1) / USIZE_BITS
+    size.div_ceil(usize::BITS as usize)
 }
 
 #[macro_export]
@@ -233,7 +232,7 @@ where
             ));
         }
         let values_per_long = (64 / bits) as usize;
-        let expected_len = (size + values_per_long - 1) / values_per_long;
+        let expected_len = size.div_ceil(values_per_long);
         if data.as_ref().len() != expected_len {
             return Err(format!(
                 "Expected data length for {} bits of size {} is {}, but was: {}",

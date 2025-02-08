@@ -306,7 +306,7 @@ fn json_value(i: &[u8]) -> IResult<&[u8], Cow<[u8]>> {
 
 // SAFETY: the caller must ensure that if a and b are both borrowed, they must be borrowed from the same original String.
 unsafe fn concat_strings<'a>(a: Cow<'a, [u8]>, b: Cow<'a, [u8]>) -> Cow<'a, [u8]> {
-    return if let (Cow::Borrowed(a), Cow::Borrowed(b)) = (&a, &b) {
+    if let (Cow::Borrowed(a), Cow::Borrowed(b)) = (&a, &b) {
         // SAFETY: this is the invariant checked by the caller
         if (*b).as_ptr().offset_from((*a).as_ptr()) == a.len() as isize {
             // SAFETY: we know that b lies exactly after a, and they will both live as long as 'a
@@ -320,7 +320,7 @@ unsafe fn concat_strings<'a>(a: Cow<'a, [u8]>, b: Cow<'a, [u8]>) -> Cow<'a, [u8]
         let mut result = a.into_owned();
         result.extend_from_slice(&b);
         Cow::Owned(result)
-    };
+    }
 }
 
 #[cfg(test)]

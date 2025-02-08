@@ -39,10 +39,10 @@ pub(crate) fn register() {
 
             let mut need_filtered_messages = false;
             let filtered_messages = vec![
-                get_line_opt(data, "FilteredText1").map(|s| { need_filtered_messages = true; s }).unwrap_or_else(|| get_line(data, "Text1")),
-                get_line_opt(data, "FilteredText2").map(|s| { need_filtered_messages = true; s }).unwrap_or_else(|| get_line(data, "Text2")),
-                get_line_opt(data, "FilteredText3").map(|s| { need_filtered_messages = true; s }).unwrap_or_else(|| get_line(data, "Text3")),
-                get_line_opt(data, "FilteredText4").map(|s| { need_filtered_messages = true; s }).unwrap_or_else(|| get_line(data, "Text4")),
+                get_line_opt(data, "FilteredText1").inspect(|_| { need_filtered_messages = true; }).unwrap_or_else(|| get_line(data, "Text1")),
+                get_line_opt(data, "FilteredText2").inspect(|_| { need_filtered_messages = true; }).unwrap_or_else(|| get_line(data, "Text2")),
+                get_line_opt(data, "FilteredText3").inspect(|_| { need_filtered_messages = true; }).unwrap_or_else(|| get_line(data, "Text3")),
+                get_line_opt(data, "FilteredText4").inspect(|_| { need_filtered_messages = true; }).unwrap_or_else(|| get_line(data, "Text4")),
             ];
             if need_filtered_messages {
                 front_text.insert("filtered_messages", JList::String(filtered_messages));

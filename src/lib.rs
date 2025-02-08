@@ -1,4 +1,5 @@
 #![allow(clippy::collapsible_else_if)]
+#![allow(unused)]
 
 use crate::version_names::get_breakpoints;
 use world_transmuter_engine::{

@@ -3,16 +3,15 @@ use std::mem::MaybeUninit;
 use std::sync::{Once, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError};
 use world_transmuter_engine::{DynamicDataType, IdDataType, MapDataType, ObjectDataType};
 
-static mut TYPES: MaybeUninit<MinecraftTypes> = MaybeUninit::uninit();
-thread_local! {
-    static IS_INITIALIZING_ON_THIS_THREAD: Cell<bool> = const { Cell::new(false) };
-}
-static TYPES_INITIALIZER: Once = Once::new();
-
 fn types() -> &'static MinecraftTypes {
-    if !IS_INITIALIZING_ON_THIS_THREAD.with(|v| v.get()) {
+    static mut TYPES: MaybeUninit<MinecraftTypes> = MaybeUninit::uninit();
+    thread_local! {
+        static IS_INITIALIZING_ON_THIS_THREAD: Cell<bool> = const { Cell::new(false) };
+    }
+    static TYPES_INITIALIZER: Once = Once::new();
+    if !IS_INITIALIZING_ON_THIS_THREAD.get() {
         TYPES_INITIALIZER.call_once(|| {
-            IS_INITIALIZING_ON_THIS_THREAD.with(|v| v.set(true));
+            IS_INITIALIZING_ON_THIS_THREAD.set(true);
 
             unsafe {
                 // SAFETY: we are inside a call_once, so not possible for this line to be reached
@@ -28,11 +27,12 @@ fn types() -> &'static MinecraftTypes {
             // - ID specific walkers run after structure walkers.
             crate::versions::register_versions();
 
-            IS_INITIALIZING_ON_THIS_THREAD.with(|v| v.set(false));
+            IS_INITIALIZING_ON_THIS_THREAD.set(false);
         });
     }
     unsafe {
         // SAFETY: this line cannot be reached without the initialization above. See the safety comment there for details.
+        #[allow(static_mut_refs)] // it's ok here because the static is local and therefore cannot be accessed mutably from elsewhere, or this function (see safety comment above)
         TYPES.assume_init_ref()
     }
 }

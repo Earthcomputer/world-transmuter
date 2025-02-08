@@ -48,7 +48,7 @@ fn add_padding(size: usize, bits: usize, old: &[i64]) -> Vec<i64> {
 
     let mask = (1i64 << bits) - 1;
     let values_per_long = 64 / bits;
-    let new_len = (size + values_per_long - 1) / values_per_long;
+    let new_len = size.div_ceil(values_per_long);
     let mut padded = vec![0i64; new_len];
     let mut new_word_index = 0;
     let mut used_bits = 0;

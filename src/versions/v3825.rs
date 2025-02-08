@@ -66,8 +66,8 @@ pub(crate) fn register() {
             let Some(JValue::String(custom_name)) = data.get("CustomName") else {
                 return;
             };
-            if !retrieve_translation_string(custom_name)
-                .is_some_and(|translation_key| translation_key == "block.minecraft.ominous_banner")
+            if retrieve_translation_string(custom_name)
+                .is_none_or(|translation_key| translation_key != "block.minecraft.ominous_banner")
             {
                 return;
             }
