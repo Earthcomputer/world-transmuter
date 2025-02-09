@@ -223,4 +223,5 @@ versions! {
     mod v4054;
     mod v4055;
     mod v4057;
+    mod v4059;
 }
