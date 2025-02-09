@@ -220,4 +220,5 @@ versions! {
     mod v3939;
     mod v3943;
     mod v3945;
+    mod v4054;
 }

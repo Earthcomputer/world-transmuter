@@ -13,10 +13,10 @@ pub(crate) fn make_literal_component(value: &JavaStr) -> JavaString {
     )
 }
 
-pub(crate) fn make_translatable_component(value: &JavaStr) -> JavaString {
+pub(crate) fn make_translatable_component(value: impl AsRef<JavaStr>) -> JavaString {
     format_java!(
         "{{\"translate\":\"{}\"}}",
-        value.replace('\\', "\\\\").replace('"', "\\\"")
+        value.as_ref().replace('\\', "\\\\").replace('"', "\\\"")
     )
 }
 
