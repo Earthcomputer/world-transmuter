@@ -124,6 +124,50 @@ pub(crate) fn rename_advancement(
     );
 }
 
+pub(crate) fn rename_attribute(
+    version: impl Into<DataVersion>,
+    renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
+) {
+    let version = version.into();
+
+    types::data_components_mut().add_structure_converter(
+        version,
+        map_data_converter_func(move |data, _from_version, _to_version| {
+            let Some(JValue::Compound(attribute_modifiers)) =
+                data.get_mut("minecraft:attribute_modifiers")
+            else {
+                return;
+            };
+            let Some(JValue::List(JList::Compound(modifiers))) =
+                attribute_modifiers.get_mut("modifiers")
+            else {
+                return;
+            };
+            for modifier in modifiers {
+                if let Some(JValue::String(typ)) = modifier.get_mut("type") {
+                    if let Some(new_type) = renamer(typ) {
+                        *typ = new_type;
+                    }
+                }
+            }
+        }),
+    );
+
+    let entity_converter =
+        |data: &mut JCompound, _from_version: DataVersion, _to_version: DataVersion| {
+            let Some(JValue::List(JList::Compound(modifiers))) = data.get_mut("attributes") else {
+                return;
+            };
+            for modifier in modifiers {
+                if let Some(JValue::String(id)) = modifier.get_mut("id") {
+                    if let Some(new_id) = renamer(id) {
+                        *id = new_id;
+                    }
+                }
+            }
+        };
+}
+
 pub(crate) fn rename_attribute_old(
     version: impl Into<DataVersion>,
     renamer: impl 'static + Copy + Fn(&JavaStr) -> Option<JavaString>,
